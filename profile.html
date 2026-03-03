@@ -1,0 +1,1395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Chessie's Fitness Profile</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Inter', sans-serif; background: #2d3533; color: #f0f4f3; }
+    select option { background: #2d3533; color: #f0f4f3; }
+    ::-webkit-scrollbar { width: 6px; } 
+    ::-webkit-scrollbar-track { background: #2d3533; }
+    ::-webkit-scrollbar-thumb { background: #3d4f4c; border-radius: 3px; }
+    input[type=number]::-webkit-inner-spin-button { opacity: 1; }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CONFIG
+// ─────────────────────────────────────────────────────────────────────────────
+const SUPABASE_URL = "https://xylodfxjdxcrotdduahn.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh5bG9kZnhqZHhjcm90ZGR1YWhuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI1NzE2NjIsImV4cCI6MjA4ODE0NzY2Mn0.YGFIKStaQEVDevdAULaxtF-Xdsgov1KN1h4wBddbJ6k";
+const CHESSIE_EMAIL = "fcolombo123@gmail.com";
+
+const supabaseConfigured = SUPABASE_URL !== "YOUR_SUPABASE_URL";
+const sb = supabaseConfigured && window.supabase
+  ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+  : null;
+console.log("Supabase client:", sb ? "initialized" : "NULL - window.supabase not loaded");
+
+// ─────────────────────────────────────────────────────────────────────────────
+// FITNESS CONSTANTS
+// ─────────────────────────────────────────────────────────────────────────────
+const REP_SCHEMES = {
+  "Barbell Bench Press":      [6, 8],
+  "Barbell Back Squat":       [6, 8],
+  "Trap Bar Deadlift":        [6, 8],
+  "Lat Pulldowns":            [6, 8],
+  "Romanian Deadlifts":       [8, 10],
+  "DB Rows":                  [8, 10],
+  "Seated DB OHP":            [8, 10],
+  "Cable Rows Wide":          [8, 10],
+  "Incline DB Press (Push)":  [10, 12],
+  "Incline DB Press (Pull)":  [10, 12],
+  "Cable Rows Close":         [10, 12],
+  "Goblet Squats":            [10, 12],
+  "Bulgarian Split Squats":   [10, 12],
+  "Barbell Curls":            [10, 12],
+  "Hammer Curls":             [10, 12],
+  "Leg Curls":                [10, 12],
+  "OH Tricep Extension":      [10, 12],
+  "Tricep Pushdowns":         [10, 12],
+  "Leg Press":                [12, 15],
+  "Leg Extensions":           [12, 15],
+  "Hip Thrusts":              [12, 15],
+  "Cable Flyes":              [12, 15],
+  "Lateral Raises":           [12, 15],
+  "Face Pulls":               [15, 20],
+  "Hanging Leg Raises":       [12, 15],
+  "Plank":                    [45, 60],
+};
+
+const DAYS = ["Upper Push", "Lower A", "Upper Pull", "Lower B"];
+const DAY_COLORS = {
+  "Upper Push": "#2dd4bf",
+  "Lower A":    "#34d399",
+  "Upper Pull": "#22d3ee",
+  "Lower B":    "#818cf8",
+};
+const CAL_TARGET = 2100;
+const PROTEIN_TARGET = 165;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SEED DATA (Chessie only)
+// ─────────────────────────────────────────────────────────────────────────────
+const SEED_WORKOUTS = [
+  { week:1, day:"Upper Push", date:"2025-01-04", exercise:"Barbell Bench Press", sets:[{reps:6,weight:105},{reps:5,weight:105},{reps:8,weight:95},{reps:8,weight:95}] },
+  { week:1, day:"Upper Push", date:"2025-01-04", exercise:"Seated DB OHP", sets:[{reps:10,weight:22.5},{reps:10,weight:22.5},{reps:9,weight:25},{reps:8,weight:25}] },
+  { week:1, day:"Upper Push", date:"2025-01-04", exercise:"Incline DB Press (Push)", sets:[{reps:12,weight:35},{reps:10,weight:35},{reps:8,weight:35}] },
+  { week:1, day:"Upper Push", date:"2025-01-04", exercise:"Cable Flyes", sets:[{reps:15,weight:40},{reps:15,weight:45},{reps:15,weight:50}] },
+  { week:1, day:"Upper Push", date:"2025-01-04", exercise:"Lateral Raises", sets:[{reps:15,weight:7.5},{reps:15,weight:7.5},{reps:15,weight:7.5}] },
+  { week:1, day:"Upper Push", date:"2025-01-04", exercise:"Tricep Pushdowns", sets:[{reps:14,weight:27.5},{reps:10,weight:22.5},{reps:10,weight:22.5}] },
+  { week:1, day:"Upper Push", date:"2025-01-04", exercise:"Face Pulls", sets:[{reps:18,weight:22.5},{reps:19,weight:25}] },
+  { week:1, day:"Lower A", date:"2025-01-05", exercise:"Barbell Back Squat", sets:[{reps:8,weight:115},{reps:8,weight:115},{reps:8,weight:115},{reps:8,weight:115}] },
+  { week:1, day:"Lower A", date:"2025-01-05", exercise:"Leg Press", sets:[{reps:12,weight:180},{reps:12,weight:180},{reps:12,weight:180}] },
+  { week:1, day:"Lower A", date:"2025-01-05", exercise:"Romanian Deadlifts", sets:[{reps:10,weight:80},{reps:10,weight:80},{reps:10,weight:80}] },
+  { week:1, day:"Lower A", date:"2025-01-05", exercise:"Leg Curls", sets:[{reps:12,weight:60},{reps:12,weight:60},{reps:11,weight:60}] },
+  { week:1, day:"Lower A", date:"2025-01-05", exercise:"Leg Extensions", sets:[{reps:15,weight:60},{reps:15,weight:55},{reps:15,weight:50}] },
+  { week:1, day:"Lower A", date:"2025-01-05", exercise:"Hanging Leg Raises", sets:[{reps:10,weight:0},{reps:10,weight:0},{reps:10,weight:0}] },
+  { week:1, day:"Upper Pull", date:"2025-01-06", exercise:"Lat Pulldowns", sets:[{reps:7,weight:75},{reps:8,weight:70},{reps:8,weight:70},{reps:8,weight:70}] },
+  { week:1, day:"Upper Pull", date:"2025-01-06", exercise:"DB Rows", sets:[{reps:10,weight:35},{reps:10,weight:35},{reps:10,weight:35}] },
+  { week:1, day:"Upper Pull", date:"2025-01-06", exercise:"Cable Rows Close", sets:[{reps:12,weight:75},{reps:12,weight:75},{reps:10,weight:75}] },
+  { week:1, day:"Upper Pull", date:"2025-01-06", exercise:"Barbell Curls", sets:[{reps:10,weight:40},{reps:10,weight:40},{reps:7,weight:40}] },
+  { week:1, day:"Upper Pull", date:"2025-01-06", exercise:"OH Tricep Extension", sets:[{reps:14,weight:25},{reps:14,weight:25},{reps:14,weight:25}] },
+  { week:1, day:"Upper Pull", date:"2025-01-06", exercise:"Hammer Curls", sets:[{reps:9,weight:20},{reps:9,weight:20},{reps:8,weight:20}] },
+  { week:1, day:"Upper Pull", date:"2025-01-06", exercise:"Face Pulls", sets:[{reps:20,weight:25},{reps:20,weight:25}] },
+  { week:1, day:"Lower B", date:"2025-01-09", exercise:"Trap Bar Deadlift", sets:[{reps:8,weight:135},{reps:8,weight:135},{reps:8,weight:135},{reps:7,weight:135}] },
+  { week:1, day:"Lower B", date:"2025-01-09", exercise:"Goblet Squats", sets:[{reps:12,weight:40},{reps:12,weight:40},{reps:12,weight:40}] },
+  { week:1, day:"Lower B", date:"2025-01-09", exercise:"Leg Press", sets:[{reps:15,weight:160},{reps:15,weight:160},{reps:15,weight:160}] },
+  { week:1, day:"Lower B", date:"2025-01-09", exercise:"Leg Curls", sets:[{reps:12,weight:65},{reps:12,weight:65},{reps:11,weight:65}] },
+  { week:1, day:"Lower B", date:"2025-01-09", exercise:"Hip Thrusts", sets:[{reps:15,weight:50},{reps:15,weight:50},{reps:15,weight:50}] },
+  { week:2, day:"Upper Push", date:"2025-01-11", exercise:"Barbell Bench Press", sets:[{reps:8,weight:100},{reps:8,weight:100},{reps:8,weight:100},{reps:7,weight:100}] },
+  { week:2, day:"Upper Push", date:"2025-01-11", exercise:"Seated DB OHP", sets:[{reps:10,weight:25},{reps:10,weight:25},{reps:10,weight:25}] },
+  { week:2, day:"Upper Push", date:"2025-01-11", exercise:"Incline DB Press (Push)", sets:[{reps:12,weight:35},{reps:12,weight:35},{reps:10,weight:35}] },
+  { week:2, day:"Upper Push", date:"2025-01-11", exercise:"Cable Flyes", sets:[{reps:15,weight:50},{reps:12,weight:50},{reps:10,weight:50}] },
+  { week:2, day:"Upper Push", date:"2025-01-11", exercise:"Lateral Raises", sets:[{reps:15,weight:10},{reps:15,weight:10},{reps:15,weight:10}] },
+  { week:2, day:"Upper Push", date:"2025-01-11", exercise:"Tricep Pushdowns", sets:[{reps:12,weight:25},{reps:12,weight:25}] },
+  { week:2, day:"Upper Push", date:"2025-01-11", exercise:"Face Pulls", sets:[{reps:20,weight:25},{reps:20,weight:25}] },
+  { week:2, day:"Lower A", date:"2025-01-12", exercise:"Barbell Back Squat", sets:[{reps:8,weight:115},{reps:8,weight:115},{reps:8,weight:115},{reps:8,weight:115}] },
+  { week:2, day:"Lower A", date:"2025-01-12", exercise:"Leg Press", sets:[{reps:12,weight:180},{reps:12,weight:180},{reps:12,weight:180}] },
+  { week:2, day:"Lower A", date:"2025-01-12", exercise:"Romanian Deadlifts", sets:[{reps:10,weight:115},{reps:10,weight:115},{reps:10,weight:115}] },
+  { week:2, day:"Lower A", date:"2025-01-12", exercise:"Leg Curls", sets:[{reps:12,weight:65},{reps:12,weight:65},{reps:12,weight:65}] },
+  { week:2, day:"Lower A", date:"2025-01-12", exercise:"Leg Extensions", sets:[{reps:15,weight:55},{reps:15,weight:55},{reps:15,weight:55}] },
+  { week:2, day:"Lower A", date:"2025-01-12", exercise:"Hanging Leg Raises", sets:[{reps:15,weight:0},{reps:15,weight:0},{reps:15,weight:0}] },
+  { week:2, day:"Upper Pull", date:"2025-01-13", exercise:"Lat Pulldowns", sets:[{reps:8,weight:75},{reps:8,weight:75},{reps:6,weight:75},{reps:6,weight:75}] },
+  { week:2, day:"Upper Pull", date:"2025-01-13", exercise:"DB Rows", sets:[{reps:12,weight:40},{reps:12,weight:40},{reps:12,weight:40}] },
+  { week:2, day:"Upper Pull", date:"2025-01-13", exercise:"Cable Rows Close", sets:[{reps:12,weight:80},{reps:12,weight:80},{reps:10,weight:80}] },
+  { week:2, day:"Upper Pull", date:"2025-01-13", exercise:"Barbell Curls", sets:[{reps:10,weight:40},{reps:10,weight:40},{reps:7,weight:40}] },
+  { week:2, day:"Upper Pull", date:"2025-01-13", exercise:"OH Tricep Extension", sets:[{reps:12,weight:30},{reps:12,weight:30},{reps:12,weight:30}] },
+  { week:2, day:"Upper Pull", date:"2025-01-13", exercise:"Hammer Curls", sets:[{reps:10,weight:20},{reps:10,weight:20},{reps:8,weight:20}] },
+  { week:2, day:"Upper Pull", date:"2025-01-13", exercise:"Face Pulls", sets:[{reps:20,weight:25},{reps:20,weight:25}] },
+  { week:2, day:"Lower B", date:"2025-01-15", exercise:"Trap Bar Deadlift", sets:[{reps:8,weight:135},{reps:8,weight:135},{reps:8,weight:135},{reps:8,weight:135}] },
+  { week:2, day:"Lower B", date:"2025-01-15", exercise:"Bulgarian Split Squats", sets:[{reps:10,weight:15},{reps:10,weight:15},{reps:10,weight:15}], notes:"Possibly one DB only" },
+  { week:2, day:"Lower B", date:"2025-01-15", exercise:"Leg Press", sets:[{reps:15,weight:180},{reps:15,weight:180},{reps:15,weight:180}] },
+  { week:2, day:"Lower B", date:"2025-01-15", exercise:"Leg Curls", sets:[{reps:12,weight:65},{reps:12,weight:65},{reps:12,weight:65}] },
+  { week:2, day:"Lower B", date:"2025-01-15", exercise:"Hip Thrusts", sets:[{reps:15,weight:60},{reps:15,weight:60},{reps:15,weight:60}] },
+  { week:3, day:"Upper Push", date:"2025-01-21", exercise:"Barbell Bench Press", sets:[{reps:8,weight:100},{reps:8,weight:100},{reps:8,weight:100},{reps:8,weight:100}] },
+  { week:3, day:"Upper Push", date:"2025-01-21", exercise:"Seated DB OHP", sets:[{reps:9,weight:30},{reps:9,weight:30},{reps:7,weight:30}] },
+  { week:3, day:"Upper Push", date:"2025-01-21", exercise:"Incline DB Press (Push)", sets:[{reps:9,weight:40},{reps:9,weight:35},{reps:8,weight:35}] },
+  { week:3, day:"Upper Push", date:"2025-01-21", exercise:"Cable Flyes", sets:[{reps:12,weight:25},{reps:12,weight:25},{reps:9,weight:25}] },
+  { week:3, day:"Upper Push", date:"2025-01-21", exercise:"Lateral Raises", sets:[{reps:15,weight:12.5},{reps:15,weight:12.5},{reps:10,weight:12.5}] },
+  { week:3, day:"Upper Push", date:"2025-01-21", exercise:"Tricep Pushdowns", sets:[{reps:12,weight:25.5},{reps:12,weight:25.5},{reps:11,weight:25.5}] },
+  { week:3, day:"Upper Push", date:"2025-01-21", exercise:"Face Pulls", sets:[{reps:20,weight:25},{reps:20,weight:25}] },
+  { week:3, day:"Lower A", date:"2025-01-22", exercise:"Barbell Back Squat", sets:[{reps:8,weight:125},{reps:8,weight:125},{reps:8,weight:125},{reps:8,weight:125}] },
+  { week:3, day:"Lower A", date:"2025-01-22", exercise:"Leg Press", sets:[{reps:12,weight:200},{reps:12,weight:200},{reps:12,weight:200}] },
+  { week:3, day:"Lower A", date:"2025-01-22", exercise:"Romanian Deadlifts", sets:[{reps:8,weight:120},{reps:8,weight:120},{reps:8,weight:120}], notes:"Modified grip - hand injury" },
+  { week:3, day:"Lower A", date:"2025-01-22", exercise:"Leg Curls", sets:[{reps:12,weight:70},{reps:12,weight:70},{reps:12,weight:70}] },
+  { week:3, day:"Lower A", date:"2025-01-22", exercise:"Leg Extensions", sets:[{reps:15,weight:60},{reps:15,weight:60},{reps:15,weight:60}] },
+  { week:3, day:"Upper Pull", date:"2025-01-24", exercise:"Lat Pulldowns", sets:[{reps:8,weight:75},{reps:8,weight:75},{reps:8,weight:75},{reps:8,weight:75}] },
+  { week:3, day:"Upper Pull", date:"2025-01-24", exercise:"DB Rows", sets:[{reps:8,weight:45},{reps:8,weight:45},{reps:8,weight:45}] },
+  { week:3, day:"Upper Pull", date:"2025-01-24", exercise:"Incline DB Press (Pull)", sets:[{reps:12,weight:35},{reps:12,weight:35},{reps:12,weight:35}] },
+  { week:3, day:"Upper Pull", date:"2025-01-24", exercise:"Cable Rows Close", sets:[{reps:12,weight:80},{reps:12,weight:80},{reps:12,weight:80}] },
+  { week:3, day:"Upper Pull", date:"2025-01-24", exercise:"Barbell Curls", sets:[{reps:10,weight:40},{reps:10,weight:40},{reps:9,weight:40}] },
+  { week:3, day:"Upper Pull", date:"2025-01-24", exercise:"OH Tricep Extension", sets:[{reps:12,weight:30},{reps:12,weight:30},{reps:12,weight:30}] },
+  { week:3, day:"Upper Pull", date:"2025-01-24", exercise:"Hammer Curls", sets:[{reps:10,weight:20},{reps:10,weight:20},{reps:8,weight:20}] },
+  { week:3, day:"Upper Pull", date:"2025-01-24", exercise:"Face Pulls", sets:[{reps:20,weight:30},{reps:20,weight:27.5}] },
+  { week:3, day:"Lower B", date:"2025-01-25", exercise:"Trap Bar Deadlift", sets:[{reps:6,weight:145},{reps:6,weight:145},{reps:7,weight:145},{reps:6,weight:145}] },
+  { week:3, day:"Lower B", date:"2025-01-25", exercise:"Bulgarian Split Squats", sets:[{reps:10,weight:17.5},{reps:10,weight:17.5},{reps:10,weight:17.5}] },
+  { week:3, day:"Lower B", date:"2025-01-25", exercise:"Leg Press", sets:[{reps:15,weight:200},{reps:15,weight:200},{reps:15,weight:200}] },
+  { week:3, day:"Lower B", date:"2025-01-25", exercise:"Leg Curls", sets:[{reps:12,weight:70},{reps:12,weight:70},{reps:12,weight:70}] },
+  { week:3, day:"Lower B", date:"2025-01-25", exercise:"Hip Thrusts", sets:[{reps:15,weight:70},{reps:15,weight:70},{reps:15,weight:70}] },
+  { week:3, day:"Lower B", date:"2025-01-25", exercise:"Plank", sets:[{reps:60,weight:0},{reps:60,weight:0},{reps:60,weight:0}] },
+  { week:4, day:"Upper Push", date:"2025-01-28", exercise:"Barbell Bench Press", sets:[{reps:8,weight:105},{reps:8,weight:105},{reps:7,weight:105},{reps:8,weight:105}] },
+  { week:4, day:"Upper Push", date:"2025-01-28", exercise:"Seated DB OHP", sets:[{reps:10,weight:30},{reps:9,weight:30},{reps:8,weight:30}] },
+  { week:4, day:"Upper Push", date:"2025-01-28", exercise:"Incline DB Press (Push)", sets:[{reps:10,weight:35},{reps:12,weight:35},{reps:10,weight:35}] },
+  { week:4, day:"Upper Push", date:"2025-01-28", exercise:"Lateral Raises", sets:[{reps:15,weight:12.5},{reps:15,weight:12.5},{reps:13,weight:12.5}] },
+  { week:4, day:"Upper Push", date:"2025-01-28", exercise:"Cable Flyes", sets:[{reps:15,weight:50},{reps:15,weight:50},{reps:13,weight:50}] },
+  { week:4, day:"Upper Push", date:"2025-01-28", exercise:"Face Pulls", sets:[{reps:20,weight:32.5},{reps:20,weight:27.5}] },
+  { week:4, day:"Upper Push", date:"2025-01-28", exercise:"Tricep Pushdowns", sets:[{reps:13,weight:27.5},{reps:12,weight:30.5},{reps:11,weight:30.5}] },
+];
+
+const SEED_METRICS = [
+  { date:"2024-12-21", weight:206, bodyFat:null },
+  { date:"2025-01-04", weight:208, bodyFat:null },
+  { date:"2025-01-11", weight:207, bodyFat:null },
+];
+
+// ─────────────────────────────────────────────────────────────────────────────
+// STORAGE
+// ─────────────────────────────────────────────────────────────────────────────
+function lsKey(uid, t) { return `hj_${uid}_${t}`; }
+function lsGet(uid, t) { try { return JSON.parse(localStorage.getItem(lsKey(uid,t))) || []; } catch { return []; } }
+function lsSet(uid, t, d) { localStorage.setItem(lsKey(uid,t), JSON.stringify(d)); }
+
+function simpleHash(s) {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) { h = ((h<<5)-h)+s.charCodeAt(i); h|=0; }
+  return String(h);
+}
+
+const Storage = {
+  async initUser(uid, isChessie) {
+    try {
+      const { data } = await Promise.race([
+        sb.from("workouts").select("id").eq("user_id", uid).limit(1),
+        new Promise((_, r) => setTimeout(() => r(new Error("timeout")), 5000))
+      ]);
+      if (data && data.length === 0 && isChessie) {
+        const workouts = SEED_WORKOUTS.map(w => ({ ...w, user_id: uid, sets: w.sets }));
+        await sb.from("workouts").insert(workouts);
+        const metrics = SEED_METRICS.map(m => ({ ...m, user_id: uid }));
+        await sb.from("metrics").insert(metrics);
+      }
+    } catch(e) {
+      console.warn("initUser skipped:", e.message);
+    }
+  },
+  async getWorkouts(uid) {
+    try {
+      const to = new Promise((_, r) => setTimeout(() => r(new Error("timeout")), 8000));
+      const { data } = await Promise.race([sb.from("workouts").select("*").eq("user_id", uid).order("week").order("date"), to]);
+      return (data || []).map(w => ({ ...w, sets: typeof w.sets === "string" ? JSON.parse(w.sets) : w.sets }));
+    } catch(e) { console.warn("getWorkouts:", e.message); return []; }
+  },
+  async addWorkout(uid, w) {
+    const { data } = await sb.from("workouts").insert({ ...w, user_id: uid }).select().single();
+    return data;
+  },
+  async deleteWorkout(uid, id) {
+    await sb.from("workouts").delete().eq("id", id).eq("user_id", uid);
+  },
+  async updateWorkout(uid, id, updates) {
+    await sb.from("workouts").update(updates).eq("id", id).eq("user_id", uid);
+  },
+  async getMetrics(uid) {
+    try {
+      const to = new Promise((_, r) => setTimeout(() => r(new Error("timeout")), 8000));
+      const { data } = await Promise.race([sb.from("metrics").select("*").eq("user_id", uid).order("date"), to]);
+      return (data || []).map(m => ({ ...m, bodyFat: m.body_fat }));
+    } catch(e) { console.warn("getMetrics:", e.message); return []; }
+  },
+  async upsertMetric(uid, m) {
+    const { error } = await sb.from("metrics").upsert({ user_id: uid, date: m.date, weight: m.weight ?? null, body_fat: m.bodyFat ?? null }, { onConflict: "user_id,date" });
+    if (error) { console.error("upsertMetric error:", error); throw error; }
+  },
+  async deleteMetric(uid, date) {
+    await sb.from("metrics").delete().eq("user_id", uid).eq("date", date);
+  },
+  async getNutrition(uid) {
+    try {
+      const to = new Promise((_, r) => setTimeout(() => r(new Error("timeout")), 8000));
+      const { data } = await Promise.race([sb.from("nutrition").select("*").eq("user_id", uid).order("date"), to]);
+      return data || [];
+    } catch(e) { console.warn("getNutrition:", e.message); return []; }
+  },
+  async upsertNutrition(uid, n) {
+    await sb.from("nutrition").upsert({ ...n, user_id: uid }, { onConflict: "user_id,date" });
+  },
+};
+
+const Auth = {
+  async getUser() {
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) return null;
+    return { id: session.user.id, email: session.user.email };
+  },
+  async signUp(email, password) {
+    const { data, error } = await sb.auth.signUp({ email, password });
+    if (error) return { user: null, error: error.message };
+    if (data.user && !data.session) return { user: null, error: "Check your email to confirm your account." };
+    return { user: { id: data.user.id, email }, error: null };
+  },
+  async signIn(email, password) {
+    const { data, error } = await sb.auth.signInWithPassword({ email, password });
+    if (error) return { user: null, error: "Invalid email or password." };
+    return { user: { id: data.user.id, email }, error: null };
+  },
+  async signOut() {
+    await sb.auth.signOut();
+  },
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// FITNESS HELPERS
+// ─────────────────────────────────────────────────────────────────────────────
+function e1rm(w,r) { return r===1 ? w : w*(1+r/30); }
+function avgE1rm(sets) { const v=sets.map(s=>e1rm(s.weight,s.reps)); return v.reduce((a,b)=>a+b,0)/v.length; }
+function isDeloadWeek(w) { return w%6===0; }
+function getExHistory(workouts, ex) { return workouts.filter(w=>w.exercise===ex).sort((a,b)=>a.week-b.week); }
+function sevenDayAvg(entries, field) {
+  const cutoff = new Date(); cutoff.setDate(cutoff.getDate()-7);
+  const r = entries.filter(e=>new Date(e.date)>=cutoff && e[field]!=null);
+  if (!r.length) return null;
+  return Math.round(r.reduce((a,e)=>a+e[field],0)/r.length);
+}
+
+function getSuggestion(history, isDeload, exercise) {
+  const sorted = [...history].sort((a,b)=>a.week-b.week);
+  if (!sorted.length) return null;
+  const recent = sorted[sorted.length-1];
+  const twoBack = sorted.length>=2 ? sorted[sorted.length-2] : null;
+  const [repMin,repMax] = REP_SCHEMES[exercise]||[6,8];
+  const lastSets = recent.sets;
+  const lastWeight = lastSets[lastSets.length-1].weight;
+  const workingSets = lastSets.filter(s=>s.weight===lastWeight);
+  const totalRepsRecent = workingSets.reduce((a,s)=>a+s.reps,0);
+  const sameWeight = twoBack && lastWeight===twoBack.sets[twoBack.sets.length-1].weight;
+  const totalRepsTwoBack = twoBack
+    ? twoBack.sets.filter(s=>s.weight===twoBack.sets[twoBack.sets.length-1].weight).reduce((a,s)=>a+s.reps,0)
+    : null;
+  const isStalling = sameWeight && totalRepsTwoBack!=null && totalRepsRecent<totalRepsTwoBack;
+  const allHitTop = workingSets.every(s=>s.reps>=repMax);
+  const anyBelowBottom = workingSets.some(s=>s.reps<repMin);
+  const intensity = recent.intensity || "medium";
+  let suggestedWeight = lastWeight, note="";
+  if (isDeload) {
+    suggestedWeight = Math.round(lastWeight*0.6/2.5)*2.5;
+    note="🔄 Deload — drop to 60%, focus on form.";
+  } else if (isStalling) {
+    suggestedWeight = Math.round(lastWeight*0.9/2.5)*2.5;
+    note="⚠️ Stall detected. Back off 10%, rebuild.";
+  } else if (anyBelowBottom) {
+    suggestedWeight = Math.round(lastWeight*0.9/2.5)*2.5;
+    note=`⚠️ Reps dropped below ${repMin}. Drop weight.`;
+  } else if (allHitTop) {
+    if (intensity === "very hard") {
+      suggestedWeight = lastWeight;
+      note=`⚠️ Hit ${repMax} reps but felt very hard — hold weight and consolidate.`;
+    } else {
+      const inc = lastWeight>=100?5:2.5;
+      suggestedWeight = lastWeight+inc;
+      note = intensity === "easy"
+        ? `✅ All sets hit ${repMax} reps and felt easy. Add ${inc}lbs — could push harder next time.`
+        : `✅ All sets hit ${repMax}. Add ${inc}lbs.`;
+    }
+  } else {
+    const missed = workingSets.filter(s=>s.reps<repMax).length;
+    const prog = totalRepsTwoBack!=null?` (${totalRepsTwoBack}→${totalRepsRecent} total reps)`:"";
+    note=`📈 ${missed} set${missed>1?"s":""} below ${repMax}. Hold weight${prog}.`;
+  }
+  return { suggestedWeight, note, isStalling, repMin, repMax, basedOnWeek:recent.week, intensity };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// THEME
+// ─────────────────────────────────────────────────────────────────────────────
+function getTheme(dark) {
+  return dark ? {
+    bg: "#2d3533", bgCard: "#323b39", bgInput: "#2d3533",
+    border: "#3d4f4c", accent: "#2dd4bf", text: "#f0f4f3",
+    muted: "#8aaba7", dim: "#5a7a76",
+    green: "#22c55e", red: "#ef4444", amber: "#f59e0b",
+  } : {
+    bg: "#f0f4f3", bgCard: "#ffffff", bgInput: "#f8fafa",
+    border: "#d4e2e0", accent: "#0d9488", text: "#1a2e2b",
+    muted: "#5a7a76", dim: "#8aaba7",
+    green: "#16a34a", red: "#dc2626", amber: "#d97706",
+  };
+}
+let T = getTheme(true);
+
+function getStyles(T) { return {
+  root: { fontFamily:"'Inter',sans-serif", background:T.bg, minHeight:"100vh", color:T.text },
+  header: { background:T.bgCard, borderBottom:`1px solid ${T.border}`, padding:"18px 28px", display:"flex", alignItems:"center", justifyContent:"space-between" },
+  nav: { background:T.bgCard, borderBottom:`1px solid ${T.border}`, padding:"0 28px", display:"flex", gap:4, overflowX:"auto" },
+  navBtn: a => ({ padding:"12px 16px", border:"none", background:"transparent", cursor:"pointer", fontSize:11, fontWeight:700, letterSpacing:"0.08em", textTransform:"uppercase", color:a?T.accent:T.muted, borderBottom:a?`2px solid ${T.accent}`:"2px solid transparent", transition:"all 0.15s", whiteSpace:"nowrap" }),
+  content: { padding:"24px 28px", maxWidth:980, margin:"0 auto" },
+  card: { background:T.bgCard, border:`1px solid ${T.border}`, borderRadius:10, padding:"16px 20px" },
+  input: { background:T.bgInput, border:`1px solid ${T.border}`, borderRadius:6, color:T.text, padding:"8px 12px", fontSize:12, fontFamily:"inherit", outline:"none", width:"100%" },
+  select: { background:T.bgInput, border:`1px solid ${T.border}`, borderRadius:6, color:T.text, padding:"8px 12px", fontSize:12, fontFamily:"inherit", outline:"none", width:"100%" },
+  btn: { background:T.accent, color: T.bg === "#f0f4f3" ? "#fff" : "#0f2220", border:"none", borderRadius:6, padding:"9px 22px", fontWeight:700, fontSize:12, fontFamily:"inherit", cursor:"pointer" },
+  btnSm: { background:T.border, color:T.muted, border:"none", borderRadius:6, padding:"5px 12px", fontSize:11, fontFamily:"inherit", cursor:"pointer" },
+  btnDanger: { background:"transparent", color:T.red, border:`1px solid ${T.red}33`, borderRadius:6, padding:"5px 12px", fontSize:11, fontFamily:"inherit", cursor:"pointer" },
+  label: { fontSize:10, color:T.muted, textTransform:"uppercase", letterSpacing:"0.1em", display:"block", marginBottom:4 },
+  divider: { borderTop:`1px solid ${T.border}`, margin:"14px 0" },
+  big: { fontSize:32, fontWeight:700, color:T.text, lineHeight:1 },
+  tag: c => ({ background:c+"22", color:c, border:`1px solid ${c}44`, borderRadius:4, padding:"2px 8px", fontSize:10, fontWeight:700, display:"inline-block" }),
+  grid2: { display:"grid", gridTemplateColumns:"1fr 1fr", gap:16, marginBottom:16 },
+  grid3: { display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:16, marginBottom:16 },
+}; }
+let S = getStyles(T);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SMALL COMPONENTS
+// ─────────────────────────────────────────────────────────────────────────────
+const { useState, useMemo, useEffect, useCallback } = React;
+
+function Pill({ label, color }) {
+  return <span style={S.tag(color||T.accent)}>{label}</span>;
+}
+
+function ProgressBar({ value, max, color }) {
+  const pct = Math.min(100, Math.round((value/max)*100));
+  return (
+    <div style={{ background:T.border, borderRadius:4, height:6, overflow:"hidden" }}>
+      <div style={{ width:`${pct}%`, height:"100%", background:color||T.accent, transition:"width 0.3s" }} />
+    </div>
+  );
+}
+
+function MiniChart({ data, color }) {
+  if (data.length < 2) return <span style={{ color:T.dim, fontSize:11 }}>Not enough data</span>;
+  const H=60, pad=12, VW=280;
+  const vals = data.map(d=>d.y);
+  const minV=Math.min(...vals), maxV=Math.max(...vals);
+  const range = maxV-minV || 1;
+  const coords = data.map((d,i) => ({
+    x: pad + (i/(data.length-1))*(VW-pad*2),
+    y: H-pad - ((d.y-minV)/range)*(H-pad*2),
+  }));
+  const pts = coords.map(c=>`${c.x},${c.y}`).join(" ");
+  return (
+    <svg viewBox={`0 0 ${VW} ${H}`} width="100%" height={H} style={{ display:"block" }}>
+      <polyline fill="none" stroke={color||T.accent} strokeWidth={2} points={pts} />
+      {coords.map((c,i) => (
+        <circle key={i} cx={c.x} cy={c.y} r={3} fill={color||T.accent} />
+      ))}
+    </svg>
+  );
+}
+
+function SetsDisplay({ sets }) {
+  const weights = sets.map(s=>s.weight);
+  const uniform = weights.every(w=>w===weights[0]);
+  if (uniform) return (
+    <>
+      <div style={{ fontSize:26, fontWeight:700, color:T.text }}>{weights[0]}<span style={{ fontSize:12, color:T.muted }}> lbs</span></div>
+      <div style={{ fontSize:13, color:T.muted, marginTop:2 }}>{sets.map(s=>s.reps).join(", ")} reps</div>
+    </>
+  );
+  return (
+    <div style={{ fontSize:13, color:T.muted, marginTop:2, lineHeight:1.9 }}>
+      {sets.map((s,i) => <span key={i} style={{ marginRight:10, display:"inline-block" }}>{s.reps}<span style={{ color:T.dim }}>×</span><span style={{ color:T.text, fontWeight:600 }}>{s.weight}</span></span>)}
+      <span style={{ color:T.dim, fontSize:11 }}>lbs</span>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// AUTH SCREEN
+// ─────────────────────────────────────────────────────────────────────────────
+function AuthScreen({ onAuth }) {
+  const [mode, setMode] = useState("signin");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+
+  async function handleSubmit() {
+    setError(""); setMessage(""); setLoading(true);
+    try {
+      const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error("Request timed out. Check your internet connection.")), 8000));
+      const authPromise = mode === "signin"
+        ? Auth.signIn(email.trim(), password)
+        : Auth.signUp(email.trim(), password);
+      const result = await Promise.race([authPromise, timeoutPromise]);
+      setLoading(false);
+      if (result.error) { setError(result.error); return; }
+      if (result.user) onAuth(result.user);
+    } catch(e) {
+      setLoading(false);
+      setError(e.message || "Something went wrong. Try again.");
+    }
+  }
+
+  async function handleForgotPassword() {
+    if (!email.trim()) { setError("Enter your email above first."); return; }
+    setLoading(true);
+    const { error } = await sb.auth.resetPasswordForEmail(email.trim(), {
+      redirectTo: window.location.origin,
+    });
+    setLoading(false);
+    if (error) setError(error.message);
+    else setMessage("Password reset email sent — check your inbox.");
+  }
+
+  return (
+    <div style={{ minHeight:"100vh", background:T.bg, display:"flex", alignItems:"center", justifyContent:"center" }}>
+      <div style={{ ...S.card, width:380, padding:"36px 32px" }}>
+        <div style={{ fontSize:22, fontWeight:700, color:T.accent, letterSpacing:"0.08em", textTransform:"uppercase", marginBottom:4 }}>Health Journal</div>
+        <div style={{ fontSize:11, color:T.muted, marginBottom:28, letterSpacing:"0.1em", textTransform:"uppercase" }}>Progressive Overload Tracker</div>
+        <div style={{ marginBottom:14 }}>
+          <label style={S.label}>Email</label>
+          <input style={S.input} type="email" value={email} onChange={e=>setEmail(e.target.value)} onKeyDown={e=>e.key==="Enter"&&handleSubmit()} autoFocus />
+        </div>
+        <div style={{ marginBottom:6 }}>
+          <label style={S.label}>Password</label>
+          <div style={{ position:"relative" }}>
+            <input style={{ ...S.input, paddingRight:44 }} type={showPassword?"text":"password"} value={password} onChange={e=>setPassword(e.target.value)} onKeyDown={e=>e.key==="Enter"&&handleSubmit()} />
+            <span onClick={()=>setShowPassword(p=>!p)} style={{ position:"absolute", right:10, top:"50%", transform:"translateY(-50%)", cursor:"pointer", fontSize:11, color:T.muted, userSelect:"none" }}>
+              {showPassword?"Hide":"Show"}
+            </span>
+          </div>
+        </div>
+        {mode === "signin" && (
+          <div style={{ textAlign:"right", marginBottom:16 }}>
+            <span style={{ fontSize:11, color:T.accent, cursor:"pointer" }} onClick={handleForgotPassword}>Forgot password?</span>
+          </div>
+        )}
+        {!message && <div style={{ marginBottom:16 }} />}
+        {error && <div style={{ color:T.red, fontSize:12, marginBottom:14 }}>{error}</div>}
+        {message && <div style={{ color:T.green, fontSize:12, marginBottom:14 }}>{message}</div>}
+        <button style={{ ...S.btn, width:"100%", padding:"10px" }} onClick={handleSubmit} disabled={loading}>
+          {loading ? "..." : mode==="signin" ? "Sign In" : "Create Account"}
+        </button>
+        <div style={{ textAlign:"center", marginTop:16, fontSize:12, color:T.muted }}>
+          {mode==="signin" ? "No account? " : "Already have one? "}
+          <span style={{ color:T.accent, cursor:"pointer" }} onClick={()=>{setMode(mode==="signin"?"signup":"signin");setError("");setMessage("");}}>
+            {mode==="signin" ? "Sign up" : "Sign in"}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// OVERVIEW TAB
+// ─────────────────────────────────────────────────────────────────────────────
+function OverviewTab({ workouts, metrics, nutrition, currentWeek }) {
+  const latestMetric = metrics.slice(-1)[0];
+  const avgCal = sevenDayAvg(nutrition, "calories");
+  const avgPro = sevenDayAvg(nutrition, "protein");
+  const weeksUntilDeload = 6 - (currentWeek % 6);
+  const sessionsByDay = DAYS.map(day => {
+    const logged = workouts.filter(w=>w.week===currentWeek&&w.day===day);
+    return { day, logged: logged.length > 0 };
+  });
+  const weekWorkouts = workouts.filter(w=>w.week===currentWeek);
+  const allExercises = [...new Set(workouts.map(w=>w.exercise))];
+  const e1rmData = allExercises.filter(ex=>REP_SCHEMES[ex]&&REP_SCHEMES[ex][1]<=10).map(ex => {
+    const hist = getExHistory(workouts, ex);
+    if (!hist.length) return null;
+    const last = hist[hist.length-1];
+    const prev = hist.length>=2?hist[hist.length-2]:null;
+    const rm = Math.round(avgE1rm(last.sets));
+    const gain = prev ? rm - Math.round(avgE1rm(prev.sets)) : 0;
+    return { ex, rm, gain };
+  }).filter(Boolean).sort((a,b)=>b.rm-a.rm).slice(0,4);
+
+  return (
+    <div>
+      <div style={S.grid3}>
+        <div style={S.card}>
+          <div style={{ fontSize:10, color:T.muted, textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:8 }}>Current Week</div>
+          <div style={S.big}>{currentWeek}</div>
+          <div style={{ fontSize:11, color:isDeloadWeek(currentWeek)?T.green:T.muted, marginTop:4 }}>
+            {isDeloadWeek(currentWeek) ? "🔄 Deload week" : `${weeksUntilDeload}w until deload`}
+          </div>
+        </div>
+        <div style={S.card}>
+          <div style={{ fontSize:10, color:T.muted, textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:8 }}>Body Weight</div>
+          <div style={S.big}>{latestMetric?.weight ?? "—"}<span style={{ fontSize:14, color:T.muted }}> lbs</span></div>
+          <div style={{ fontSize:11, color:T.muted, marginTop:4 }}>{latestMetric?.date ?? "No data"}</div>
+        </div>
+        <div style={S.card}>
+          <div style={{ fontSize:10, color:T.muted, textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:8 }}>This Week</div>
+          <div style={{ display:"flex", gap:8, marginTop:4 }}>
+            {sessionsByDay.map(({day,logged}) => (
+              <div key={day} title={day} style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:4 }}>
+                <div style={{ width:10, height:10, borderRadius:"50%", background:logged?DAY_COLORS[day]:T.border }} />
+                <div style={{ fontSize:9, color:T.dim }}>{day.split(" ")[1][0]}{day.split(" ")[0][0]}</div>
+              </div>
+            ))}
+          </div>
+          <div style={{ fontSize:11, color:T.muted, marginTop:8 }}>{weekWorkouts.length} exercises logged</div>
+        </div>
+      </div>
+      <div style={S.grid2}>
+        <div style={S.card}>
+          <div style={{ fontSize:10, color:T.muted, textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:12 }}>7-Day Avg Calories</div>
+          {avgCal!=null ? (
+            <>
+              <div style={S.big}>{avgCal}<span style={{ fontSize:14, color:T.muted }}> kcal</span></div>
+              <div style={{ fontSize:11, color:avgCal<=CAL_TARGET?T.green:T.red, marginTop:4 }}>
+                Target: {CAL_TARGET} · {avgCal<=CAL_TARGET?`✓ ${CAL_TARGET-avgCal} under`:`+${avgCal-CAL_TARGET} over`}
+              </div>
+              <div style={{ marginTop:10 }}><ProgressBar value={avgCal} max={CAL_TARGET*1.3} color={avgCal<=CAL_TARGET?T.green:T.red} /></div>
+            </>
+          ) : <div style={{ fontSize:12, color:T.dim, marginTop:8 }}>No data — log nutrition in the Log tab.</div>}
+        </div>
+        <div style={S.card}>
+          <div style={{ fontSize:10, color:T.muted, textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:12 }}>7-Day Avg Protein</div>
+          {avgPro!=null ? (
+            <>
+              <div style={S.big}>{avgPro}<span style={{ fontSize:14, color:T.muted }}> g</span></div>
+              <div style={{ fontSize:11, color:avgPro>=PROTEIN_TARGET?T.green:T.amber, marginTop:4 }}>
+                Target: {PROTEIN_TARGET}g · {avgPro>=PROTEIN_TARGET?`✓ hitting target`:`${PROTEIN_TARGET-avgPro}g short`}
+              </div>
+              <div style={{ marginTop:10 }}><ProgressBar value={avgPro} max={220} color={avgPro>=PROTEIN_TARGET?T.green:T.amber} /></div>
+            </>
+          ) : <div style={{ fontSize:12, color:T.dim, marginTop:8 }}>No data — log nutrition in the Log tab.</div>}
+        </div>
+      </div>
+      {e1rmData.length > 0 && (
+        <div style={S.card}>
+          <div style={{ fontSize:10, color:T.muted, textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:12 }}>Top Lifts — Estimated 1RM</div>
+          <div style={S.grid2}>
+            {e1rmData.map(({ex,rm,gain}) => (
+              <div key={ex}>
+                <div style={{ fontSize:11, color:T.muted, marginBottom:4 }}>{ex}</div>
+                <div style={{ display:"flex", alignItems:"baseline", gap:8, marginBottom:6 }}>
+                  <span style={{ fontSize:22, fontWeight:700, color:T.text }}>{rm}</span>
+                  <span style={{ fontSize:11, color:T.muted }}>lbs</span>
+                  <span style={{ fontSize:11, color:gain>=0?T.green:T.red }}>{gain>=0?"+":""}{gain}</span>
+                </div>
+                <ProgressBar value={rm} max={300} color={T.accent} />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// NEXT WORKOUT TAB
+// ─────────────────────────────────────────────────────────────────────────────
+function NextWorkoutTab({ workouts, currentWeek }) {
+  const [selectedDay, setSelectedDay] = useState(DAYS[0]);
+
+  const dayExercises = useMemo(() => {
+    const exercises = [...new Set(workouts.filter(w=>w.day===selectedDay).map(w=>w.exercise))];
+    return exercises.map(ex => {
+      const hist = getExHistory(workouts, ex);
+      const currentEntry = hist.find(h=>h.week===currentWeek)||null;
+      const histUpToPrev = hist.filter(h=>h.week<currentWeek);
+      const histUpToCurrent = hist.filter(h=>h.week<=currentWeek);
+      const prevEntry = histUpToPrev.slice(-1)[0]||null;
+      const suggCurrent = !currentEntry ? getSuggestion(histUpToPrev, isDeloadWeek(currentWeek), ex) : null;
+      const suggNext = getSuggestion(histUpToCurrent, isDeloadWeek(currentWeek+1), ex);
+      return { exercise:ex, currentEntry, prevEntry, suggCurrent, suggNext };
+    });
+  }, [workouts, selectedDay, currentWeek]);
+
+  return (
+    <div>
+      <div style={{ display:"flex", gap:8, marginBottom:20, flexWrap:"wrap" }}>
+        {DAYS.map(d => (
+          <button key={d} onClick={()=>setSelectedDay(d)}
+            style={{ ...S.btnSm, background:selectedDay===d?DAY_COLORS[d]+"22":T.border, color:selectedDay===d?DAY_COLORS[d]:T.muted, border:`1px solid ${selectedDay===d?DAY_COLORS[d]+"55":T.border}` }}>
+            {d}
+          </button>
+        ))}
+        <span style={{ fontSize:11, color:isDeloadWeek(currentWeek+1)?T.green:T.dim, alignSelf:"center", marginLeft:4 }}>
+          {isDeloadWeek(currentWeek+1)?`🔄 Week ${currentWeek+1} is deload`:`Next: Week ${currentWeek+1}`}
+        </span>
+      </div>
+      {dayExercises.map(({ exercise, currentEntry, prevEntry, suggCurrent, suggNext }) => (
+        <div key={exercise} style={{ ...S.card, marginBottom:10 }}>
+          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:10 }}>
+            <div>
+              <div style={{ fontWeight:700, fontSize:13 }}>{exercise}</div>
+              {prevEntry && (
+                <div style={{ fontSize:11, color:T.dim, marginTop:3 }}>
+                  W{prevEntry.week}: {prevEntry.sets.map(s=>`${s.reps}×${s.weight}`).join(", ")}
+                </div>
+              )}
+            </div>
+            <Pill label={selectedDay} color={DAY_COLORS[selectedDay]} />
+          </div>
+          <div style={S.divider} />
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:16 }}>
+            <div style={{ borderRight:`1px solid ${T.border}`, paddingRight:16 }}>
+              <div style={{ fontSize:10, textTransform:"uppercase", letterSpacing:"0.1em", fontWeight:700, marginBottom:8, color:currentEntry?T.green:T.accent }}>
+                Week {currentWeek} — {currentEntry?"✓ Logged":"Target"}
+              </div>
+              {currentEntry ? (
+                <>
+                  <SetsDisplay sets={currentEntry.sets} />
+                  <div style={{ fontSize:11, color:T.dim, marginTop:6 }}>{currentEntry.sets.length} sets logged</div>
+                </>
+              ) : suggCurrent ? (
+                <>
+                  <div style={{ fontSize:26, fontWeight:700, color:T.text }}>{suggCurrent.suggestedWeight}<span style={{ fontSize:12, color:T.muted }}> lbs</span></div>
+                  <div style={{ fontSize:13, color:T.muted, marginTop:2 }}>{`× ${suggCurrent.repMin}–${suggCurrent.repMax} reps`}</div>
+                  <div style={{ fontSize:11, color:T.dim, marginTop:6, lineHeight:1.5 }}>{suggCurrent.note}</div>
+                </>
+              ) : <div style={{ fontSize:11, color:T.dim }}>No history yet.</div>}
+            </div>
+            <div>
+              <div style={{ fontSize:10, color:T.dim, textTransform:"uppercase", letterSpacing:"0.1em", fontWeight:700, marginBottom:8 }}>
+                Week {currentWeek+1} Preview {isDeloadWeek(currentWeek+1)?"🔄":""}
+              </div>
+              {suggNext ? (
+                <>
+                  <div style={{ fontSize:26, fontWeight:700, color:"#6b8884" }}>{suggNext.suggestedWeight}<span style={{ fontSize:12, color:T.dim }}> lbs</span></div>
+                  <div style={{ fontSize:13, color:T.dim, marginTop:2 }}>{`× ${suggNext.repMin}–${suggNext.repMax} reps`}</div>
+                  <div style={{ fontSize:11, color:T.dim, marginTop:6, lineHeight:1.5 }}>{suggNext.note}</div>
+                </>
+              ) : <div style={{ fontSize:11, color:T.dim }}>No history yet.</div>}
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// EXERCISE TAB
+// ─────────────────────────────────────────────────────────────────────────────
+function ExerciseTab({ workouts, currentWeek }) {
+  const allExercises = useMemo(()=>[...new Set(workouts.map(w=>w.exercise))].sort(),[workouts]);
+  const [selected, setSelected] = useState(allExercises[0]||"");
+  useEffect(()=>{ if (!selected && allExercises.length) setSelected(allExercises[0]); },[allExercises]);
+
+  const hist = useMemo(()=>getExHistory(workouts,selected),[workouts,selected]);
+  const suggestion = useMemo(()=>getSuggestion(hist,isDeloadWeek(currentWeek+1),selected),[hist,currentWeek,selected]);
+  const chartData = hist.map(h=>({ x:h.week, y:Math.round(avgE1rm(h.sets)) }));
+
+  return (
+    <div>
+      <div style={{ marginBottom:16 }}>
+        <label style={S.label}>Exercise</label>
+        <select style={{ ...S.select, maxWidth:300 }} value={selected} onChange={e=>setSelected(e.target.value)}>
+          {allExercises.map(ex=><option key={ex}>{ex}</option>)}
+        </select>
+      </div>
+      <div style={S.grid2}>
+        <div style={S.card}>
+          <div style={{ fontSize:10, color:T.muted, textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:10 }}>e1RM Trend</div>
+          <MiniChart data={chartData} color={T.accent} />
+          <div style={{ marginTop:8, fontSize:11, color:T.muted }}>
+            {chartData.length>=2 && (() => {
+              const gain = chartData[chartData.length-1].y - chartData[0].y;
+              return <span style={{ color:gain>=0?T.green:T.red }}>{gain>=0?"+":""}{gain} lbs since W{chartData[0].x}</span>;
+            })()}
+          </div>
+        </div>
+        <div style={S.card}>
+          <div style={{ fontSize:10, color:T.muted, textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:10 }}>Week {currentWeek+1} Target</div>
+          {suggestion ? (
+            <>
+              <div style={{ fontSize:28, fontWeight:700, color:T.accent }}>{suggestion.suggestedWeight}<span style={{ fontSize:13, color:T.muted }}> lbs</span></div>
+              <div style={{ fontSize:12, color:T.muted, marginTop:4 }}>{suggestion.repMin}–{suggestion.repMax} reps</div>
+              <div style={{ fontSize:11, color:T.dim, marginTop:8, lineHeight:1.5 }}>{suggestion.note}</div>
+            </>
+          ) : <div style={{ fontSize:12, color:T.dim }}>Not enough data.</div>}
+        </div>
+      </div>
+      <div style={S.card}>
+        <div style={{ fontSize:10, color:T.muted, textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:12 }}>Session History</div>
+        {hist.length===0 && <div style={{ fontSize:12, color:T.dim }}>No data yet.</div>}
+        {[...hist].reverse().map((h,i) => (
+          <div key={i} style={{ padding:"10px 0", borderBottom:`1px solid ${T.border}` }}>
+            <div style={{ display:"flex", justifyContent:"space-between", marginBottom:4 }}>
+              <div style={{ fontSize:12, fontWeight:600 }}>Week {h.week} <span style={{ color:T.dim, fontWeight:400 }}>— {h.day}</span>
+                {h.intensity && h.intensity !== "medium" && <span style={{ ...S.tag({easy:T.green,medium:T.accent,hard:T.amber,"very hard":T.red}[h.intensity]||T.dim), marginLeft:6, fontSize:9 }}>{h.intensity}</span>}
+              </div>
+              <span style={{ fontSize:11, color:T.accent, fontWeight:700 }}>e1RM: {Math.round(avgE1rm(h.sets))}</span>
+            </div>
+            <div style={{ fontSize:11, color:T.muted }}>
+              {(() => {
+                const weights = h.sets.map(s=>s.weight);
+                const uniform = weights.every(w=>w===weights[0]);
+                if (uniform) return <span>{h.sets.map(s=>s.reps).join(", ")} reps @ {weights[0]}lbs</span>;
+                return h.sets.map((s,j)=><span key={j} style={{ marginRight:10 }}>{s.reps}×{s.weight}lbs</span>);
+              })()}
+            </div>
+            {h.notes && <div style={{ fontSize:10, color:T.amber, marginTop:4 }}>⚠ {h.notes}</div>}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// LOG TAB
+// ─────────────────────────────────────────────────────────────────────────────
+function LogTab({ workouts, nutrition, metrics, currentWeek, userId, onWorkoutAdded, onNutritionUpsert, onMetricUpsert }) {
+  const today = new Date().toISOString().slice(0,10);
+  const allExercises = [...new Set(workouts.map(w=>w.exercise))].sort();
+
+  const [wForm, setWForm] = useState({ week:currentWeek, day:DAYS[0], date:today, exercise:allExercises[0]||"", sets:[{reps:"",weight:""}], notes:"", intensity:"medium" });
+  const [nForm, setNForm] = useState({ date:today, calories:"", protein:"" });
+  const [mForm, setMForm] = useState({ date:today, weight:"", bodyFat:"" });
+
+  function addSet() { setWForm(f=>({...f,sets:[...f.sets,{reps:"",weight:""}]})); }
+  function removeSet(i) { setWForm(f=>({...f,sets:f.sets.filter((_,j)=>j!==i)})); }
+  function updateSet(i,field,val) { setWForm(f=>{ const sets=[...f.sets]; sets[i]={...sets[i],[field]:val==""?"":Number(val)}; return {...f,sets}; }); }
+
+  async function submitWorkout() {
+    const entry = { ...wForm, week:Number(wForm.week), sets:wForm.sets.filter(s=>s.reps!==""&&s.weight!=="").map(s=>({reps:Number(s.reps),weight:Number(s.weight)})) };
+    if (!entry.sets.length) return;
+    await Storage.addWorkout(userId, entry);
+    onWorkoutAdded();
+    setWForm(f=>({...f,sets:[{reps:"",weight:""}],notes:"",intensity:"medium"}));
+  }
+
+  async function deleteWorkout(id) {
+    if (!window.confirm("Delete this entry?")) return;
+    await Storage.deleteWorkout(userId, id);
+    onWorkoutAdded();
+  }
+
+  async function submitNutrition() {
+    if (!nForm.calories && !nForm.protein) return;
+    await Storage.upsertNutrition(userId, { date:nForm.date, calories:nForm.calories?Number(nForm.calories):null, protein:nForm.protein?Number(nForm.protein):null });
+    onNutritionUpsert();
+    setNForm(f=>({...f,calories:"",protein:""}));
+  }
+
+  const [mError, setMError] = useState("");
+  const [mSuccess, setMSuccess] = useState("");
+
+  async function submitMetric() {
+    if (!mForm.weight) { setMError("Weight is required."); return; }
+    setMError(""); setMSuccess("");
+    try {
+      await Storage.upsertMetric(userId, { date:mForm.date, weight:Number(mForm.weight), bodyFat:mForm.bodyFat?Number(mForm.bodyFat):null });
+      setMSuccess("Saved!");
+      setTimeout(() => setMSuccess(""), 2000);
+      onMetricUpsert();
+      setMForm(f=>({...f,weight:"",bodyFat:""}));
+    } catch(e) {
+      setMError("Failed to save: " + (e.message || "unknown error"));
+    }
+  }
+
+  const [editingNutrition, setEditingNutrition] = useState(null); // date string
+  const [editingMetric, setEditingMetric] = useState(null);       // date string
+  const [editNValues, setEditNValues] = useState({});
+  const [editMValues, setEditMValues] = useState({});
+
+  function startEditNutrition(n) {
+    setEditingNutrition(n.date);
+    setEditNValues({ calories: n.calories ?? "", protein: n.protein ?? "" });
+  }
+  async function saveEditNutrition(date) {
+    await Storage.upsertNutrition(userId, { date, calories: editNValues.calories !== "" ? Number(editNValues.calories) : null, protein: editNValues.protein !== "" ? Number(editNValues.protein) : null });
+    setEditingNutrition(null);
+    onNutritionUpsert();
+  }
+
+  function startEditMetric(m) {
+    setEditingMetric(m.date);
+    setEditMValues({ weight: m.weight ?? "", bodyFat: m.bodyFat ?? "" });
+  }
+  async function saveEditMetric(date) {
+    await Storage.upsertMetric(userId, { date, weight: editMValues.weight !== "" ? Number(editMValues.weight) : null, bodyFat: editMValues.bodyFat !== "" ? Number(editMValues.bodyFat) : null });
+    setEditingMetric(null);
+    onMetricUpsert();
+  }
+
+  const recentNutrition = [...nutrition].reverse().slice(0,14);
+  const recentMetrics = [...metrics].reverse().slice(0,10);
+
+  return (
+    <div>
+      <div style={S.grid2}>
+        {/* Workout log */}
+        <div style={S.card}>
+          <div style={{ fontSize:11, fontWeight:700, color:T.muted, textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:14 }}>Log Workout</div>
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, marginBottom:10 }}>
+            <div><label style={S.label}>Week</label><input style={S.input} type="number" value={wForm.week} onChange={e=>setWForm(f=>({...f,week:e.target.value}))} /></div>
+            <div><label style={S.label}>Date</label><input style={S.input} type="date" value={wForm.date} onChange={e=>setWForm(f=>({...f,date:e.target.value}))} /></div>
+          </div>
+          <div style={{ marginBottom:10 }}>
+            <label style={S.label}>Day</label>
+            <select style={S.select} value={wForm.day} onChange={e=>setWForm(f=>({...f,day:e.target.value}))}>
+              {DAYS.map(d=><option key={d}>{d}</option>)}
+            </select>
+          </div>
+          <div style={{ marginBottom:10 }}>
+            <label style={S.label}>Exercise</label>
+            <input style={S.input} list="ex-list" value={wForm.exercise} onChange={e=>setWForm(f=>({...f,exercise:e.target.value}))} placeholder="Type or select..." />
+            <datalist id="ex-list">{allExercises.map(ex=><option key={ex} value={ex}/>)}</datalist>
+          </div>
+          <div style={{ marginBottom:10 }}>
+            <label style={S.label}>Sets (reps / weight lbs)</label>
+            {wForm.sets.map((s,i)=>(
+              <div key={i} style={{ display:"flex", gap:6, marginBottom:6, alignItems:"center" }}>
+                <input style={{ ...S.input, width:70 }} type="number" placeholder="reps" value={s.reps} onChange={e=>updateSet(i,"reps",e.target.value)} />
+                <input style={{ ...S.input, width:80 }} type="number" placeholder="lbs" value={s.weight} onChange={e=>updateSet(i,"weight",e.target.value)} />
+                {wForm.sets.length>1&&<button style={S.btnDanger} onClick={()=>removeSet(i)}>✕</button>}
+              </div>
+            ))}
+            <button style={S.btnSm} onClick={addSet}>+ Add Set</button>
+          </div>
+          <div style={{ marginBottom:10 }}>
+            <label style={S.label}>Intensity</label>
+            <div style={{ display:"flex", gap:6 }}>
+              {["easy","medium","hard","very hard"].map(level => (
+                <button key={level} onClick={()=>setWForm(f=>({...f,intensity:level}))}
+                  style={{ ...S.btnSm, flex:1, textTransform:"capitalize",
+                    background: wForm.intensity===level ? ({easy:T.green,medium:T.accent,hard:T.amber,"very hard":T.red}[level]+"33") : T.border,
+                    color: wForm.intensity===level ? ({easy:T.green,medium:T.accent,hard:T.amber,"very hard":T.red}[level]) : T.muted,
+                    border: `1px solid ${wForm.intensity===level ? ({easy:T.green,medium:T.accent,hard:T.amber,"very hard":T.red}[level])+"66" : T.border}`,
+                  }}>
+                  {level}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div style={{ marginBottom:14 }}>
+            <label style={S.label}>Notes (optional)</label>
+            <input style={S.input} value={wForm.notes} onChange={e=>setWForm(f=>({...f,notes:e.target.value}))} placeholder="e.g. modified grip" />
+          </div>
+          <button style={S.btn} onClick={submitWorkout}>Save Workout</button>
+        </div>
+
+        {/* Nutrition + metrics */}
+        <div>
+          <div style={{ ...S.card, marginBottom:14 }}>
+            <div style={{ fontSize:11, fontWeight:700, color:T.muted, textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:14 }}>Log Nutrition</div>
+            <div style={{ marginBottom:10 }}><label style={S.label}>Date</label><input style={S.input} type="date" value={nForm.date} onChange={e=>setNForm(f=>({...f,date:e.target.value}))} /></div>
+            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, marginBottom:14 }}>
+              <div><label style={S.label}>Calories</label><input style={S.input} type="number" value={nForm.calories} onChange={e=>setNForm(f=>({...f,calories:e.target.value}))} placeholder={String(CAL_TARGET)} /></div>
+              <div><label style={S.label}>Protein (g)</label><input style={S.input} type="number" value={nForm.protein} onChange={e=>setNForm(f=>({...f,protein:e.target.value}))} placeholder={String(PROTEIN_TARGET)} /></div>
+            </div>
+            <button style={S.btn} onClick={submitNutrition}>Save</button>
+          </div>
+          <div style={S.card}>
+            <div style={{ fontSize:11, fontWeight:700, color:T.muted, textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:14 }}>Log Body Metrics</div>
+            <div style={{ marginBottom:10 }}><label style={S.label}>Date</label><input style={S.input} type="date" value={mForm.date} onChange={e=>setMForm(f=>({...f,date:e.target.value}))} /></div>
+            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, marginBottom:14 }}>
+              <div><label style={S.label}>Weight (lbs)</label><input style={S.input} type="number" value={mForm.weight} onChange={e=>setMForm(f=>({...f,weight:e.target.value}))} /></div>
+              <div><label style={S.label}>Body Fat %</label><input style={S.input} type="number" value={mForm.bodyFat} onChange={e=>setMForm(f=>({...f,bodyFat:e.target.value}))} /></div>
+            </div>
+            {mError && <div style={{ color:T.red, fontSize:11, marginBottom:8 }}>{mError}</div>}
+            {mSuccess && <div style={{ color:T.green, fontSize:11, marginBottom:8 }}>{mSuccess}</div>}
+            <button style={S.btn} onClick={submitMetric}>Save</button>
+          </div>
+        </div>
+      </div>
+
+      {/* Recent workouts */}
+      {workouts.length > 0 && (() => {
+        const recent = [...workouts].sort((a,b) => b.week-a.week || b.date.localeCompare(a.date)).slice(0,20);
+        return (
+          <div style={{ ...S.card, marginTop:16 }}>
+            <div style={{ fontSize:10, color:T.muted, textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:10 }}>Recent Workouts</div>
+            {recent.map(w => {
+              const intColor = {easy:T.green,medium:T.accent,hard:T.amber,"very hard":T.red}[w.intensity] || T.dim;
+              return (
+                <div key={w.id} style={{ display:"grid", gridTemplateColumns:"1fr auto", gap:8, padding:"8px 4px", borderTop:`1px solid ${T.border}`, fontSize:12, alignItems:"center" }}>
+                  <div>
+                    <span style={{ fontWeight:600 }}>{w.exercise}</span>
+                    <span style={{ color:T.dim, marginLeft:6 }}>W{w.week} · {w.day} · {w.date}</span>
+                    {w.intensity && w.intensity !== "medium" && <span style={{ ...S.tag(intColor), marginLeft:6, fontSize:9 }}>{w.intensity}</span>}
+                    {w.notes && <span style={{ color:T.amber, marginLeft:6, fontSize:10 }}>⚠ {w.notes}</span>}
+                    <div style={{ fontSize:11, color:T.muted, marginTop:2 }}>{w.sets.map(s=>`${s.reps}×${s.weight}`).join(", ")}</div>
+                  </div>
+                  <button style={{ background:"transparent", border:"none", color:T.dim, cursor:"pointer", fontSize:14, padding:"2px 6px" }} onClick={()=>deleteWorkout(w.id)} title="Delete">×</button>
+                </div>
+              );
+            })}
+          </div>
+        );
+      })()}
+
+      {/* Nutrition history */}
+      {recentNutrition.length > 0 && (
+        <div style={{ ...S.card, marginTop:16 }}>
+          <div style={{ fontSize:10, color:T.muted, textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:10 }}>Nutrition History — click a row to edit</div>
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr 80px", gap:8, fontSize:10, color:T.dim, marginBottom:6, padding:"0 4px" }}>
+            <span>Date</span><span>Calories</span><span>Protein</span><span></span>
+          </div>
+          {recentNutrition.map(n => {
+            const editing = editingNutrition === n.date;
+            return (
+              <div key={n.date} style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr 80px", gap:8, padding:"7px 4px", borderTop:`1px solid ${T.border}`, fontSize:12, alignItems:"center" }}
+                onClick={()=>!editing&&startEditNutrition(n)} style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr 80px", gap:8, padding:"7px 4px", borderTop:`1px solid ${T.border}`, fontSize:12, alignItems:"center", cursor:editing?"default":"pointer" }}>
+                <span style={{ color:T.muted }}>{n.date}</span>
+                {editing ? (
+                  <>
+                    <input style={{ ...S.input, padding:"3px 6px" }} type="number" value={editNValues.calories} onChange={e=>setEditNValues(v=>({...v,calories:e.target.value}))} onClick={e=>e.stopPropagation()} />
+                    <input style={{ ...S.input, padding:"3px 6px" }} type="number" value={editNValues.protein} onChange={e=>setEditNValues(v=>({...v,protein:e.target.value}))} onClick={e=>e.stopPropagation()} />
+                    <div style={{ display:"flex", gap:4 }}>
+                      <button style={{ ...S.btn, padding:"3px 8px", fontSize:11 }} onClick={e=>{e.stopPropagation();saveEditNutrition(n.date);}}>✓</button>
+                      <button style={{ ...S.btnSm, padding:"3px 8px" }} onClick={e=>{e.stopPropagation();setEditingNutrition(null);}}>✕</button>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <span style={{ color:n.calories&&n.calories<=CAL_TARGET?T.green:n.calories>CAL_TARGET?T.red:T.muted }}>{n.calories??"—"}</span>
+                    <span style={{ color:n.protein&&n.protein>=PROTEIN_TARGET?T.green:n.protein?T.amber:T.muted }}>{n.protein??"—"}g</span>
+                    <span style={{ fontSize:10, color:T.dim }}>edit</span>
+                  </>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Metrics history */}
+      {recentMetrics.length > 0 && (
+        <div style={{ ...S.card, marginTop:16 }}>
+          <div style={{ fontSize:10, color:T.muted, textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:10 }}>Metrics History — click a row to edit</div>
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr auto", gap:8, fontSize:10, color:T.dim, marginBottom:6, padding:"0 4px" }}>
+            <span>Date</span><span>Weight</span><span>Body Fat</span><span></span>
+          </div>
+          {recentMetrics.map((m,i) => {
+            const prev = recentMetrics[i+1];
+            const delta = prev&&m.weight&&prev.weight ? (m.weight-prev.weight).toFixed(1) : null;
+            const editing = editingMetric === m.date;
+            return (
+              <div key={m.date} onClick={()=>!editing&&startEditMetric(m)}
+                style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr auto", gap:8, padding:"7px 4px", borderTop:`1px solid ${T.border}`, fontSize:12, alignItems:"center", cursor:editing?"default":"pointer" }}>
+                <span style={{ color:T.muted }}>{m.date}</span>
+                {editing ? (
+                  <>
+                    <input style={{ ...S.input, padding:"3px 6px" }} type="number" value={editMValues.weight} onChange={e=>setEditMValues(v=>({...v,weight:e.target.value}))} onClick={e=>e.stopPropagation()} />
+                    <input style={{ ...S.input, padding:"3px 6px" }} type="number" value={editMValues.bodyFat} onChange={e=>setEditMValues(v=>({...v,bodyFat:e.target.value}))} onClick={e=>e.stopPropagation()} />
+                    <div style={{ display:"flex", gap:4 }}>
+                      <button style={{ ...S.btn, padding:"3px 8px", fontSize:11 }} onClick={e=>{e.stopPropagation();saveEditMetric(m.date);}}>✓</button>
+                      <button style={{ background:"transparent", border:"none", color:T.dim, cursor:"pointer", fontSize:14, padding:"2px 6px" }} onClick={e=>{e.stopPropagation();setEditingMetric(null);}}>✕</button>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <span>{m.weight??"—"} lbs {delta!=null&&<span style={{ fontSize:10, color:Number(delta)<=0?T.green:T.red }}>{Number(delta)>0?"+":""}{delta}</span>}</span>
+                    <span style={{ color:T.muted }}>{m.bodyFat!=null?m.bodyFat+"%":"—"}</span>
+                    <button style={{ background:"transparent", border:"none", color:T.dim, cursor:"pointer", fontSize:14, padding:"2px 6px" }} onClick={e=>{e.stopPropagation();if(window.confirm("Delete this entry?"))Storage.deleteMetric(userId,m.date).then(onMetricUpsert);}} title="Delete">×</button>
+                  </>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// BODY TAB
+// ─────────────────────────────────────────────────────────────────────────────
+function BodyTab({ metrics, nutrition }) {
+  const weightData = metrics.filter(m=>m.weight).map(m=>({ x:m.date, y:m.weight }));
+  const avgCal = sevenDayAvg(nutrition,"calories");
+  const avgPro = sevenDayAvg(nutrition,"protein");
+
+  return (
+    <div>
+      <div style={S.grid2}>
+        <div style={S.card}>
+          <div style={{ fontSize:10, color:T.muted, textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:10 }}>Weight Trend</div>
+          <MiniChart data={weightData} color={T.accent} />
+          {weightData.length>=2 && (() => {
+            const delta = (weightData[weightData.length-1].y - weightData[0].y).toFixed(1);
+            return <div style={{ fontSize:11, color:Number(delta)<=0?T.green:T.red, marginTop:8 }}>{Number(delta)>0?"+":""}{delta} lbs over {weightData.length} check-ins</div>;
+          })()}
+        </div>
+        <div style={S.card}>
+          <div style={{ fontSize:10, color:T.muted, textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:12 }}>Nutrition Targets</div>
+          <div style={{ marginBottom:14 }}>
+            <div style={{ display:"flex", justifyContent:"space-between", marginBottom:4 }}>
+              <span style={{ fontSize:12 }}>Calories</span>
+              <span style={{ fontSize:12, color:avgCal!=null?(avgCal<=CAL_TARGET?T.green:T.red):T.dim }}>{avgCal!=null?`${avgCal} / ${CAL_TARGET}`:"No data"}</span>
+            </div>
+            <ProgressBar value={avgCal||0} max={CAL_TARGET*1.3} color={avgCal&&avgCal<=CAL_TARGET?T.green:T.red} />
+          </div>
+          <div>
+            <div style={{ display:"flex", justifyContent:"space-between", marginBottom:4 }}>
+              <span style={{ fontSize:12 }}>Protein</span>
+              <span style={{ fontSize:12, color:avgPro!=null?(avgPro>=PROTEIN_TARGET?T.green:T.amber):T.dim }}>{avgPro!=null?`${avgPro}g / ${PROTEIN_TARGET}g`:"No data"}</span>
+            </div>
+            <ProgressBar value={avgPro||0} max={220} color={avgPro&&avgPro>=PROTEIN_TARGET?T.green:T.amber} />
+          </div>
+        </div>
+      </div>
+      <div style={S.card}>
+        <div style={{ fontSize:10, color:T.muted, textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:12 }}>Full Metrics Log</div>
+        {metrics.length===0 && <div style={{ fontSize:12, color:T.dim }}>No metrics logged yet.</div>}
+        {[...metrics].reverse().map((m,i,arr)=>{
+          const prev = arr[i+1];
+          const delta = prev&&m.weight&&prev.weight ? (m.weight-prev.weight).toFixed(1) : null;
+          return (
+            <div key={m.date} style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr 1fr", gap:8, padding:"8px 0", borderBottom:`1px solid ${T.border}`, fontSize:12 }}>
+              <span style={{ color:T.muted }}>{m.date}</span>
+              <span>{m.weight??"—"} lbs</span>
+              <span style={{ color:delta==null?T.dim:Number(delta)<=0?T.green:T.red }}>{delta!=null?(Number(delta)>0?"+":"")+delta+" lbs":"—"}</span>
+              <span style={{ color:T.muted }}>{m.bodyFat!=null?m.bodyFat+"%":"—"}</span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PROGRESS TAB
+// ─────────────────────────────────────────────────────────────────────────────
+const DAY_EXERCISE_ORDER = {
+  "Upper Push": ["Barbell Bench Press","Seated DB OHP","Incline DB Press (Push)","Cable Flyes","Lateral Raises","Tricep Pushdowns","OH Tricep Extension","Face Pulls"],
+  "Lower A":    ["Barbell Back Squat","Leg Press","Romanian Deadlifts","Leg Curls","Leg Extensions","Goblet Squats","Hanging Leg Raises"],
+  "Upper Pull": ["Lat Pulldowns","DB Rows","Cable Rows Close","Cable Rows Wide","Incline DB Press (Pull)","Barbell Curls","Hammer Curls","Face Pulls"],
+  "Lower B":    ["Trap Bar Deadlift","Bulgarian Split Squats","Leg Press","Leg Curls","Hip Thrusts","Plank"],
+};
+
+function ExerciseMiniCard({ exercise, workouts }) {
+  const hist = getExHistory(workouts, exercise);
+  if (!hist.length) return null;
+  const chartData = hist.map(h => ({ x: h.week, y: Math.round(avgE1rm(h.sets)) }));
+  const latest = chartData[chartData.length - 1];
+  const first = chartData[0];
+  const gain = latest.y - first.y;
+  const lastSets = hist[hist.length - 1].sets;
+  const lastWeight = lastSets[lastSets.length - 1].weight;
+
+  return (
+    <div style={{ ...S.card, padding:"12px 14px" }}>
+      <div style={{ fontSize:11, fontWeight:600, color:T.text, marginBottom:2, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{exercise}</div>
+      <div style={{ display:"flex", alignItems:"baseline", gap:6, marginBottom:8 }}>
+        <span style={{ fontSize:18, fontWeight:700, color:T.accent }}>{lastWeight}</span>
+        <span style={{ fontSize:10, color:T.muted }}>lbs</span>
+        {chartData.length >= 2 && (
+          <span style={{ fontSize:10, color:gain>=0?T.green:T.red, marginLeft:2 }}>{gain>=0?"+":""}{gain} e1RM</span>
+        )}
+      </div>
+      <MiniChart data={chartData} color={T.accent} />
+      <div style={{ display:"flex", justifyContent:"space-between", marginTop:6 }}>
+        <span style={{ fontSize:9, color:T.dim }}>W{first.x}</span>
+        <span style={{ fontSize:9, color:T.dim }}>W{latest.x}</span>
+      </div>
+    </div>
+  );
+}
+
+function ProgressTab({ workouts }) {
+  const [view, setView] = useState("by-day");
+  const [activeDay, setActiveDay] = useState(DAYS[0]);
+  const [activeExercise, setActiveExercise] = useState("");
+
+  const allExercises = useMemo(() => {
+    const all = [...new Set(workouts.map(w => w.exercise))];
+    // sort by day order
+    const flat = DAYS.flatMap(d => DAY_EXERCISE_ORDER[d] || []);
+    return [...all].sort((a, b) => {
+      const ai = flat.indexOf(a), bi = flat.indexOf(b);
+      if (ai === -1 && bi === -1) return a.localeCompare(b);
+      if (ai === -1) return 1;
+      if (bi === -1) return -1;
+      return ai - bi;
+    });
+  }, [workouts]);
+
+  useEffect(() => { if (!activeExercise && allExercises.length) setActiveExercise(allExercises[0]); }, [allExercises]);
+
+  function orderedForDay(day) {
+    const order = DAY_EXERCISE_ORDER[day] || [];
+    const logged = [...new Set(workouts.filter(w => w.day === day).map(w => w.exercise))];
+    return [...order.filter(e => logged.includes(e)), ...logged.filter(e => !order.includes(e))];
+  }
+
+  const ViewToggle = () => (
+    <div style={{ display:"flex", gap:4, marginBottom:20 }}>
+      {[["by-day","By Day"],["all","All Exercises"],["single","By Exercise"]].map(([v,label]) => (
+        <button key={v} onClick={() => setView(v)}
+          style={{ ...S.btnSm, background:view===v?T.accent+"22":T.border, color:view===v?T.accent:T.muted, border:`1px solid ${view===v?T.accent+"55":T.border}` }}>
+          {label}
+        </button>
+      ))}
+    </div>
+  );
+
+  // ── View 1: By Day ──────────────────────────────────────────────────────────
+  if (view === "by-day") return (
+    <div>
+      <ViewToggle />
+      <div style={{ display:"flex", gap:8, marginBottom:20, flexWrap:"wrap" }}>
+        {DAYS.map(d => (
+          <button key={d} onClick={() => setActiveDay(d)}
+            style={{ ...S.btnSm, background:activeDay===d?DAY_COLORS[d]+"22":T.border, color:activeDay===d?DAY_COLORS[d]:T.muted, border:`1px solid ${activeDay===d?DAY_COLORS[d]+"55":T.border}` }}>
+            {d}
+          </button>
+        ))}
+      </div>
+      {orderedForDay(activeDay).length === 0
+        ? <div style={{ ...S.card, color:T.dim, fontSize:12 }}>No workouts logged for {activeDay} yet.</div>
+        : <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(220px, 1fr))", gap:12 }}>
+            {orderedForDay(activeDay).map(ex => <ExerciseMiniCard key={ex} exercise={ex} workouts={workouts} />)}
+          </div>
+      }
+    </div>
+  );
+
+  // ── View 2: All Exercises ───────────────────────────────────────────────────
+  if (view === "all") return (
+    <div>
+      <ViewToggle />
+      {DAYS.map(day => {
+        const exercises = orderedForDay(day);
+        if (!exercises.length) return null;
+        return (
+          <div key={day} style={{ marginBottom:28 }}>
+            <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:12 }}>
+              <div style={{ width:3, height:16, background:DAY_COLORS[day], borderRadius:2 }} />
+              <div style={{ fontSize:11, fontWeight:700, color:DAY_COLORS[day], textTransform:"uppercase", letterSpacing:"0.1em" }}>{day}</div>
+            </div>
+            <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(200px, 1fr))", gap:10 }}>
+              {exercises.map(ex => <ExerciseMiniCard key={ex} exercise={ex} workouts={workouts} />)}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+
+  // ── View 3: Single Exercise ─────────────────────────────────────────────────
+  if (view === "single") {
+    const hist = getExHistory(workouts, activeExercise);
+    const chartData = hist.map(h => ({ x: h.week, y: Math.round(avgE1rm(h.sets)) }));
+    const gain = chartData.length >= 2 ? chartData[chartData.length-1].y - chartData[0].y : 0;
+    const suggestion = getSuggestion(hist, false, activeExercise);
+    const [repMin, repMax] = REP_SCHEMES[activeExercise] || [6,8];
+
+    return (
+      <div>
+        <ViewToggle />
+        <div style={{ marginBottom:16 }}>
+          <label style={S.label}>Exercise</label>
+          <select style={{ ...S.select, maxWidth:320 }} value={activeExercise} onChange={e => setActiveExercise(e.target.value)}>
+            {allExercises.map(ex => <option key={ex}>{ex}</option>)}
+          </select>
+        </div>
+        <div style={S.grid2}>
+          <div style={S.card}>
+            <div style={{ fontSize:10, color:T.muted, textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:10 }}>e1RM Trend</div>
+            <MiniChart data={chartData} color={T.accent} />
+            {chartData.length >= 2 && (
+              <div style={{ fontSize:11, color:gain>=0?T.green:T.red, marginTop:8 }}>
+                {gain>=0?"+":""}{gain} lbs e1RM since W{chartData[0].x}
+              </div>
+            )}
+          </div>
+          <div style={S.card}>
+            <div style={{ fontSize:10, color:T.muted, textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:10 }}>Rep Scheme</div>
+            <div style={{ fontSize:28, fontWeight:700, color:T.accent }}>{repMin}–{repMax}</div>
+            <div style={{ fontSize:11, color:T.muted, marginTop:4 }}>reps per set</div>
+            {suggestion && (
+              <div style={{ marginTop:12, paddingTop:12, borderTop:`1px solid ${T.border}` }}>
+                <div style={{ fontSize:10, color:T.muted, textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:6 }}>Next Target</div>
+                <div style={{ fontSize:22, fontWeight:700, color:T.text }}>{suggestion.suggestedWeight}<span style={{ fontSize:11, color:T.muted }}> lbs</span></div>
+                <div style={{ fontSize:11, color:T.dim, marginTop:6, lineHeight:1.5 }}>{suggestion.note}</div>
+              </div>
+            )}
+          </div>
+        </div>
+        <div style={S.card}>
+          <div style={{ fontSize:10, color:T.muted, textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:12 }}>Session History</div>
+          {hist.length === 0 && <div style={{ fontSize:12, color:T.dim }}>No data yet.</div>}
+          {[...hist].reverse().map((h,i) => (
+            <div key={i} style={{ padding:"10px 0", borderBottom:`1px solid ${T.border}` }}>
+              <div style={{ display:"flex", justifyContent:"space-between", marginBottom:4 }}>
+                <div style={{ fontSize:12, fontWeight:600 }}>Week {h.week} <span style={{ color:T.dim, fontWeight:400 }}>— {h.day}</span></div>
+                <span style={{ fontSize:11, color:T.accent, fontWeight:700 }}>e1RM: {Math.round(avgE1rm(h.sets))}</span>
+              </div>
+              <div style={{ fontSize:11, color:T.muted }}>
+                {(() => {
+                  const weights = h.sets.map(s => s.weight);
+                  const uniform = weights.every(w => w === weights[0]);
+                  if (uniform) return <span>{h.sets.map(s=>s.reps).join(", ")} reps @ {weights[0]}lbs</span>;
+                  return h.sets.map((s,j) => <span key={j} style={{ marginRight:10 }}>{s.reps}×{s.weight}lbs</span>);
+                })()}
+              </div>
+              {h.notes && <div style={{ fontSize:10, color:T.amber, marginTop:4 }}>⚠ {h.notes}</div>}
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SETTINGS TAB
+// ─────────────────────────────────────────────────────────────────────────────
+function SettingsTab({ darkMode, onToggleDark, user, onSignOut, profileUrl }) {
+  return (
+    <div style={{ maxWidth:480 }}>
+      <div style={{ ...S.card, marginBottom:16 }}>
+        <div style={{ fontSize:11, fontWeight:700, color:T.muted, textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:16 }}>Appearance</div>
+        <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+          <div>
+            <div style={{ fontSize:13, fontWeight:600, color:T.text }}>Theme</div>
+            <div style={{ fontSize:11, color:T.muted, marginTop:2 }}>{darkMode ? "Dark mode" : "Light mode"}</div>
+          </div>
+          <div onClick={onToggleDark} style={{ width:48, height:26, borderRadius:13, background:darkMode?T.accent:T.border, cursor:"pointer", position:"relative", transition:"background 0.2s" }}>
+            <div style={{ position:"absolute", top:3, left:darkMode?24:3, width:20, height:20, borderRadius:"50%", background:"#fff", transition:"left 0.2s", boxShadow:"0 1px 3px rgba(0,0,0,0.3)" }} />
+          </div>
+        </div>
+      </div>
+      <div style={{ ...S.card, marginBottom:16 }}>
+        <div style={{ fontSize:11, fontWeight:700, color:T.muted, textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:16 }}>Account</div>
+        <div style={{ fontSize:12, color:T.muted, marginBottom:12 }}>{user.email}</div>
+        <button style={{ ...S.btnDanger }} onClick={onSignOut}>Sign out</button>
+      </div>
+      <div style={S.card}>
+        <div style={{ fontSize:11, fontWeight:700, color:T.muted, textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:12 }}>Public Profile</div>
+        <div style={{ fontSize:12, color:T.muted, marginBottom:12 }}>Share your progress publicly — no login required.</div>
+        <a href={profileUrl} target="_blank" style={{ ...S.btn, textDecoration:"none", display:"inline-block" }}>View Public Profile →</a>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PUBLIC PROFILE APP — read-only, no auth required
+// ─────────────────────────────────────────────────────────────────────────────
+const READONLY_OVERLAY = {
+  position:"relative", pointerEvents:"none", opacity:0.4, userSelect:"none",
+};
+const READONLY_BANNER = {
+  position:"absolute", top:"50%", left:"50%", transform:"translate(-50%,-50%)",
+  background:T.accent+"22", border:`1px solid ${T.accent}44`, borderRadius:8,
+  padding:"6px 14px", fontSize:11, fontWeight:700, color:T.accent,
+  whiteSpace:"nowrap", zIndex:10, pointerEvents:"none",
+};
+
+function ReadOnlyOverlay({ children, label="Log in to edit" }) {
+  return (
+    <div style={{ position:"relative" }}>
+      <div style={READONLY_OVERLAY}>{children}</div>
+      <div style={READONLY_BANNER}>{label}</div>
+    </div>
+  );
+}
+
+function App() {
+  const [loading, setLoading] = useState(true);
+  const [tab, setTab] = useState("overview");
+  const [currentWeek, setCurrentWeek] = useState(1);
+  const [workouts, setWorkouts] = useState([]);
+  const [metrics, setMetrics] = useState([]);
+  const [nutrition, setNutrition] = useState([]);
+  const [darkMode, setDarkMode] = useState(true);
+
+  T = getTheme(darkMode);
+  S = getStyles(T);
+
+  useEffect(()=>{
+    async function load() {
+      try {
+        const timeout = new Promise((_,r)=>setTimeout(()=>r(new Error("timeout")),8000));
+        const [wRes, mRes, nRes] = await Promise.all([
+          Promise.race([sb.from("workouts").select("*").order("week").order("date"), timeout]),
+          Promise.race([sb.from("metrics").select("*").order("date"), timeout]),
+          Promise.race([sb.from("nutrition").select("*").order("date"), timeout]),
+        ]);
+        const w = (wRes.data||[]).map(x=>({ ...x, sets:typeof x.sets==="string"?JSON.parse(x.sets):x.sets }));
+        const m = (mRes.data||[]).map(x=>({ ...x, bodyFat:x.body_fat }));
+        const n = nRes.data||[];
+        setWorkouts(w);
+        setMetrics(m);
+        setNutrition(n);
+        if (w.length) setCurrentWeek(Math.max(...w.map(x=>x.week)));
+      } catch(e) { console.warn("Profile load error:", e.message); }
+      setLoading(false);
+    }
+    load();
+  },[]);
+
+  if (loading) return <div style={{ minHeight:"100vh", background:T.bg, display:"flex", alignItems:"center", justifyContent:"center", color:T.muted }}>Loading…</div>;
+
+  const weeksUntilDeload = 6-(currentWeek%6);
+  const TABS = ["overview","next workout","progress","body","log"];
+
+  return (
+    <div style={S.root}>
+      <div style={S.header}>
+        <div>
+          <div style={{ fontSize:18, fontWeight:700, color:T.accent, letterSpacing:"0.08em", textTransform:"uppercase" }}>Chessie's Fitness</div>
+          <div style={{ fontSize:10, color:T.muted, letterSpacing:"0.12em", textTransform:"uppercase", marginTop:2 }}>Progressive Overload Tracker · Public Profile</div>
+        </div>
+        <div style={{ display:"flex", alignItems:"center", gap:12 }}>
+          {isDeloadWeek(currentWeek) && <span style={S.tag(T.green)}>🔄 DELOAD</span>}
+          {!isDeloadWeek(currentWeek) && <span style={{ fontSize:11, color:T.dim }}>{weeksUntilDeload}w to deload</span>}
+          <span style={{ fontSize:11, color:T.dim }}>Week {currentWeek}</span>
+          <a href="/" style={{ ...S.btnSm, textDecoration:"none" }}>Open App →</a>
+        </div>
+      </div>
+      <div style={S.nav}>
+        {TABS.map(t=>(
+          <button key={t} style={S.navBtn(tab===t)} onClick={()=>setTab(t)}>
+            {t.charAt(0).toUpperCase()+t.slice(1)}
+          </button>
+        ))}
+      </div>
+      <div style={S.content}>
+        {tab==="overview"     && <OverviewTab workouts={workouts} metrics={metrics} nutrition={nutrition} currentWeek={currentWeek} />}
+        {tab==="next workout" && <NextWorkoutTab workouts={workouts} currentWeek={currentWeek} />}
+        {tab==="progress"     && <ProgressTab workouts={workouts} />}
+        {tab==="body"         && <BodyTab metrics={metrics} nutrition={nutrition} />}
+        {tab==="log"          && (
+          <ReadOnlyOverlay label="🔒 Log in to add entries">
+            <LogTab workouts={workouts} nutrition={nutrition} metrics={metrics} currentWeek={currentWeek} userId="readonly" onWorkoutAdded={()=>{}} onNutritionUpsert={()=>{}} onMetricUpsert={()=>{}} />
+          </ReadOnlyOverlay>
+        )}
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>
