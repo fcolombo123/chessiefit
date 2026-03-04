@@ -1860,11 +1860,8 @@ function ProfileApp() {
         {tab==="body"         && <BodyTab metrics={metrics} nutrition={nutrition} />}
         {tab==="log"          && (
           <div style={{ position:"relative" }}>
-            <div style={{ pointerEvents:"none", userSelect:"none" }}>
-              {/* History sections fully visible */}
-              <LogTab workouts={workouts} nutrition={nutrition} metrics={metrics} cardio={cardio} currentWeek={currentWeek} userId={null} onWorkoutAdded={()=>{}} onNutritionUpsert={()=>{}} onMetricUpsert={()=>{}} onCardioAdded={()=>{}} readOnly={true} />
-            </div>
-            <div style={{ position:"absolute", inset:0, zIndex:5 }} />
+            <LogTab workouts={workouts} nutrition={nutrition} metrics={metrics} cardio={cardio} currentWeek={currentWeek} userId={null} onWorkoutAdded={()=>{}} onNutritionUpsert={()=>{}} onMetricUpsert={()=>{}} onCardioAdded={()=>{}} readOnly={true} />
+            <div style={{ position:"absolute", inset:0, zIndex:20 }} />
           </div>
         )}
       </div>
