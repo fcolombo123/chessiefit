@@ -358,7 +358,7 @@ function sevenDayAvg(entries, field) {
   return Math.round(r.reduce((a,e)=>a+e[field],0)/r.length);
 }
 
-function getSuggestion(history, isDeload, exercise, repMinOverride, repMaxOverride) {
+function getSuggestion(history, isDeload, exercise, repMinOverride, repMaxOverride, incrementOverride) {
   const sorted = [...history].sort((a,b)=>a.week-b.week);
   if (!sorted.length) return null;
   const recent = sorted[sorted.length-1];
@@ -394,7 +394,7 @@ function getSuggestion(history, isDeload, exercise, repMinOverride, repMaxOverri
       suggestedWeight = lastWeight;
       note=`⚠️ Hit ${repMax} reps but felt very hard — hold weight and consolidate.`;
     } else {
-      const inc = lastWeight>=100?5:2.5;
+      const inc = incrementOverride != null ? incrementOverride : (lastWeight>=100?5:2.5);
       suggestedWeight = lastWeight+inc;
       note = intensity === "easy"
         ? `✅ All sets hit ${repMax} reps and felt easy. Add ${inc}lbs — could push harder next time.`
@@ -742,6 +742,7 @@ function exName(ex) { return typeof ex === "string" ? ex : ex.name; }
 function exSets(ex) { return typeof ex === "string" ? defaultSets(ex) : (ex.sets || defaultSets(ex.name)); }
 function exRepMin(ex) { return typeof ex === "string" ? (REP_SCHEMES[ex]||[8,12])[0] : (ex.repMin != null ? ex.repMin : (REP_SCHEMES[ex.name]||[8,12])[0]); }
 function exRepMax(ex) { return typeof ex === "string" ? (REP_SCHEMES[ex]||[8,12])[1] : (ex.repMax != null ? ex.repMax : (REP_SCHEMES[ex.name]||[8,12])[1]); }
+function exIncrement(ex) { return typeof ex === "string" ? null : (ex.increment != null ? ex.increment : null); }
 
 function NextWorkoutTab({ workouts, currentWeek, userId, onWorkoutAdded, program, readOnly=false }) {
   const programDays = program?.days || DEFAULT_PROGRAM.days;
@@ -767,14 +768,15 @@ function NextWorkoutTab({ workouts, currentWeek, userId, onWorkoutAdded, program
       const numSets = exSets(exEntry);
       const repMin = exRepMin(exEntry);
       const repMax = exRepMax(exEntry);
+      const increment = exIncrement(exEntry);
       const hist = getExHistory(workouts, ex);
       const histSameDay = hist.filter(h=>h.day===selectedDay);
       const currentEntry = histSameDay.find(h=>h.week===currentWeek)||null;
       const histUpToPrev = hist.filter(h=>h.week<currentWeek);
       const histUpToCurrent = hist.filter(h=>h.week<=currentWeek);
       const prevEntry = histUpToPrev.slice(-1)[0]||null;
-      const suggCurrent = !currentEntry ? getSuggestion(histUpToPrev, isDeloadWeek(currentWeek), ex, repMin, repMax) : null;
-      const suggNext = getSuggestion(histUpToCurrent, isDeloadWeek(currentWeek+1), ex, repMin, repMax);
+      const suggCurrent = !currentEntry ? getSuggestion(histUpToPrev, isDeloadWeek(currentWeek), ex, repMin, repMax, increment) : null;
+      const suggNext = getSuggestion(histUpToCurrent, isDeloadWeek(currentWeek+1), ex, repMin, repMax, increment);
       return { exercise:ex, numSets, repMin, repMax, currentEntry, prevEntry, suggCurrent, suggNext };
     });
   }, [workouts, selectedDay, currentWeek, program]);
@@ -819,9 +821,25 @@ function NextWorkoutTab({ workouts, currentWeek, userId, onWorkoutAdded, program
     setSavingWeek1(false);
   }
 
-  return (
-    <div>
-      <div style={{ display:"flex", gap:8, marginBottom:20, flexWrap:"wrap" }}>
+  const [addingOneOff, setAddingOneOff] = useState(false);
+  const [oneOffEx, setOneOffEx] = useState("");
+  const [oneOffSets, setOneOffSets] = useState([{reps:"",weight:""}]);
+  const [oneOffNotes, setOneOffNotes] = useState("");
+  const [oneOffIntensity, setOneOffIntensity] = useState("medium");
+  const [savingOneOff, setSavingOneOff] = useState(false);
+
+  async function saveOneOff() {
+    if (!oneOffEx.trim()) return;
+    const sets = oneOffSets.filter(s=>s.reps!==""&&s.weight!=="").map(s=>({reps:Number(s.reps),weight:Number(s.weight)}));
+    if (!sets.length) return;
+    setSavingOneOff(true);
+    const today = new Date().toISOString().split("T")[0];
+    await Storage.addWorkout(userId, { week:currentWeek, day:selectedDay, date:today, exercise:oneOffEx.trim(), sets, notes:oneOffNotes, intensity:oneOffIntensity });
+    onWorkoutAdded();
+    setSavingOneOff(false);
+    setAddingOneOff(false);
+    setOneOffEx(""); setOneOffSets([{reps:"",weight:""}]); setOneOffNotes(""); setOneOffIntensity("medium");
+  }
         {dayNames.map(d => (
           <button key={d} onClick={()=>{ setSelectedDay(d); setExpandedEx(null); }}
             style={{ ...S.btnSm, background:selectedDay===d?(DAY_COLORS[d]||T.accent)+"22":T.border, color:selectedDay===d?(DAY_COLORS[d]||T.accent):T.muted, border:`1px solid ${selectedDay===d?(DAY_COLORS[d]||T.accent)+"55":T.border}` }}>
@@ -969,6 +987,52 @@ function NextWorkoutTab({ workouts, currentWeek, userId, onWorkoutAdded, program
           </div>
         );
       })}
+
+      {/* Add one-off exercise */}
+      {!readOnly && !addingOneOff && (
+        <button style={{ ...S.btnSm, width:"100%", marginTop:8, borderStyle:"dashed" }} onClick={()=>setAddingOneOff(true)}>
+          + Add Exercise
+        </button>
+      )}
+      {!readOnly && addingOneOff && (
+        <div style={{ ...S.card, marginTop:8, border:`1px solid ${T.accent}44` }}>
+          <div style={{ fontSize:11, fontWeight:700, color:T.accent, marginBottom:10 }}>Add Exercise — {selectedDay} W{currentWeek}</div>
+          <input style={{ ...S.input, marginBottom:10 }} placeholder="Exercise name…" value={oneOffEx}
+            onChange={e=>setOneOffEx(e.target.value)} />
+          <div style={{ marginBottom:8 }}>
+            <div style={{ fontSize:10, color:T.muted, textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:6 }}>Sets (reps / weight)</div>
+            {oneOffSets.map((s,i) => (
+              <div key={i} style={{ display:"flex", gap:6, marginBottom:6, alignItems:"center" }}>
+                <input style={{ ...S.input, width:70 }} type="number" placeholder="reps" value={s.reps}
+                  onChange={e=>setOneOffSets(sets=>{ const n=[...sets]; n[i]={...n[i],reps:e.target.value}; return n; })} />
+                <input style={{ ...S.input, width:80 }} type="number" placeholder="lbs" value={s.weight}
+                  onChange={e=>setOneOffSets(sets=>{ const n=[...sets]; n[i]={...n[i],weight:e.target.value}; return n; })} />
+                {oneOffSets.length>1 && <button style={{ background:"transparent", border:"none", color:T.dim, cursor:"pointer", fontSize:14 }}
+                  onClick={()=>setOneOffSets(s=>s.filter((_,j)=>j!==i))}>×</button>}
+              </div>
+            ))}
+            <button style={S.btnSm} onClick={()=>setOneOffSets(s=>[...s,{reps:"",weight:s[s.length-1]?.weight||""}])}>+ Set</button>
+          </div>
+          <div style={{ marginBottom:10 }}>
+            <div style={{ fontSize:10, color:T.muted, textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:6 }}>Intensity</div>
+            <div style={{ display:"flex", gap:6 }}>
+              {["easy","medium","hard","very hard"].map(level => (
+                <button key={level} onClick={()=>setOneOffIntensity(level)}
+                  style={{ ...S.btnSm, flex:1, textTransform:"capitalize",
+                    background: oneOffIntensity===level ? ({easy:T.green,medium:T.accent,hard:T.amber,"very hard":T.red}[level]+"33") : T.border,
+                    color: oneOffIntensity===level ? ({easy:T.green,medium:T.accent,hard:T.amber,"very hard":T.red}[level]) : T.muted,
+                    border: `1px solid ${oneOffIntensity===level ? ({easy:T.green,medium:T.accent,hard:T.amber,"very hard":T.red}[level])+"66" : T.border}`,
+                  }}>{level}</button>
+              ))}
+            </div>
+          </div>
+          <input style={{ ...S.input, marginBottom:10 }} value={oneOffNotes} onChange={e=>setOneOffNotes(e.target.value)} placeholder="Notes (optional)" />
+          <div style={{ display:"flex", gap:8 }}>
+            <button style={{ ...S.btn, flex:1 }} onClick={saveOneOff} disabled={savingOneOff}>{savingOneOff?"Saving…":"Save"}</button>
+            <button style={{ ...S.btnSm, flex:1 }} onClick={()=>setAddingOneOff(false)}>Cancel</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -1719,6 +1783,10 @@ function SettingsTab({ darkMode, onToggleDark, user, onSignOut, profileUrl, prog
     setEditProgram(p=>{ const d=[...p.days]; const exs=[...d[dayIdx].exercises];
       exs[exIdx]={...exs[exIdx], [field]:Number(val)||1}; d[dayIdx]={...d[dayIdx],exercises:exs}; return {...p,days:d}; });
   }
+  function updateExIncrement(dayIdx, exIdx, val) {
+    setEditProgram(p=>{ const d=[...p.days]; const exs=[...d[dayIdx].exercises];
+      exs[exIdx]={...exs[exIdx], increment: val===""?null:Number(val)}; d[dayIdx]={...d[dayIdx],exercises:exs}; return {...p,days:d}; });
+  }
   function addExercise(dayIdx, ex) {
     if (!ex.trim()) return;
     setEditProgram(p=>{ const d=[...p.days]; d[dayIdx]={...d[dayIdx],exercises:[...d[dayIdx].exercises,{name:ex.trim(),sets:defaultSets(ex.trim())}]}; return {...p,days:d}; });
@@ -1810,7 +1878,13 @@ function SettingsTab({ darkMode, onToggleDark, user, onSignOut, profileUrl, prog
                             onChange={e=>updateExSets(dayIdx, exIdx, e.target.value)} />
                         </div>
                         <div style={{ display:"flex", alignItems:"center", gap:6 }}>
-                          <span style={{ fontSize:11, color:T.muted }}>Reps</span>
+                          <span style={{ fontSize:11, color:T.muted }}>+lbs</span>
+                          <input style={{ ...S.input, width:44, padding:"4px 6px", textAlign:"center", fontSize:12 }}
+                            type="number" min="0.5" step="0.5"
+                            placeholder={exEntry.increment != null ? "" : "auto"}
+                            value={exEntry.increment != null ? exEntry.increment : ""}
+                            onChange={e=>updateExIncrement(dayIdx, exIdx, e.target.value)} />
+                        </div>
                           <input style={{ ...S.input, width:44, padding:"4px 6px", textAlign:"center", fontSize:12 }}
                             type="number" min="1" value={exRepMin(exEntry)}
                             onChange={e=>updateExReps(dayIdx, exIdx, "repMin", e.target.value)} />
