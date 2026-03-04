@@ -243,9 +243,9 @@ const Storage = {
           const base = typeof ex === "string" ? {} : ex;
           return {
             name,
-            sets: base.sets || defaultSets(name),
-            repMin: base.repMin || (REP_SCHEMES[name]||[8,12])[0],
-            repMax: base.repMax || (REP_SCHEMES[name]||[8,12])[1],
+            sets: base.sets != null ? base.sets : defaultSets(name),
+            repMin: base.repMin != null ? base.repMin : (REP_SCHEMES[name]||[8,12])[0],
+            repMax: base.repMax != null ? base.repMax : (REP_SCHEMES[name]||[8,12])[1],
           };
         })
       }));
@@ -740,8 +740,8 @@ const DEFAULT_PROGRAM = {
 // Normalize exercise entry — handles both string and {name,sets} formats
 function exName(ex) { return typeof ex === "string" ? ex : ex.name; }
 function exSets(ex) { return typeof ex === "string" ? defaultSets(ex) : (ex.sets || defaultSets(ex.name)); }
-function exRepMin(ex) { return typeof ex === "string" ? (REP_SCHEMES[ex]||[8,12])[0] : (ex.repMin || (REP_SCHEMES[ex.name]||[8,12])[0]); }
-function exRepMax(ex) { return typeof ex === "string" ? (REP_SCHEMES[ex]||[8,12])[1] : (ex.repMax || (REP_SCHEMES[ex.name]||[8,12])[1]); }
+function exRepMin(ex) { return typeof ex === "string" ? (REP_SCHEMES[ex]||[8,12])[0] : (ex.repMin != null ? ex.repMin : (REP_SCHEMES[ex.name]||[8,12])[0]); }
+function exRepMax(ex) { return typeof ex === "string" ? (REP_SCHEMES[ex]||[8,12])[1] : (ex.repMax != null ? ex.repMax : (REP_SCHEMES[ex.name]||[8,12])[1]); }
 
 function NextWorkoutTab({ workouts, currentWeek, userId, onWorkoutAdded, program, readOnly=false }) {
   const programDays = program?.days || DEFAULT_PROGRAM.days;
