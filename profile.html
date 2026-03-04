@@ -203,6 +203,36 @@ function defaultSets(exercise) {
   return 3;
 }
 
+const DEFAULT_PROGRAM = {
+  days: [
+    { name:"Upper Push", exercises:[
+      {name:"Barbell Bench Press",sets:4,repMin:6,repMax:8},{name:"Seated DB OHP",sets:3,repMin:8,repMax:10},{name:"Incline DB Press (Push)",sets:3,repMin:10,repMax:12},
+      {name:"Cable Flyes",sets:3,repMin:12,repMax:15},{name:"Lateral Raises",sets:3,repMin:12,repMax:15},{name:"Tricep Pushdowns",sets:3,repMin:10,repMax:12},
+      {name:"Cable Rows Wide",sets:3,repMin:8,repMax:10},{name:"Face Pulls",sets:2,repMin:15,repMax:20}
+    ]},
+    { name:"Lower A", exercises:[
+      {name:"Barbell Back Squat",sets:4,repMin:6,repMax:8},{name:"Leg Press",sets:3,repMin:10,repMax:12},{name:"Romanian Deadlifts",sets:3,repMin:8,repMax:10},
+      {name:"Leg Curls",sets:3,repMin:10,repMax:12},{name:"Leg Extensions",sets:3,repMin:12,repMax:15},{name:"Goblet Squats",sets:3,repMin:10,repMax:12},{name:"Hanging Leg Raises",sets:3,repMin:12,repMax:15}
+    ]},
+    { name:"Upper Pull", exercises:[
+      {name:"Lat Pulldowns",sets:4,repMin:6,repMax:8},{name:"DB Rows",sets:3,repMin:8,repMax:10},{name:"Cable Rows Close",sets:3,repMin:10,repMax:12},
+      {name:"Cable Rows Wide",sets:3,repMin:8,repMax:10},{name:"Incline DB Press (Pull)",sets:3,repMin:10,repMax:12},{name:"OH Tricep Extension",sets:3,repMin:10,repMax:12},
+      {name:"Barbell Curls",sets:3,repMin:10,repMax:12},{name:"Hammer Curls",sets:3,repMin:10,repMax:12},{name:"Face Pulls",sets:2,repMin:15,repMax:20}
+    ]},
+    { name:"Lower B", exercises:[
+      {name:"Trap Bar Deadlift",sets:4,repMin:6,repMax:8},{name:"Bulgarian Split Squats",sets:3,repMin:10,repMax:12},{name:"Leg Press",sets:3,repMin:10,repMax:12},
+      {name:"Leg Curls",sets:3,repMin:10,repMax:12},{name:"Hip Thrusts",sets:3,repMin:12,repMax:15},{name:"Plank",sets:3,repMin:45,repMax:60}
+    ]},
+  ]
+};
+
+// Normalize exercise entry — handles both string and {name,sets,repMin,repMax} formats
+function exName(ex) { return typeof ex === "string" ? ex : ex.name; }
+function exSets(ex) { return typeof ex === "string" ? defaultSets(ex) : (ex.sets || defaultSets(ex.name)); }
+function exRepMin(ex) { return typeof ex === "string" ? (REP_SCHEMES[ex]||[8,12])[0] : (ex.repMin != null ? ex.repMin : (REP_SCHEMES[ex.name]||[8,12])[0]); }
+function exRepMax(ex) { return typeof ex === "string" ? (REP_SCHEMES[ex]||[8,12])[1] : (ex.repMax != null ? ex.repMax : (REP_SCHEMES[ex.name]||[8,12])[1]); }
+function exIncrement(ex) { return typeof ex === "string" ? null : (ex.increment != null ? ex.increment : null); }
+
 const Storage = {
   async initUser(uid, isChessie) {
     try {
@@ -714,36 +744,6 @@ function OverviewTab({ workouts, metrics, nutrition, currentWeek, cardio }) {
 // ─────────────────────────────────────────────────────────────────────────────
 // NEXT WORKOUT TAB
 // ─────────────────────────────────────────────────────────────────────────────
-const DEFAULT_PROGRAM = {
-  days: [
-    { name:"Upper Push", exercises:[
-      {name:"Barbell Bench Press",sets:4,repMin:6,repMax:8},{name:"Seated DB OHP",sets:3,repMin:8,repMax:10},{name:"Incline DB Press (Push)",sets:3,repMin:10,repMax:12},
-      {name:"Cable Flyes",sets:3,repMin:12,repMax:15},{name:"Lateral Raises",sets:3,repMin:12,repMax:15},{name:"Tricep Pushdowns",sets:3,repMin:10,repMax:12},
-      {name:"Cable Rows Wide",sets:3,repMin:8,repMax:10},{name:"Face Pulls",sets:2,repMin:15,repMax:20}
-    ]},
-    { name:"Lower A", exercises:[
-      {name:"Barbell Back Squat",sets:4,repMin:6,repMax:8},{name:"Leg Press",sets:3,repMin:10,repMax:12},{name:"Romanian Deadlifts",sets:3,repMin:8,repMax:10},
-      {name:"Leg Curls",sets:3,repMin:10,repMax:12},{name:"Leg Extensions",sets:3,repMin:12,repMax:15},{name:"Goblet Squats",sets:3,repMin:10,repMax:12},{name:"Hanging Leg Raises",sets:3,repMin:12,repMax:15}
-    ]},
-    { name:"Upper Pull", exercises:[
-      {name:"Lat Pulldowns",sets:4,repMin:6,repMax:8},{name:"DB Rows",sets:3,repMin:8,repMax:10},{name:"Cable Rows Close",sets:3,repMin:10,repMax:12},
-      {name:"Cable Rows Wide",sets:3,repMin:8,repMax:10},{name:"Incline DB Press (Pull)",sets:3,repMin:10,repMax:12},{name:"OH Tricep Extension",sets:3,repMin:10,repMax:12},
-      {name:"Barbell Curls",sets:3,repMin:10,repMax:12},{name:"Hammer Curls",sets:3,repMin:10,repMax:12},{name:"Face Pulls",sets:2,repMin:15,repMax:20}
-    ]},
-    { name:"Lower B", exercises:[
-      {name:"Trap Bar Deadlift",sets:4,repMin:6,repMax:8},{name:"Bulgarian Split Squats",sets:3,repMin:10,repMax:12},{name:"Leg Press",sets:3,repMin:10,repMax:12},
-      {name:"Leg Curls",sets:3,repMin:10,repMax:12},{name:"Hip Thrusts",sets:3,repMin:12,repMax:15},{name:"Plank",sets:3,repMin:45,repMax:60}
-    ]},
-  ]
-};
-
-// Normalize exercise entry — handles both string and {name,sets} formats
-function exName(ex) { return typeof ex === "string" ? ex : ex.name; }
-function exSets(ex) { return typeof ex === "string" ? defaultSets(ex) : (ex.sets || defaultSets(ex.name)); }
-function exRepMin(ex) { return typeof ex === "string" ? (REP_SCHEMES[ex]||[8,12])[0] : (ex.repMin != null ? ex.repMin : (REP_SCHEMES[ex.name]||[8,12])[0]); }
-function exRepMax(ex) { return typeof ex === "string" ? (REP_SCHEMES[ex]||[8,12])[1] : (ex.repMax != null ? ex.repMax : (REP_SCHEMES[ex.name]||[8,12])[1]); }
-function exIncrement(ex) { return typeof ex === "string" ? null : (ex.increment != null ? ex.increment : null); }
-
 function NextWorkoutTab({ workouts, currentWeek, userId, onWorkoutAdded, program, readOnly=false }) {
   const programDays = program?.days || DEFAULT_PROGRAM.days;
   const dayNames = programDays.map(d => d.name);
@@ -1113,7 +1113,7 @@ function ExerciseTab({ workouts, currentWeek }) {
 // ─────────────────────────────────────────────────────────────────────────────
 // LOG TAB
 // ─────────────────────────────────────────────────────────────────────────────
-function LogTab({ workouts, nutrition, metrics, cardio, currentWeek, userId, onWorkoutAdded, onNutritionUpsert, onMetricUpsert, onCardioAdded, readOnly }) {
+function LogTab({ workouts, nutrition, metrics, cardio, currentWeek, userId, onWorkoutAdded, onNutritionUpsert, onMetricUpsert, onCardioAdded }) {
   const today = new Date().toISOString().slice(0,10);
   const allExercises = [...new Set(workouts.map(w=>w.exercise))].sort();
 
@@ -2037,9 +2037,6 @@ function OnboardingScreen({ userId, onComplete }) {
 // MAIN APP
 // ─────────────────────────────────────────────────────────────────────────────
 
-// ─────────────────────────────────────────────────────────────────────────────
-// PUBLIC PROFILE APP
-// ─────────────────────────────────────────────────────────────────────────────
 function ProfileApp() {
   const [workouts, setWorkouts] = useState([]);
   const [metrics, setMetrics] = useState([]);
