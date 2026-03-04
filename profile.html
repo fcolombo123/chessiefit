@@ -824,8 +824,12 @@ function NextWorkoutTab({ workouts, currentWeek, userId, onWorkoutAdded, program
                 )}
               </div>
               {!isDone && (
-                <button onClick={()=>isExpanded ? closeLog() : openLog(exercise, suggCurrent)}
-                  style={{ ...S.btn, padding:"6px 14px", fontSize:11, marginLeft:12, background:isExpanded?T.border:T.accent, color:isExpanded?T.muted:"#0f2220" }}>
+                <button onClick={()=>!readOnly && (isExpanded ? closeLog() : openLog(exercise, suggCurrent))}
+                  style={{ ...S.btn, padding:"6px 14px", fontSize:11, marginLeft:12,
+                    background: readOnly ? T.border : (isExpanded ? T.border : T.accent),
+                    color: readOnly ? T.dim : (isExpanded ? T.muted : "#0f2220"),
+                    opacity: readOnly ? 0.5 : 1,
+                    cursor: readOnly ? "not-allowed" : "pointer" }}>
                   {isExpanded ? "Cancel" : "Log"}
                 </button>
               )}
@@ -867,7 +871,7 @@ function NextWorkoutTab({ workouts, currentWeek, userId, onWorkoutAdded, program
             )}
 
             {/* Inline log form */}
-            {isExpanded && (
+            {isExpanded && !readOnly && (
               <div style={{ borderTop:`1px solid ${T.border}`, paddingTop:12 }}>
                 {suggCurrent && (
                   <div style={{ fontSize:12, color:T.accent, marginBottom:10 }}>
@@ -1850,7 +1854,7 @@ function ProfileApp() {
       <div style={S.content}>
         {tab==="overview"     && <OverviewTab workouts={workouts} metrics={metrics} nutrition={nutrition} currentWeek={currentWeek} cardio={cardio} />}
         {tab==="next workout" && (
-          <NextWorkoutTab workouts={workouts} currentWeek={currentWeek} userId={null} onWorkoutAdded={()=>{}} program={program} />
+          <NextWorkoutTab workouts={workouts} currentWeek={currentWeek} userId={null} onWorkoutAdded={()=>{}} program={program} readOnly={true} />
         )}
         {tab==="progress"     && <ProgressTab workouts={workouts} />}
         {tab==="body"         && <BodyTab metrics={metrics} nutrition={nutrition} />}
