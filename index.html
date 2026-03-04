@@ -191,6 +191,18 @@ function simpleHash(s) {
   return String(h);
 }
 
+const DEFAULT_SETS = {
+  "Barbell Bench Press": 4,
+  "Barbell Back Squat": 4,
+  "Lat Pulldowns": 4,
+  "Trap Bar Deadlift": 4,
+  "Face Pulls": 2,
+};
+function defaultSets(exercise) {
+  if (exercise in DEFAULT_SETS) return DEFAULT_SETS[exercise];
+  return 3;
+}
+
 const Storage = {
   async initUser(uid, isChessie) {
     try {
@@ -221,7 +233,16 @@ const Storage = {
   async getProgram(uid) {
     try {
       const { data } = await sb.from("user_settings").select("value").eq("user_id", uid).eq("key", "program").single();
-      return data ? JSON.parse(data.value) : DEFAULT_PROGRAM;
+      if (!data) return DEFAULT_PROGRAM;
+      const p = JSON.parse(data.value);
+      // Migrate: normalize string exercises to {name, sets} objects
+      p.days = p.days.map(day => ({
+        ...day,
+        exercises: day.exercises.map(ex =>
+          typeof ex === "string" ? { name: ex, sets: defaultSets(ex) } : ex
+        )
+      }));
+      return p;
     } catch(e) { return DEFAULT_PROGRAM; }
   },
   async saveProfile(uid, profile) {
@@ -678,23 +699,32 @@ function OverviewTab({ workouts, metrics, nutrition, currentWeek, cardio }) {
 // ─────────────────────────────────────────────────────────────────────────────
 // NEXT WORKOUT TAB
 // ─────────────────────────────────────────────────────────────────────────────
-const COMPOUND_EXERCISES = new Set([
-  "Barbell Bench Press","Barbell Back Squat","Trap Bar Deadlift","Romanian Deadlifts",
-  "Lat Pulldowns","DB Rows","Cable Rows Close","Cable Rows Wide","Seated DB OHP",
-  "Incline DB Press (Push)","Incline DB Press (Pull)","Bulgarian Split Squats",
-  "Hip Thrusts","Leg Press","Goblet Squats",
-]);
-function defaultSets(exercise) { return COMPOUND_EXERCISES.has(exercise) ? 4 : 3; }
 const DEFAULT_PROGRAM = {
   days: [
-    { name:"Upper Push", exercises:["Barbell Bench Press","Seated DB OHP","Incline DB Press (Push)","Cable Flyes","Lateral Raises","Tricep Pushdowns","Cable Rows Wide","Face Pulls"] },
-    { name:"Lower A",    exercises:["Barbell Back Squat","Leg Press","Romanian Deadlifts","Leg Curls","Leg Extensions","Goblet Squats","Hanging Leg Raises"] },
-    { name:"Upper Pull", exercises:["Lat Pulldowns","DB Rows","Cable Rows Close","Cable Rows Wide","Incline DB Press (Pull)","OH Tricep Extension","Barbell Curls","Hammer Curls","Face Pulls"] },
-    { name:"Lower B",    exercises:["Trap Bar Deadlift","Bulgarian Split Squats","Leg Press","Leg Curls","Hip Thrusts","Plank"] },
+    { name:"Upper Push", exercises:[
+      {name:"Barbell Bench Press",sets:4},{name:"Seated DB OHP",sets:3},{name:"Incline DB Press (Push)",sets:3},
+      {name:"Cable Flyes",sets:3},{name:"Lateral Raises",sets:3},{name:"Tricep Pushdowns",sets:3},
+      {name:"Cable Rows Wide",sets:3},{name:"Face Pulls",sets:2}
+    ]},
+    { name:"Lower A", exercises:[
+      {name:"Barbell Back Squat",sets:4},{name:"Leg Press",sets:3},{name:"Romanian Deadlifts",sets:3},
+      {name:"Leg Curls",sets:3},{name:"Leg Extensions",sets:3},{name:"Goblet Squats",sets:3},{name:"Hanging Leg Raises",sets:3}
+    ]},
+    { name:"Upper Pull", exercises:[
+      {name:"Lat Pulldowns",sets:4},{name:"DB Rows",sets:3},{name:"Cable Rows Close",sets:3},
+      {name:"Cable Rows Wide",sets:3},{name:"Incline DB Press (Pull)",sets:3},{name:"OH Tricep Extension",sets:3},
+      {name:"Barbell Curls",sets:3},{name:"Hammer Curls",sets:3},{name:"Face Pulls",sets:2}
+    ]},
+    { name:"Lower B", exercises:[
+      {name:"Trap Bar Deadlift",sets:4},{name:"Bulgarian Split Squats",sets:3},{name:"Leg Press",sets:3},
+      {name:"Leg Curls",sets:3},{name:"Hip Thrusts",sets:3},{name:"Plank",sets:3}
+    ]},
   ]
 };
 
-function NextWorkoutTab({ workouts, currentWeek, userId, onWorkoutAdded, program, readOnly=false }) {
+// Normalize exercise entry — handles both string and {name,sets} formats
+function exName(ex) { return typeof ex === "string" ? ex : ex.name; }
+function exSets(ex) { return typeof ex === "string" ? defaultSets(ex) : (ex.sets || defaultSets(ex.name)); }
   const programDays = program?.days || DEFAULT_PROGRAM.days;
   const dayNames = programDays.map(d => d.name);
   const [selectedDay, setSelectedDay] = useState(dayNames[0]);
@@ -713,7 +743,9 @@ function NextWorkoutTab({ workouts, currentWeek, userId, onWorkoutAdded, program
   const dayColor = DAY_COLORS[selectedDay] || T.accent;
 
   const dayExercises = useMemo(() => {
-    return currentDayConfig.exercises.map(ex => {
+    return currentDayConfig.exercises.map(exEntry => {
+      const ex = exName(exEntry);
+      const numSets = exSets(exEntry);
       const hist = getExHistory(workouts, ex);
       const histSameDay = hist.filter(h=>h.day===selectedDay);
       const currentEntry = histSameDay.find(h=>h.week===currentWeek)||null;
@@ -722,16 +754,15 @@ function NextWorkoutTab({ workouts, currentWeek, userId, onWorkoutAdded, program
       const prevEntry = histUpToPrev.slice(-1)[0]||null;
       const suggCurrent = !currentEntry ? getSuggestion(histUpToPrev, isDeloadWeek(currentWeek), ex) : null;
       const suggNext = getSuggestion(histUpToCurrent, isDeloadWeek(currentWeek+1), ex);
-      return { exercise:ex, currentEntry, prevEntry, suggCurrent, suggNext };
+      return { exercise:ex, numSets, currentEntry, prevEntry, suggCurrent, suggNext };
     });
   }, [workouts, selectedDay, currentWeek, program]);
 
-  function openLog(ex, sugg) {
+  function openLog(ex, sugg, numSets) {
     setExpandedEx(ex);
     setLogNotes("");
     setLogIntensity("medium");
     const w = sugg?.suggestedWeight || "";
-    const numSets = defaultSets(ex);
     setLogSets(Array(numSets).fill(null).map(()=>({ reps:"", weight:w })));
   }
 
@@ -750,15 +781,15 @@ function NextWorkoutTab({ workouts, currentWeek, userId, onWorkoutAdded, program
 
   async function saveWeek1() {
     const exercises = currentDayConfig.exercises;
-    const hasWeights = exercises.some(ex => week1Weights[ex]);
+    const hasWeights = exercises.some(ex => week1Weights[exName(ex)]);
     if (!hasWeights) return;
     setSavingWeek1(true);
     const today = new Date().toISOString().split("T")[0];
-    const [repMin, repMax] = [8, 12]; // default middle rep range for week 1
-    for (const ex of exercises) {
+    for (const exEntry of exercises) {
+      const ex = exName(exEntry);
+      const numSets = exSets(exEntry);
       const w = Number(week1Weights[ex]);
       if (!w) continue;
-      const numSets = defaultSets(ex);
       const [rMin] = REP_SCHEMES[ex] || [8,12];
       const sets = Array(numSets).fill(null).map(()=>({ reps:rMin, weight:w }));
       await Storage.addWorkout(userId, { week:1, day:selectedDay, date:today, exercise:ex, sets, notes:"Starting weight", intensity:"medium" });
@@ -786,9 +817,10 @@ function NextWorkoutTab({ workouts, currentWeek, userId, onWorkoutAdded, program
         <div style={{ ...S.card, marginBottom:16, border:`1px solid ${T.accent}44`, background:T.accent+"11" }}>
           <div style={{ fontSize:12, fontWeight:700, color:T.accent, marginBottom:4 }}>👋 Week 1 Setup</div>
           <div style={{ fontSize:11, color:T.muted, marginBottom:12 }}>Enter your starting weights for {selectedDay}. Use a weight you can do comfortably for the target reps.</div>
-          {currentDayConfig.exercises.map(ex => {
+          {currentDayConfig.exercises.map(exEntry => {
+            const ex = exName(exEntry);
+            const numSets = exSets(exEntry);
             const [repMin, repMax] = REP_SCHEMES[ex] || [8,12];
-            const numSets = defaultSets(ex);
             return (
               <div key={ex} style={{ display:"grid", gridTemplateColumns:"1fr auto auto", gap:8, alignItems:"center", marginBottom:8 }}>
                 <div>
@@ -808,7 +840,7 @@ function NextWorkoutTab({ workouts, currentWeek, userId, onWorkoutAdded, program
       )}
 
       {/* Normal exercise cards */}
-      {dayExercises.map(({ exercise, currentEntry, prevEntry, suggCurrent, suggNext }) => {
+      {dayExercises.map(({ exercise, numSets, currentEntry, prevEntry, suggCurrent, suggNext }) => {
         const isExpanded = expandedEx === exercise;
         const isDone = !!currentEntry;
         return (
@@ -824,8 +856,12 @@ function NextWorkoutTab({ workouts, currentWeek, userId, onWorkoutAdded, program
                 )}
               </div>
               {!isDone && (
-                <button onClick={()=>isExpanded ? closeLog() : openLog(exercise, suggCurrent)}
-                  style={{ ...S.btn, padding:"6px 14px", fontSize:11, marginLeft:12, background:isExpanded?T.border:T.accent, color:isExpanded?T.muted:"#0f2220" }}>
+                <button onClick={()=>!readOnly && (isExpanded ? closeLog() : openLog(exercise, suggCurrent, numSets))}
+                  style={{ ...S.btn, padding:"6px 14px", fontSize:11, marginLeft:12,
+                    background: readOnly ? T.border : (isExpanded ? T.border : T.accent),
+                    color: readOnly ? T.dim : (isExpanded ? T.muted : "#0f2220"),
+                    opacity: readOnly ? 0.5 : 1,
+                    cursor: readOnly ? "not-allowed" : "pointer" }}>
                   {isExpanded ? "Cancel" : "Log"}
                 </button>
               )}
@@ -867,7 +903,7 @@ function NextWorkoutTab({ workouts, currentWeek, userId, onWorkoutAdded, program
             )}
 
             {/* Inline log form */}
-            {isExpanded && (
+            {isExpanded && !readOnly && (
               <div style={{ borderTop:`1px solid ${T.border}`, paddingTop:12 }}>
                 {suggCurrent && (
                   <div style={{ fontSize:12, color:T.accent, marginBottom:10 }}>
@@ -1392,15 +1428,17 @@ const DAY_EXERCISE_ORDER = {
   "Lower B":    ["Trap Bar Deadlift","Bulgarian Split Squats","Leg Press","Leg Curls","Hip Thrusts","Plank"],
 };
 
-function ExerciseMiniCard({ exercise, workouts }) {
+function ExerciseMiniCard({ exercise, workouts, chartMode="weight" }) {
   const hist = getExHistory(workouts, exercise);
   if (!hist.length) return null;
-  const chartData = hist.map(h => ({ x: h.week, y: Math.round(avgE1rm(h.sets)) }));
+  const weightData = hist.map(h => ({ x: h.week, y: Math.max(...h.sets.map(s=>s.weight)) }));
+  const e1rmData = hist.map(h => ({ x: h.week, y: Math.round(avgE1rm(h.sets)) }));
+  const chartData = chartMode === "e1rm" ? e1rmData : weightData;
   const latest = chartData[chartData.length - 1];
   const first = chartData[0];
   const gain = latest.y - first.y;
   const lastSets = hist[hist.length - 1].sets;
-  const lastWeight = lastSets[lastSets.length - 1].weight;
+  const lastWeight = Math.max(...lastSets.map(s=>s.weight));
 
   return (
     <div style={{ ...S.card, padding:"12px 14px" }}>
@@ -1409,12 +1447,13 @@ function ExerciseMiniCard({ exercise, workouts }) {
         <span style={{ fontSize:18, fontWeight:700, color:T.accent }}>{lastWeight}</span>
         <span style={{ fontSize:10, color:T.muted }}>lbs</span>
         {chartData.length >= 2 && (
-          <span style={{ fontSize:10, color:gain>=0?T.green:T.red, marginLeft:2 }}>{gain>=0?"+":""}{gain} lbs</span>
+          <span style={{ fontSize:10, color:gain>=0?T.green:T.red, marginLeft:2 }}>{gain>=0?"+":""}{gain} {chartMode==="e1rm"?"e1RM":"lbs"}</span>
         )}
       </div>
       <MiniChart data={chartData} color={T.accent} />
       <div style={{ display:"flex", justifyContent:"space-between", marginTop:6 }}>
         <span style={{ fontSize:9, color:T.dim }}>W{first.x}</span>
+        <span style={{ fontSize:9, color:T.dim }}>{chartMode==="e1rm"?"e1RM":"weight"}</span>
         <span style={{ fontSize:9, color:T.dim }}>W{latest.x}</span>
       </div>
     </div>
@@ -1425,6 +1464,7 @@ function ProgressTab({ workouts }) {
   const [view, setView] = useState("by-day");
   const [activeDay, setActiveDay] = useState(DAYS[0]);
   const [activeExercise, setActiveExercise] = useState("");
+  const [chartMode, setChartMode] = useState("weight");
 
   const allExercises = useMemo(() => {
     const all = [...new Set(workouts.map(w => w.exercise))];
@@ -1448,13 +1488,21 @@ function ProgressTab({ workouts }) {
   }
 
   const ViewToggle = () => (
-    <div style={{ display:"flex", gap:4, marginBottom:20 }}>
+    <div style={{ display:"flex", gap:4, marginBottom:20, flexWrap:"wrap", alignItems:"center" }}>
       {[["by-day","By Day"],["all","All Exercises"],["single","By Exercise"]].map(([v,label]) => (
         <button key={v} onClick={() => setView(v)}
           style={{ ...S.btnSm, background:view===v?T.accent+"22":T.border, color:view===v?T.accent:T.muted, border:`1px solid ${view===v?T.accent+"55":T.border}` }}>
           {label}
         </button>
       ))}
+      <div style={{ marginLeft:"auto", display:"flex", gap:4 }}>
+        {[["weight","Weight"],["e1rm","e1RM"]].map(([m,label]) => (
+          <button key={m} onClick={() => setChartMode(m)}
+            style={{ ...S.btnSm, background:chartMode===m?T.accent+"22":T.border, color:chartMode===m?T.accent:T.muted, border:`1px solid ${chartMode===m?T.accent+"55":T.border}` }}>
+            {label}
+          </button>
+        ))}
+      </div>
     </div>
   );
 
@@ -1473,7 +1521,7 @@ function ProgressTab({ workouts }) {
       {orderedForDay(activeDay).length === 0
         ? <div style={{ ...S.card, color:T.dim, fontSize:12 }}>No workouts logged for {activeDay} yet.</div>
         : <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(220px, 1fr))", gap:12 }}>
-            {orderedForDay(activeDay).map(ex => <ExerciseMiniCard key={ex} exercise={ex} workouts={workouts} />)}
+            {orderedForDay(activeDay).map(ex => <ExerciseMiniCard key={ex} exercise={ex} workouts={workouts} chartMode={chartMode} />)}
           </div>
       }
     </div>
@@ -1493,7 +1541,7 @@ function ProgressTab({ workouts }) {
               <div style={{ fontSize:11, fontWeight:700, color:DAY_COLORS[day], textTransform:"uppercase", letterSpacing:"0.1em" }}>{day}</div>
             </div>
             <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(200px, 1fr))", gap:10 }}>
-              {exercises.map(ex => <ExerciseMiniCard key={ex} exercise={ex} workouts={workouts} />)}
+              {exercises.map(ex => <ExerciseMiniCard key={ex} exercise={ex} workouts={workouts} chartMode={chartMode} />)}
             </div>
           </div>
         );
@@ -1504,7 +1552,9 @@ function ProgressTab({ workouts }) {
   // ── View 3: Single Exercise ─────────────────────────────────────────────────
   if (view === "single") {
     const hist = getExHistory(workouts, activeExercise);
-    const chartData = hist.map(h => ({ x: h.week, y: Math.round(avgE1rm(h.sets)) }));
+    const weightData = hist.map(h => ({ x: h.week, y: Math.max(...h.sets.map(s=>s.weight)) }));
+    const e1rmData = hist.map(h => ({ x: h.week, y: Math.round(avgE1rm(h.sets)) }));
+    const chartData = chartMode === "e1rm" ? e1rmData : weightData;
     const gain = chartData.length >= 2 ? chartData[chartData.length-1].y - chartData[0].y : 0;
     const suggestion = getSuggestion(hist, false, activeExercise);
     const [repMin, repMax] = REP_SCHEMES[activeExercise] || [6,8];
@@ -1520,7 +1570,7 @@ function ProgressTab({ workouts }) {
         </div>
         <div style={S.grid2}>
           <div style={S.card}>
-            <div style={{ fontSize:10, color:T.muted, textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:10 }}>Weight Trend</div>
+            <div style={{ fontSize:10, color:T.muted, textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:10 }}>{chartMode==="e1rm"?"e1RM Trend":"Weight Trend"}</div>
             <MiniChart data={chartData} color={T.accent} />
             {chartData.length >= 2 && (
               <div style={{ fontSize:11, color:gain>=0?T.green:T.red, marginTop:8 }}>
@@ -1581,12 +1631,13 @@ function SettingsTab({ darkMode, onToggleDark, user, onSignOut, profileUrl, prog
   function updateDayName(i, name) {
     setEditProgram(p=>{ const d=[...p.days]; d[i]={...d[i],name}; return {...p,days:d}; });
   }
-  function updateSets(i, ex, val) {
-    setEditProgram(p=>{ const d=[...p.days]; const exList=[...d[i].exercises]; exList[exList.indexOf(ex)]=ex; return {...p,days:d}; });
+  function updateExSets(dayIdx, exIdx, sets) {
+    setEditProgram(p=>{ const d=[...p.days]; const exs=[...d[dayIdx].exercises];
+      exs[exIdx]={...exs[exIdx], sets:Number(sets)||1}; d[dayIdx]={...d[dayIdx],exercises:exs}; return {...p,days:d}; });
   }
   function addExercise(dayIdx, ex) {
     if (!ex.trim()) return;
-    setEditProgram(p=>{ const d=[...p.days]; d[dayIdx]={...d[dayIdx],exercises:[...d[dayIdx].exercises,ex.trim()]}; return {...p,days:d}; });
+    setEditProgram(p=>{ const d=[...p.days]; d[dayIdx]={...d[dayIdx],exercises:[...d[dayIdx].exercises,{name:ex.trim(),sets:defaultSets(ex.trim())}]}; return {...p,days:d}; });
   }
   function removeExercise(dayIdx, exIdx) {
     setEditProgram(p=>{ const d=[...p.days]; d[dayIdx]={...d[dayIdx],exercises:d[dayIdx].exercises.filter((_,i)=>i!==exIdx)}; return {...p,days:d}; });
@@ -1646,17 +1697,24 @@ function SettingsTab({ darkMode, onToggleDark, user, onSignOut, profileUrl, prog
               <button style={{ background:"transparent", border:"none", color:T.red, cursor:"pointer", fontSize:16, padding:"0 4px" }}
                 onClick={()=>removeDay(dayIdx)} title="Remove day">×</button>
             </div>
-            {day.exercises.map((ex, exIdx) => (
+            {day.exercises.map((exEntry, exIdx) => {
+              const ex = exName(exEntry);
+              const sets = exSets(exEntry);
+              return (
               <div key={exIdx} style={{ display:"flex", gap:6, alignItems:"center", marginBottom:6 }}>
                 <span style={{ flex:1, fontSize:12, color:T.text }}>{ex}</span>
-                <span style={{ fontSize:10, color:T.dim, minWidth:60 }}>
-                  {defaultSets(ex)}s · {(REP_SCHEMES[ex]||[8,12]).join("–")}r
-                </span>
+                <input style={{ ...S.input, width:36, padding:"4px 6px", textAlign:"center", fontSize:11 }}
+                  type="number" min="1" max="10" value={sets}
+                  onChange={e=>updateExSets(dayIdx, exIdx, e.target.value)}
+                  title="Sets" />
+                <span style={{ fontSize:10, color:T.dim }}>sets</span>
+                <span style={{ fontSize:10, color:T.dim, minWidth:40 }}>· {(REP_SCHEMES[ex]||[8,12]).join("–")}r</span>
                 <button style={{ background:"transparent", border:"none", color:T.muted, cursor:"pointer", fontSize:12 }} onClick={()=>moveExercise(dayIdx,exIdx,-1)}>↑</button>
                 <button style={{ background:"transparent", border:"none", color:T.muted, cursor:"pointer", fontSize:12 }} onClick={()=>moveExercise(dayIdx,exIdx,1)}>↓</button>
                 <button style={{ background:"transparent", border:"none", color:T.red, cursor:"pointer", fontSize:14 }} onClick={()=>removeExercise(dayIdx,exIdx)}>×</button>
               </div>
-            ))}
+              );
+            })}
             <div style={{ display:"flex", gap:6, marginTop:8 }}>
               <input style={{ ...S.input, fontSize:11 }} placeholder="Add exercise…"
                 value={newExInputs[dayIdx]||""}
