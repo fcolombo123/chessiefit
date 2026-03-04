@@ -235,12 +235,19 @@ const Storage = {
       const { data } = await sb.from("user_settings").select("value").eq("user_id", uid).eq("key", "program").single();
       if (!data) return DEFAULT_PROGRAM;
       const p = JSON.parse(data.value);
-      // Migrate: normalize string exercises to {name, sets} objects
+      // Migrate: normalize string exercises to {name, sets, repMin, repMax} objects
       p.days = p.days.map(day => ({
         ...day,
-        exercises: day.exercises.map(ex =>
-          typeof ex === "string" ? { name: ex, sets: defaultSets(ex) } : ex
-        )
+        exercises: day.exercises.map(ex => {
+          const name = typeof ex === "string" ? ex : ex.name;
+          const base = typeof ex === "string" ? {} : ex;
+          return {
+            name,
+            sets: base.sets || defaultSets(name),
+            repMin: base.repMin || (REP_SCHEMES[name]||[8,12])[0],
+            repMax: base.repMax || (REP_SCHEMES[name]||[8,12])[1],
+          };
+        })
       }));
       return p;
     } catch(e) { return DEFAULT_PROGRAM; }
@@ -351,12 +358,15 @@ function sevenDayAvg(entries, field) {
   return Math.round(r.reduce((a,e)=>a+e[field],0)/r.length);
 }
 
-function getSuggestion(history, isDeload, exercise) {
+function getSuggestion(history, isDeload, exercise, repMinOverride, repMaxOverride) {
   const sorted = [...history].sort((a,b)=>a.week-b.week);
   if (!sorted.length) return null;
   const recent = sorted[sorted.length-1];
   const twoBack = sorted.length>=2 ? sorted[sorted.length-2] : null;
-  const [repMin,repMax] = REP_SCHEMES[exercise]||[6,8];
+  const [repMin, repMax] = [
+    repMinOverride || (REP_SCHEMES[exercise]||[6,8])[0],
+    repMaxOverride || (REP_SCHEMES[exercise]||[6,8])[1],
+  ];
   const lastSets = recent.sets;
   const lastWeight = lastSets[lastSets.length-1].weight;
   const workingSets = lastSets.filter(s=>s.weight===lastWeight);
@@ -707,22 +717,22 @@ function OverviewTab({ workouts, metrics, nutrition, currentWeek, cardio }) {
 const DEFAULT_PROGRAM = {
   days: [
     { name:"Upper Push", exercises:[
-      {name:"Barbell Bench Press",sets:4},{name:"Seated DB OHP",sets:3},{name:"Incline DB Press (Push)",sets:3},
-      {name:"Cable Flyes",sets:3},{name:"Lateral Raises",sets:3},{name:"Tricep Pushdowns",sets:3},
-      {name:"Cable Rows Wide",sets:3},{name:"Face Pulls",sets:2}
+      {name:"Barbell Bench Press",sets:4,repMin:6,repMax:8},{name:"Seated DB OHP",sets:3,repMin:8,repMax:10},{name:"Incline DB Press (Push)",sets:3,repMin:10,repMax:12},
+      {name:"Cable Flyes",sets:3,repMin:12,repMax:15},{name:"Lateral Raises",sets:3,repMin:12,repMax:15},{name:"Tricep Pushdowns",sets:3,repMin:10,repMax:12},
+      {name:"Cable Rows Wide",sets:3,repMin:8,repMax:10},{name:"Face Pulls",sets:2,repMin:15,repMax:20}
     ]},
     { name:"Lower A", exercises:[
-      {name:"Barbell Back Squat",sets:4},{name:"Leg Press",sets:3},{name:"Romanian Deadlifts",sets:3},
-      {name:"Leg Curls",sets:3},{name:"Leg Extensions",sets:3},{name:"Goblet Squats",sets:3},{name:"Hanging Leg Raises",sets:3}
+      {name:"Barbell Back Squat",sets:4,repMin:6,repMax:8},{name:"Leg Press",sets:3,repMin:10,repMax:12},{name:"Romanian Deadlifts",sets:3,repMin:8,repMax:10},
+      {name:"Leg Curls",sets:3,repMin:10,repMax:12},{name:"Leg Extensions",sets:3,repMin:12,repMax:15},{name:"Goblet Squats",sets:3,repMin:10,repMax:12},{name:"Hanging Leg Raises",sets:3,repMin:12,repMax:15}
     ]},
     { name:"Upper Pull", exercises:[
-      {name:"Lat Pulldowns",sets:4},{name:"DB Rows",sets:3},{name:"Cable Rows Close",sets:3},
-      {name:"Cable Rows Wide",sets:3},{name:"Incline DB Press (Pull)",sets:3},{name:"OH Tricep Extension",sets:3},
-      {name:"Barbell Curls",sets:3},{name:"Hammer Curls",sets:3},{name:"Face Pulls",sets:2}
+      {name:"Lat Pulldowns",sets:4,repMin:6,repMax:8},{name:"DB Rows",sets:3,repMin:8,repMax:10},{name:"Cable Rows Close",sets:3,repMin:10,repMax:12},
+      {name:"Cable Rows Wide",sets:3,repMin:8,repMax:10},{name:"Incline DB Press (Pull)",sets:3,repMin:10,repMax:12},{name:"OH Tricep Extension",sets:3,repMin:10,repMax:12},
+      {name:"Barbell Curls",sets:3,repMin:10,repMax:12},{name:"Hammer Curls",sets:3,repMin:10,repMax:12},{name:"Face Pulls",sets:2,repMin:15,repMax:20}
     ]},
     { name:"Lower B", exercises:[
-      {name:"Trap Bar Deadlift",sets:4},{name:"Bulgarian Split Squats",sets:3},{name:"Leg Press",sets:3},
-      {name:"Leg Curls",sets:3},{name:"Hip Thrusts",sets:3},{name:"Plank",sets:3}
+      {name:"Trap Bar Deadlift",sets:4,repMin:6,repMax:8},{name:"Bulgarian Split Squats",sets:3,repMin:10,repMax:12},{name:"Leg Press",sets:3,repMin:10,repMax:12},
+      {name:"Leg Curls",sets:3,repMin:10,repMax:12},{name:"Hip Thrusts",sets:3,repMin:12,repMax:15},{name:"Plank",sets:3,repMin:45,repMax:60}
     ]},
   ]
 };
@@ -730,6 +740,8 @@ const DEFAULT_PROGRAM = {
 // Normalize exercise entry — handles both string and {name,sets} formats
 function exName(ex) { return typeof ex === "string" ? ex : ex.name; }
 function exSets(ex) { return typeof ex === "string" ? defaultSets(ex) : (ex.sets || defaultSets(ex.name)); }
+function exRepMin(ex) { return typeof ex === "string" ? (REP_SCHEMES[ex]||[8,12])[0] : (ex.repMin || (REP_SCHEMES[ex.name]||[8,12])[0]); }
+function exRepMax(ex) { return typeof ex === "string" ? (REP_SCHEMES[ex]||[8,12])[1] : (ex.repMax || (REP_SCHEMES[ex.name]||[8,12])[1]); }
 
 function NextWorkoutTab({ workouts, currentWeek, userId, onWorkoutAdded, program, readOnly=false }) {
   const programDays = program?.days || DEFAULT_PROGRAM.days;
@@ -753,15 +765,17 @@ function NextWorkoutTab({ workouts, currentWeek, userId, onWorkoutAdded, program
     return currentDayConfig.exercises.map(exEntry => {
       const ex = exName(exEntry);
       const numSets = exSets(exEntry);
+      const repMin = exRepMin(exEntry);
+      const repMax = exRepMax(exEntry);
       const hist = getExHistory(workouts, ex);
       const histSameDay = hist.filter(h=>h.day===selectedDay);
       const currentEntry = histSameDay.find(h=>h.week===currentWeek)||null;
       const histUpToPrev = hist.filter(h=>h.week<currentWeek);
       const histUpToCurrent = hist.filter(h=>h.week<=currentWeek);
       const prevEntry = histUpToPrev.slice(-1)[0]||null;
-      const suggCurrent = !currentEntry ? getSuggestion(histUpToPrev, isDeloadWeek(currentWeek), ex) : null;
-      const suggNext = getSuggestion(histUpToCurrent, isDeloadWeek(currentWeek+1), ex);
-      return { exercise:ex, numSets, currentEntry, prevEntry, suggCurrent, suggNext };
+      const suggCurrent = !currentEntry ? getSuggestion(histUpToPrev, isDeloadWeek(currentWeek), ex, repMin, repMax) : null;
+      const suggNext = getSuggestion(histUpToCurrent, isDeloadWeek(currentWeek+1), ex, repMin, repMax);
+      return { exercise:ex, numSets, repMin, repMax, currentEntry, prevEntry, suggCurrent, suggNext };
     });
   }, [workouts, selectedDay, currentWeek, program]);
 
@@ -1701,6 +1715,10 @@ function SettingsTab({ darkMode, onToggleDark, user, onSignOut, profileUrl, prog
     setEditProgram(p=>{ const d=[...p.days]; const exs=[...d[dayIdx].exercises];
       exs[exIdx]={...exs[exIdx], sets:Number(sets)||1}; d[dayIdx]={...d[dayIdx],exercises:exs}; return {...p,days:d}; });
   }
+  function updateExReps(dayIdx, exIdx, field, val) {
+    setEditProgram(p=>{ const d=[...p.days]; const exs=[...d[dayIdx].exercises];
+      exs[exIdx]={...exs[exIdx], [field]:Number(val)||1}; d[dayIdx]={...d[dayIdx],exercises:exs}; return {...p,days:d}; });
+  }
   function addExercise(dayIdx, ex) {
     if (!ex.trim()) return;
     setEditProgram(p=>{ const d=[...p.days]; d[dayIdx]={...d[dayIdx],exercises:[...d[dayIdx].exercises,{name:ex.trim(),sets:defaultSets(ex.trim())}]}; return {...p,days:d}; });
@@ -1769,7 +1787,7 @@ function SettingsTab({ darkMode, onToggleDark, user, onSignOut, profileUrl, prog
               const sets = exSets(exEntry);
               const key = `${dayIdx}-${exIdx}`;
               const isEditing = editingEx === key;
-              const repRange = REP_SCHEMES[ex] ? REP_SCHEMES[ex].join("–") : "8–12";
+              const repRange = `${exRepMin(exEntry)}–${exRepMax(exEntry)}`;
               return (
                 <div key={exIdx} style={{ marginBottom:6 }}>
                   {/* View row */}
@@ -1794,12 +1812,12 @@ function SettingsTab({ darkMode, onToggleDark, user, onSignOut, profileUrl, prog
                         <div style={{ display:"flex", alignItems:"center", gap:6 }}>
                           <span style={{ fontSize:11, color:T.muted }}>Reps</span>
                           <input style={{ ...S.input, width:44, padding:"4px 6px", textAlign:"center", fontSize:12 }}
-                            type="number" min="1" value={REP_SCHEMES[ex]?.[0]||8}
-                            onChange={()=>{}} readOnly title="Edit rep scheme in code" />
+                            type="number" min="1" value={exRepMin(exEntry)}
+                            onChange={e=>updateExReps(dayIdx, exIdx, "repMin", e.target.value)} />
                           <span style={{ fontSize:11, color:T.dim }}>–</span>
                           <input style={{ ...S.input, width:44, padding:"4px 6px", textAlign:"center", fontSize:12 }}
-                            type="number" min="1" value={REP_SCHEMES[ex]?.[1]||12}
-                            onChange={()=>{}} readOnly title="Edit rep scheme in code" />
+                            type="number" min="1" value={exRepMax(exEntry)}
+                            onChange={e=>updateExReps(dayIdx, exIdx, "repMax", e.target.value)} />
                         </div>
                         <div style={{ display:"flex", gap:4, marginLeft:"auto" }}>
                           <button style={{ ...S.btnSm }} onClick={()=>moveExercise(dayIdx,exIdx,-1)} title="Move up">↑</button>
