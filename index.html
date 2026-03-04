@@ -1773,8 +1773,7 @@ function SettingsTab({ darkMode, onToggleDark, user, onSignOut, profileUrl, prog
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
-  // Sync if program prop changes
-  useEffect(()=>{ setEditProgram(JSON.parse(JSON.stringify(program))); },[program]);
+  // (no sync effect — editProgram is initialized from program on mount only)
 
   function updateDayName(i, name) {
     setEditProgram(p=>{ const d=[...p.days]; d[i]={...d[i],name}; return {...p,days:d}; });
@@ -1845,7 +1844,7 @@ function SettingsTab({ darkMode, onToggleDark, user, onSignOut, profileUrl, prog
       {/* Program editor */}
       <div style={{ ...S.card, marginBottom:16 }}>
         <div style={{ fontSize:11, fontWeight:700, color:T.muted, textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:4 }}>Program</div>
-        <div style={{ fontSize:11, color:T.dim, marginBottom:16 }}>Rename days, reorder or add/remove exercises. Changes take effect immediately in Next Workout.</div>
+        <div style={{ fontSize:11, color:T.dim, marginBottom:16 }}>Rename days, reorder or add/remove exercises. Changes take effect immediately in Workouts.</div>
         {editProgram.days.map((day, dayIdx) => (
           <div key={dayIdx} style={{ ...S.card, marginBottom:12, padding:"12px 14px" }}>
             <div style={{ display:"flex", gap:8, alignItems:"center", marginBottom:10 }}>
@@ -2134,7 +2133,7 @@ function App() {
   );
 
   const weeksUntilDeload = 6-(currentWeek%6);
-  const TABS = ["overview","next workout","progress","body","log","settings"];
+  const TABS = ["overview","workouts","progress","body","log","settings"];
 
   return (
     <div style={S.root}>
@@ -2163,7 +2162,7 @@ function App() {
       </div>
       <div style={S.content}>
         {tab==="overview"     && <OverviewTab workouts={workouts} metrics={metrics} nutrition={nutrition} currentWeek={currentWeek} cardio={cardio} />}
-        {tab==="next workout" && <NextWorkoutTab workouts={workouts} currentWeek={currentWeek} userId={user.id} onWorkoutAdded={reload} program={program} />}
+        {tab==="workouts" && <NextWorkoutTab workouts={workouts} currentWeek={currentWeek} userId={user.id} onWorkoutAdded={reload} program={program} />}
         {tab==="progress"     && <ProgressTab workouts={workouts} />}
         {tab==="body"         && <BodyTab metrics={metrics} nutrition={nutrition} />}
         {tab==="log"          && <LogTab workouts={workouts} nutrition={nutrition} metrics={metrics} cardio={cardio} currentWeek={currentWeek} userId={user.id} onWorkoutAdded={reload} onNutritionUpsert={reload} onMetricUpsert={reload} onCardioAdded={reload} />}
