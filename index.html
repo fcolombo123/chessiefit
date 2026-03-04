@@ -615,8 +615,13 @@ function OverviewTab({ workouts, metrics, nutrition, currentWeek }) {
 // ─────────────────────────────────────────────────────────────────────────────
 // NEXT WORKOUT TAB
 // ─────────────────────────────────────────────────────────────────────────────
-function NextWorkoutTab({ workouts, currentWeek }) {
+function NextWorkoutTab({ workouts, currentWeek, userId, onWorkoutAdded }) {
   const [selectedDay, setSelectedDay] = useState(DAYS[0]);
+  const [expandedEx, setExpandedEx] = useState(null);
+  const [logSets, setLogSets] = useState([{ reps:"", weight:"" }]);
+  const [logNotes, setLogNotes] = useState("");
+  const [logIntensity, setLogIntensity] = useState("medium");
+  const [saving, setSaving] = useState(false);
 
   const dayExercises = useMemo(() => {
     const exercises = [...new Set(workouts.filter(w=>w.day===selectedDay).map(w=>w.exercise))];
@@ -632,11 +637,32 @@ function NextWorkoutTab({ workouts, currentWeek }) {
     });
   }, [workouts, selectedDay, currentWeek]);
 
+  function openLog(ex, sugg) {
+    setExpandedEx(ex);
+    setLogNotes("");
+    setLogIntensity("medium");
+    const w = sugg?.suggestedWeight || "";
+    setLogSets([{ reps:"", weight:w },{ reps:"", weight:w },{ reps:"", weight:w }]);
+  }
+
+  function closeLog() { setExpandedEx(null); }
+
+  async function saveLog(exercise) {
+    const sets = logSets.filter(s=>s.reps!==""&&s.weight!=="").map(s=>({reps:Number(s.reps),weight:Number(s.weight)}));
+    if (!sets.length) return;
+    setSaving(true);
+    const today = new Date().toISOString().split("T")[0];
+    await Storage.addWorkout(userId, { week:currentWeek, day:selectedDay, date:today, exercise, sets, notes:logNotes, intensity:logIntensity });
+    onWorkoutAdded();
+    setSaving(false);
+    setExpandedEx(null);
+  }
+
   return (
     <div>
       <div style={{ display:"flex", gap:8, marginBottom:20, flexWrap:"wrap" }}>
         {DAYS.map(d => (
-          <button key={d} onClick={()=>setSelectedDay(d)}
+          <button key={d} onClick={()=>{ setSelectedDay(d); setExpandedEx(null); }}
             style={{ ...S.btnSm, background:selectedDay===d?DAY_COLORS[d]+"22":T.border, color:selectedDay===d?DAY_COLORS[d]:T.muted, border:`1px solid ${selectedDay===d?DAY_COLORS[d]+"55":T.border}` }}>
             {d}
           </button>
@@ -645,53 +671,88 @@ function NextWorkoutTab({ workouts, currentWeek }) {
           {isDeloadWeek(currentWeek+1)?`🔄 Week ${currentWeek+1} is deload`:`Next: Week ${currentWeek+1}`}
         </span>
       </div>
-      {dayExercises.map(({ exercise, currentEntry, prevEntry, suggCurrent, suggNext }) => (
-        <div key={exercise} style={{ ...S.card, marginBottom:10 }}>
-          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:10 }}>
-            <div>
-              <div style={{ fontWeight:700, fontSize:13 }}>{exercise}</div>
-              {prevEntry && (
-                <div style={{ fontSize:11, color:T.dim, marginTop:3 }}>
-                  W{prevEntry.week}: {prevEntry.sets.map(s=>`${s.reps}×${s.weight}`).join(", ")}
-                </div>
+      {dayExercises.map(({ exercise, currentEntry, prevEntry, suggCurrent, suggNext }) => {
+        const isExpanded = expandedEx === exercise;
+        const isDone = !!currentEntry;
+        return (
+          <div key={exercise} style={{ ...S.card, marginBottom:10, border:`1px solid ${isDone ? T.green+"55" : T.border}` }}>
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:isExpanded?10:0 }}>
+              <div style={{ flex:1 }}>
+                <div style={{ fontWeight:700, fontSize:13, color:isDone?T.green:T.text }}>{exercise} {isDone && "✓"}</div>
+                {prevEntry && (
+                  <div style={{ fontSize:11, color:T.dim, marginTop:3 }}>
+                    W{prevEntry.week}: {prevEntry.sets.map(s=>`${s.reps}×${s.weight}`).join(", ")}
+                  </div>
+                )}
+                {isDone && (
+                  <div style={{ fontSize:11, color:T.green, marginTop:3 }}>
+                    Logged: {currentEntry.sets.map(s=>`${s.reps}×${s.weight}`).join(", ")}
+                  </div>
+                )}
+              </div>
+              {!isDone && (
+                <button onClick={()=>isExpanded ? closeLog() : openLog(exercise, suggCurrent)}
+                  style={{ ...S.btn, padding:"6px 14px", fontSize:11, marginLeft:12, background:isExpanded?T.border:T.accent, color:isExpanded?T.muted:"#0f2220" }}>
+                  {isExpanded ? "Cancel" : "Log"}
+                </button>
               )}
             </div>
-            <Pill label={selectedDay} color={DAY_COLORS[selectedDay]} />
-          </div>
-          <div style={S.divider} />
-          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:16 }}>
-            <div style={{ borderRight:`1px solid ${T.border}`, paddingRight:16 }}>
-              <div style={{ fontSize:10, textTransform:"uppercase", letterSpacing:"0.1em", fontWeight:700, marginBottom:8, color:currentEntry?T.green:T.accent }}>
-                Week {currentWeek} — {currentEntry?"✓ Logged":"Target"}
+
+            {/* Inline log form */}
+            {isExpanded && (
+              <div style={{ borderTop:`1px solid ${T.border}`, paddingTop:12, marginTop:4 }}>
+                {suggCurrent && (
+                  <div style={{ fontSize:12, color:T.accent, marginBottom:10 }}>
+                    Target: <strong>{suggCurrent.suggestedWeight} lbs × {suggCurrent.repMin}–{suggCurrent.repMax} reps</strong>
+                    <span style={{ color:T.dim, marginLeft:8, fontSize:11 }}>{suggCurrent.note}</span>
+                  </div>
+                )}
+                <div style={{ marginBottom:8 }}>
+                  <div style={{ fontSize:10, color:T.muted, textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:6 }}>Sets (reps / weight)</div>
+                  {logSets.map((s,i) => (
+                    <div key={i} style={{ display:"flex", gap:6, marginBottom:6, alignItems:"center" }}>
+                      <input style={{ ...S.input, width:70 }} type="number" placeholder="reps" value={s.reps}
+                        onChange={e=>setLogSets(sets=>{ const n=[...sets]; n[i]={...n[i],reps:e.target.value}; return n; })} />
+                      <input style={{ ...S.input, width:80 }} type="number" placeholder="lbs" value={s.weight}
+                        onChange={e=>setLogSets(sets=>{ const n=[...sets]; n[i]={...n[i],weight:e.target.value}; return n; })} />
+                      {logSets.length>1 && <button style={{ background:"transparent", border:"none", color:T.dim, cursor:"pointer", fontSize:14 }}
+                        onClick={()=>setLogSets(s=>s.filter((_,j)=>j!==i))}>×</button>}
+                    </div>
+                  ))}
+                  <button style={S.btnSm} onClick={()=>setLogSets(s=>[...s,{reps:"",weight:logSets[logSets.length-1]?.weight||""}])}>+ Set</button>
+                </div>
+                <div style={{ marginBottom:10 }}>
+                  <div style={{ fontSize:10, color:T.muted, textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:6 }}>Intensity</div>
+                  <div style={{ display:"flex", gap:6 }}>
+                    {["easy","medium","hard","very hard"].map(level => (
+                      <button key={level} onClick={()=>setLogIntensity(level)}
+                        style={{ ...S.btnSm, flex:1, textTransform:"capitalize",
+                          background: logIntensity===level ? ({easy:T.green,medium:T.accent,hard:T.amber,"very hard":T.red}[level]+"33") : T.border,
+                          color: logIntensity===level ? ({easy:T.green,medium:T.accent,hard:T.amber,"very hard":T.red}[level]) : T.muted,
+                          border: `1px solid ${logIntensity===level ? ({easy:T.green,medium:T.accent,hard:T.amber,"very hard":T.red}[level])+"66" : T.border}`,
+                        }}>
+                        {level}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <input style={{ ...S.input, marginBottom:10 }} value={logNotes} onChange={e=>setLogNotes(e.target.value)} placeholder="Notes (optional)" />
+                <button style={{ ...S.btn, width:"100%" }} onClick={()=>saveLog(exercise)} disabled={saving}>
+                  {saving ? "Saving…" : "Save"}
+                </button>
               </div>
-              {currentEntry ? (
-                <>
-                  <SetsDisplay sets={currentEntry.sets} />
-                  <div style={{ fontSize:11, color:T.dim, marginTop:6 }}>{currentEntry.sets.length} sets logged</div>
-                </>
-              ) : suggCurrent ? (
-                <>
-                  <div style={{ fontSize:26, fontWeight:700, color:T.text }}>{suggCurrent.suggestedWeight}<span style={{ fontSize:12, color:T.muted }}> lbs</span></div>
-                  <div style={{ fontSize:13, color:T.muted, marginTop:2 }}>{`× ${suggCurrent.repMin}–${suggCurrent.repMax} reps`}</div>
-                  <div style={{ fontSize:11, color:T.dim, marginTop:6, lineHeight:1.5 }}>{suggCurrent.note}</div>
-                </>
-              ) : <div style={{ fontSize:11, color:T.dim }}>No history yet.</div>}
-            </div>
-            <div>
-              <div style={{ fontSize:10, color:T.dim, textTransform:"uppercase", letterSpacing:"0.1em", fontWeight:700, marginBottom:8 }}>
-                Week {currentWeek+1} Preview {isDeloadWeek(currentWeek+1)?"🔄":""}
+            )}
+
+            {/* Current/Next preview — only show when not expanded and not done */}
+            {!isExpanded && !isDone && suggCurrent && (
+              <div style={{ marginTop:8, fontSize:12, color:T.muted }}>
+                Target: <span style={{ color:T.text, fontWeight:600 }}>{suggCurrent.suggestedWeight} lbs × {suggCurrent.repMin}–{suggCurrent.repMax}</span>
+                <span style={{ color:T.dim, marginLeft:8, fontSize:11 }}>{suggCurrent.note}</span>
               </div>
-              {suggNext ? (
-                <>
-                  <div style={{ fontSize:26, fontWeight:700, color:"#6b8884" }}>{suggNext.suggestedWeight}<span style={{ fontSize:12, color:T.dim }}> lbs</span></div>
-                  <div style={{ fontSize:13, color:T.dim, marginTop:2 }}>{`× ${suggNext.repMin}–${suggNext.repMax} reps`}</div>
-                  <div style={{ fontSize:11, color:T.dim, marginTop:6, lineHeight:1.5 }}>{suggNext.note}</div>
-                </>
-              ) : <div style={{ fontSize:11, color:T.dim }}>No history yet.</div>}
-            </div>
+            )}
           </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
@@ -1420,7 +1481,7 @@ function App() {
       </div>
       <div style={S.content}>
         {tab==="overview"     && <OverviewTab workouts={workouts} metrics={metrics} nutrition={nutrition} currentWeek={currentWeek} />}
-        {tab==="next workout" && <NextWorkoutTab workouts={workouts} currentWeek={currentWeek} />}
+        {tab==="next workout" && <NextWorkoutTab workouts={workouts} currentWeek={currentWeek} userId={user.id} onWorkoutAdded={reload} />}
         {tab==="progress"     && <ProgressTab workouts={workouts} />}
         {tab==="body"         && <BodyTab metrics={metrics} nutrition={nutrition} />}
         {tab==="log"          && <LogTab workouts={workouts} nutrition={nutrition} metrics={metrics} currentWeek={currentWeek} userId={user.id} onWorkoutAdded={reload} onNutritionUpsert={reload} onMetricUpsert={reload} />}
