@@ -840,6 +840,10 @@ function NextWorkoutTab({ workouts, currentWeek, userId, onWorkoutAdded, program
     setAddingOneOff(false);
     setOneOffEx(""); setOneOffSets([{reps:"",weight:""}]); setOneOffNotes(""); setOneOffIntensity("medium");
   }
+
+  return (
+    <div>
+      <div style={{ display:"flex", gap:8, marginBottom:20, flexWrap:"wrap" }}>
         {dayNames.map(d => (
           <button key={d} onClick={()=>{ setSelectedDay(d); setExpandedEx(null); }}
             style={{ ...S.btnSm, background:selectedDay===d?(DAY_COLORS[d]||T.accent)+"22":T.border, color:selectedDay===d?(DAY_COLORS[d]||T.accent):T.muted, border:`1px solid ${selectedDay===d?(DAY_COLORS[d]||T.accent)+"55":T.border}` }}>
