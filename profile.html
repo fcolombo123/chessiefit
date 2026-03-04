@@ -1231,9 +1231,7 @@ function LogTab({ workouts, nutrition, metrics, cardio, currentWeek, userId, onW
 
   return (
     <div>
-      <div style={{ position:"relative" }}>
-        {readOnly && <div style={{ position:"absolute", inset:0, zIndex:10, cursor:"not-allowed" }} />}
-        <div style={{ ...S.grid2, opacity: readOnly ? 0.35 : 1, pointerEvents: readOnly ? "none" : "auto" }}>
+      <div style={S.grid2}>
         {/* Workout log */}
         <div style={S.card}>
           <div style={{ fontSize:11, fontWeight:700, color:T.muted, textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:14 }}>Log Workout</div>
@@ -1344,8 +1342,7 @@ function LogTab({ workouts, nutrition, metrics, cardio, currentWeek, userId, onW
             <button style={S.btn} onClick={submitCardio}>Save</button>
           </div>
         </div>
-        </div>{/* end grid2 */}
-      </div>{/* end readOnly wrapper */}
+      </div>
 
       {/* Recent cardio */}
       {(cardio||[]).length > 0 && (
@@ -1892,6 +1889,8 @@ function SettingsTab({ darkMode, onToggleDark, user, onSignOut, profileUrl, prog
                             value={exEntry.increment != null ? exEntry.increment : ""}
                             onChange={e=>updateExIncrement(dayIdx, exIdx, e.target.value)} />
                         </div>
+                        <div style={{ display:"flex", alignItems:"center", gap:6 }}>
+                          <span style={{ fontSize:11, color:T.muted }}>Reps</span>
                           <input style={{ ...S.input, width:44, padding:"4px 6px", textAlign:"center", fontSize:12 }}
                             type="number" min="1" value={exRepMin(exEntry)}
                             onChange={e=>updateExReps(dayIdx, exIdx, "repMin", e.target.value)} />

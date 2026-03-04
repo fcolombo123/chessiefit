@@ -1889,6 +1889,8 @@ function SettingsTab({ darkMode, onToggleDark, user, onSignOut, profileUrl, prog
                             value={exEntry.increment != null ? exEntry.increment : ""}
                             onChange={e=>updateExIncrement(dayIdx, exIdx, e.target.value)} />
                         </div>
+                        <div style={{ display:"flex", alignItems:"center", gap:6 }}>
+                          <span style={{ fontSize:11, color:T.muted }}>Reps</span>
                           <input style={{ ...S.input, width:44, padding:"4px 6px", textAlign:"center", fontSize:12 }}
                             type="number" min="1" value={exRepMin(exEntry)}
                             onChange={e=>updateExReps(dayIdx, exIdx, "repMin", e.target.value)} />
