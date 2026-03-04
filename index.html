@@ -457,7 +457,7 @@ function ProgressBar({ value, max, color }) {
 
 function MiniChart({ data, color }) {
   if (data.length < 2) return <span style={{ color:T.dim, fontSize:11 }}>Not enough data</span>;
-  const H=60, pad=12, VW=280;
+  const H=60, pad=12, VW=280, labelPad=10;
   const vals = data.map(d=>d.y);
   const minV=Math.min(...vals), maxV=Math.max(...vals);
   const range = maxV-minV || 1;
@@ -466,19 +466,24 @@ function MiniChart({ data, color }) {
     y: H-pad - ((d.y-minV)/range)*(H-pad*2),
   }));
   const pts = coords.map(c=>`${c.x},${c.y}`).join(" ");
+  const midY = (H-pad*2)/2 + pad;
   return (
-    <svg viewBox={`0 0 ${VW} ${H+16}`} width="100%" height={H+16} style={{ display:"block" }}>
+    <svg viewBox={`0 0 ${VW} ${H+20}`} width="100%" height={H+20} style={{ display:"block" }}>
       <polyline fill="none" stroke={color||T.accent} strokeWidth={2} points={pts} />
-      {coords.map((c,i) => (
-        <g key={i}>
-          <circle cx={c.x} cy={c.y} r={3} fill={color||T.accent} />
-          {(i === 0 || i === coords.length-1) && (
-            <text x={c.x} y={c.y-6} textAnchor={i===0?"start":"end"} fontSize="8" fill={color||T.accent} fontFamily="Inter,sans-serif">
+      {coords.map((c,i) => {
+        if (i !== 0 && i !== coords.length-1) return <circle key={i} cx={c.x} cy={c.y} r={3} fill={color||T.accent} />;
+        const above = c.y > midY; // point is in lower half → label goes above
+        const labelY = above ? c.y - labelPad : c.y + labelPad + 8;
+        const anchor = i === 0 ? "start" : "end";
+        return (
+          <g key={i}>
+            <circle cx={c.x} cy={c.y} r={3} fill={color||T.accent} />
+            <text x={c.x} y={labelY} textAnchor={anchor} fontSize="8" fill={color||T.accent} fontFamily="Inter,sans-serif">
               {data[i].y}
             </text>
-          )}
-        </g>
-      ))}
+          </g>
+        );
+      })}
     </svg>
   );
 }
@@ -725,6 +730,8 @@ const DEFAULT_PROGRAM = {
 // Normalize exercise entry — handles both string and {name,sets} formats
 function exName(ex) { return typeof ex === "string" ? ex : ex.name; }
 function exSets(ex) { return typeof ex === "string" ? defaultSets(ex) : (ex.sets || defaultSets(ex.name)); }
+
+function NextWorkoutTab({ workouts, currentWeek, userId, onWorkoutAdded, program, readOnly=false }) {
   const programDays = program?.days || DEFAULT_PROGRAM.days;
   const dayNames = programDays.map(d => d.name);
   const [selectedDay, setSelectedDay] = useState(dayNames[0]);
@@ -1051,6 +1058,17 @@ function LogTab({ workouts, nutrition, metrics, cardio, currentWeek, userId, onW
     await Storage.deleteWorkout(userId, id);
     onWorkoutAdded();
   }
+  function startEditWorkout(w) {
+    setEditingWorkout(w.id);
+    setEditWValues({ sets: w.sets.map(s=>({...s, reps:String(s.reps), weight:String(s.weight)})), notes: w.notes||"", intensity: w.intensity||"medium" });
+  }
+  async function saveEditWorkout(id) {
+    const sets = editWValues.sets.filter(s=>s.reps!==""&&s.weight!=="").map(s=>({reps:Number(s.reps),weight:Number(s.weight)}));
+    if (!sets.length) return;
+    await Storage.updateWorkout(userId, id, { sets, notes:editWValues.notes, intensity:editWValues.intensity });
+    setEditingWorkout(null);
+    onWorkoutAdded();
+  }
 
   async function submitNutrition() {
     if (!nForm.calories && !nForm.protein) return;
@@ -1101,6 +1119,8 @@ function LogTab({ workouts, nutrition, metrics, cardio, currentWeek, userId, onW
 
   const [editingNutrition, setEditingNutrition] = useState(null); // date string
   const [editingMetric, setEditingMetric] = useState(null);       // date string
+  const [editingWorkout, setEditingWorkout] = useState(null);     // workout id
+  const [editWValues, setEditWValues] = useState({ sets:[], notes:"", intensity:"medium" });
   const [editNValues, setEditNValues] = useState({});
   const [editMValues, setEditMValues] = useState({});
 
@@ -1266,19 +1286,65 @@ function LogTab({ workouts, nutrition, metrics, cardio, currentWeek, userId, onW
         const recent = [...workouts].sort((a,b) => b.week-a.week || b.date.localeCompare(a.date)).slice(0,20);
         return (
           <div style={{ ...S.card, marginTop:16 }}>
-            <div style={{ fontSize:10, color:T.muted, textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:10 }}>Recent Workouts</div>
+          <div style={{ fontSize:10, color:T.muted, textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:10 }}>Recent Workouts — click to edit</div>
             {recent.map(w => {
               const intColor = {easy:T.green,medium:T.accent,hard:T.amber,"very hard":T.red}[w.intensity] || T.dim;
+              const isEditing = editingWorkout === w.id;
               return (
-                <div key={w.id} style={{ display:"grid", gridTemplateColumns:"1fr auto", gap:8, padding:"8px 4px", borderTop:`1px solid ${T.border}`, fontSize:12, alignItems:"center" }}>
-                  <div>
-                    <span style={{ fontWeight:600 }}>{w.exercise}</span>
-                    <span style={{ color:T.dim, marginLeft:6 }}>W{w.week} · {w.day} · {w.date}</span>
-                    {w.intensity && w.intensity !== "medium" && <span style={{ ...S.tag(intColor), marginLeft:6, fontSize:9 }}>{w.intensity}</span>}
-                    {w.notes && <span style={{ color:T.amber, marginLeft:6, fontSize:10 }}>⚠ {w.notes}</span>}
-                    <div style={{ fontSize:11, color:T.muted, marginTop:2 }}>{w.sets.map(s=>`${s.reps}×${s.weight}`).join(", ")}</div>
-                  </div>
-                  <button style={{ background:"transparent", border:"none", color:T.dim, cursor:"pointer", fontSize:14, padding:"2px 6px" }} onClick={()=>deleteWorkout(w.id)} title="Delete">×</button>
+                <div key={w.id} style={{ borderTop:`1px solid ${T.border}` }}>
+                  {/* View row */}
+                  {!isEditing && (
+                    <div style={{ display:"grid", gridTemplateColumns:"1fr auto", gap:8, padding:"8px 4px", fontSize:12, alignItems:"center", cursor:"pointer" }}
+                      onClick={()=>startEditWorkout(w)}>
+                      <div>
+                        <span style={{ fontWeight:600 }}>{w.exercise}</span>
+                        <span style={{ color:T.dim, marginLeft:6 }}>W{w.week} · {w.day} · {w.date}</span>
+                        {w.intensity && w.intensity !== "medium" && <span style={{ ...S.tag(intColor), marginLeft:6, fontSize:9 }}>{w.intensity}</span>}
+                        {w.notes && <span style={{ color:T.amber, marginLeft:6, fontSize:10 }}>⚠ {w.notes}</span>}
+                        <div style={{ fontSize:11, color:T.muted, marginTop:2 }}>{w.sets.map(s=>`${s.reps}×${s.weight}`).join(", ")}</div>
+                      </div>
+                      <span style={{ fontSize:10, color:T.dim }}>edit</span>
+                    </div>
+                  )}
+                  {/* Edit form */}
+                  {isEditing && (
+                    <div style={{ padding:"10px 4px" }}>
+                      <div style={{ fontSize:11, fontWeight:600, color:T.accent, marginBottom:8 }}>{w.exercise} · W{w.week} · {w.date}</div>
+                      <div style={{ marginBottom:8 }}>
+                        <div style={{ fontSize:10, color:T.muted, textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:6 }}>Sets (reps / weight)</div>
+                        {editWValues.sets.map((s,i) => (
+                          <div key={i} style={{ display:"flex", gap:6, marginBottom:6, alignItems:"center" }}>
+                            <input style={{ ...S.input, width:70 }} type="number" placeholder="reps" value={s.reps}
+                              onChange={e=>setEditWValues(v=>{ const sets=[...v.sets]; sets[i]={...sets[i],reps:e.target.value}; return {...v,sets}; })} />
+                            <input style={{ ...S.input, width:80 }} type="number" placeholder="lbs" value={s.weight}
+                              onChange={e=>setEditWValues(v=>{ const sets=[...v.sets]; sets[i]={...sets[i],weight:e.target.value}; return {...v,sets}; })} />
+                            {editWValues.sets.length > 1 && <button style={{ background:"transparent", border:"none", color:T.dim, cursor:"pointer", fontSize:14 }}
+                              onClick={()=>setEditWValues(v=>({...v,sets:v.sets.filter((_,j)=>j!==i)}))}>×</button>}
+                          </div>
+                        ))}
+                        <button style={S.btnSm} onClick={()=>setEditWValues(v=>({...v,sets:[...v.sets,{reps:"",weight:v.sets[v.sets.length-1]?.weight||""}]}))}>+ Set</button>
+                      </div>
+                      <div style={{ marginBottom:8 }}>
+                        <div style={{ fontSize:10, color:T.muted, textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:6 }}>Intensity</div>
+                        <div style={{ display:"flex", gap:6 }}>
+                          {["easy","medium","hard","very hard"].map(level => (
+                            <button key={level} onClick={()=>setEditWValues(v=>({...v,intensity:level}))}
+                              style={{ ...S.btnSm, flex:1, textTransform:"capitalize",
+                                background: editWValues.intensity===level ? ({easy:T.green,medium:T.accent,hard:T.amber,"very hard":T.red}[level]+"33") : T.border,
+                                color: editWValues.intensity===level ? ({easy:T.green,medium:T.accent,hard:T.amber,"very hard":T.red}[level]) : T.muted,
+                                border: `1px solid ${editWValues.intensity===level ? ({easy:T.green,medium:T.accent,hard:T.amber,"very hard":T.red}[level])+"66" : T.border}`,
+                              }}>{level}</button>
+                          ))}
+                        </div>
+                      </div>
+                      <input style={{ ...S.input, marginBottom:10 }} value={editWValues.notes} onChange={e=>setEditWValues(v=>({...v,notes:e.target.value}))} placeholder="Notes (optional)" />
+                      <div style={{ display:"flex", gap:8 }}>
+                        <button style={{ ...S.btn, flex:1 }} onClick={()=>saveEditWorkout(w.id)}>Save</button>
+                        <button style={{ ...S.btnSm, flex:1 }} onClick={()=>setEditingWorkout(null)}>Cancel</button>
+                        <button style={{ ...S.btnSm, color:T.red, border:`1px solid ${T.red}44` }} onClick={()=>{ deleteWorkout(w.id); setEditingWorkout(null); }}>Delete</button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               );
             })}
@@ -1668,6 +1734,7 @@ function SettingsTab({ darkMode, onToggleDark, user, onSignOut, profileUrl, prog
   }
 
   const [newExInputs, setNewExInputs] = useState({});
+  const [editingEx, setEditingEx] = useState(null); // "dayIdx-exIdx"
 
   return (
     <div style={{ maxWidth:600 }}>
@@ -1700,19 +1767,50 @@ function SettingsTab({ darkMode, onToggleDark, user, onSignOut, profileUrl, prog
             {day.exercises.map((exEntry, exIdx) => {
               const ex = exName(exEntry);
               const sets = exSets(exEntry);
+              const key = `${dayIdx}-${exIdx}`;
+              const isEditing = editingEx === key;
+              const repRange = REP_SCHEMES[ex] ? REP_SCHEMES[ex].join("–") : "8–12";
               return (
-              <div key={exIdx} style={{ display:"flex", gap:6, alignItems:"center", marginBottom:6 }}>
-                <span style={{ flex:1, fontSize:12, color:T.text }}>{ex}</span>
-                <input style={{ ...S.input, width:36, padding:"4px 6px", textAlign:"center", fontSize:11 }}
-                  type="number" min="1" max="10" value={sets}
-                  onChange={e=>updateExSets(dayIdx, exIdx, e.target.value)}
-                  title="Sets" />
-                <span style={{ fontSize:10, color:T.dim }}>sets</span>
-                <span style={{ fontSize:10, color:T.dim, minWidth:40 }}>· {(REP_SCHEMES[ex]||[8,12]).join("–")}r</span>
-                <button style={{ background:"transparent", border:"none", color:T.muted, cursor:"pointer", fontSize:12 }} onClick={()=>moveExercise(dayIdx,exIdx,-1)}>↑</button>
-                <button style={{ background:"transparent", border:"none", color:T.muted, cursor:"pointer", fontSize:12 }} onClick={()=>moveExercise(dayIdx,exIdx,1)}>↓</button>
-                <button style={{ background:"transparent", border:"none", color:T.red, cursor:"pointer", fontSize:14 }} onClick={()=>removeExercise(dayIdx,exIdx)}>×</button>
-              </div>
+                <div key={exIdx} style={{ marginBottom:6 }}>
+                  {/* View row */}
+                  {!isEditing && (
+                    <div style={{ display:"flex", alignItems:"center", gap:8, padding:"6px 8px", borderRadius:6, cursor:"pointer", background:"transparent" }}
+                      onClick={()=>setEditingEx(key)}>
+                      <span style={{ flex:1, fontSize:12, color:T.text }}>{ex}</span>
+                      <span style={{ fontSize:10, color:T.dim }}>{sets} sets · {repRange} reps</span>
+                    </div>
+                  )}
+                  {/* Edit row */}
+                  {isEditing && (
+                    <div style={{ background:T.border, borderRadius:8, padding:"10px 10px", marginBottom:2 }}>
+                      <div style={{ fontSize:11, fontWeight:600, color:T.accent, marginBottom:8 }}>{ex}</div>
+                      <div style={{ display:"flex", gap:8, alignItems:"center", marginBottom:8, flexWrap:"wrap" }}>
+                        <div style={{ display:"flex", alignItems:"center", gap:6 }}>
+                          <span style={{ fontSize:11, color:T.muted }}>Sets</span>
+                          <input style={{ ...S.input, width:44, padding:"4px 6px", textAlign:"center", fontSize:12 }}
+                            type="number" min="1" max="10" value={sets}
+                            onChange={e=>updateExSets(dayIdx, exIdx, e.target.value)} />
+                        </div>
+                        <div style={{ display:"flex", alignItems:"center", gap:6 }}>
+                          <span style={{ fontSize:11, color:T.muted }}>Reps</span>
+                          <input style={{ ...S.input, width:44, padding:"4px 6px", textAlign:"center", fontSize:12 }}
+                            type="number" min="1" value={REP_SCHEMES[ex]?.[0]||8}
+                            onChange={()=>{}} readOnly title="Edit rep scheme in code" />
+                          <span style={{ fontSize:11, color:T.dim }}>–</span>
+                          <input style={{ ...S.input, width:44, padding:"4px 6px", textAlign:"center", fontSize:12 }}
+                            type="number" min="1" value={REP_SCHEMES[ex]?.[1]||12}
+                            onChange={()=>{}} readOnly title="Edit rep scheme in code" />
+                        </div>
+                        <div style={{ display:"flex", gap:4, marginLeft:"auto" }}>
+                          <button style={{ ...S.btnSm }} onClick={()=>moveExercise(dayIdx,exIdx,-1)} title="Move up">↑</button>
+                          <button style={{ ...S.btnSm }} onClick={()=>moveExercise(dayIdx,exIdx,1)} title="Move down">↓</button>
+                          <button style={{ ...S.btnSm, color:T.red, border:`1px solid ${T.red}44` }} onClick={()=>{ removeExercise(dayIdx,exIdx); setEditingEx(null); }} title="Remove">Remove</button>
+                          <button style={{ ...S.btn, padding:"4px 12px", fontSize:11 }} onClick={()=>setEditingEx(null)}>Done</button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
               );
             })}
             <div style={{ display:"flex", gap:6, marginTop:8 }}>
