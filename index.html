@@ -2167,7 +2167,7 @@ function App() {
         {tab==="progress"     && <ProgressTab workouts={workouts} />}
         {tab==="body"         && <BodyTab metrics={metrics} nutrition={nutrition} />}
         {tab==="log"          && <LogTab workouts={workouts} nutrition={nutrition} metrics={metrics} cardio={cardio} currentWeek={currentWeek} userId={user.id} onWorkoutAdded={reload} onNutritionUpsert={reload} onMetricUpsert={reload} onCardioAdded={reload} />}
-        {tab==="settings"     && <SettingsTab darkMode={darkMode} onToggleDark={toggleDark} user={user} onSignOut={handleSignOut} profileUrl="https://fcolombo123.github.io/chessiefit/profile" program={program} userId={user.id} onProgramSave={p=>{setProgram(p); reload();}} />}
+        {tab==="settings"     && <SettingsTab darkMode={darkMode} onToggleDark={toggleDark} user={user} onSignOut={handleSignOut} profileUrl="https://fcolombo123.github.io/chessiefit/profile" program={program} userId={user.id} onProgramSave={p=>{setProgram(p);}} />}
       </div>
     </div>
   );
