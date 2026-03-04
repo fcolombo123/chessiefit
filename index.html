@@ -672,9 +672,9 @@ const COMPOUND_EXERCISES = new Set([
 function defaultSets(exercise) { return COMPOUND_EXERCISES.has(exercise) ? 4 : 3; }
 const DEFAULT_PROGRAM = {
   days: [
-    { name:"Upper Push", exercises:["Barbell Bench Press","Seated DB OHP","Incline DB Press (Push)","Cable Flyes","Lateral Raises","Tricep Pushdowns","OH Tricep Extension","Face Pulls"] },
+    { name:"Upper Push", exercises:["Barbell Bench Press","Seated DB OHP","Incline DB Press (Push)","Cable Flyes","Lateral Raises","Tricep Pushdowns","Face Pulls"] },
     { name:"Lower A",    exercises:["Barbell Back Squat","Leg Press","Romanian Deadlifts","Leg Curls","Leg Extensions","Goblet Squats","Hanging Leg Raises"] },
-    { name:"Upper Pull", exercises:["Lat Pulldowns","DB Rows","Cable Rows Close","Cable Rows Wide","Incline DB Press (Pull)","Barbell Curls","Hammer Curls","Face Pulls"] },
+    { name:"Upper Pull", exercises:["Lat Pulldowns","DB Rows","Cable Rows Close","Cable Rows Wide","Incline DB Press (Pull)","OH Tricep Extension","Barbell Curls","Hammer Curls","Face Pulls"] },
     { name:"Lower B",    exercises:["Trap Bar Deadlift","Bulgarian Split Squats","Leg Press","Leg Curls","Hip Thrusts","Plank"] },
   ]
 };
@@ -700,7 +700,7 @@ function NextWorkoutTab({ workouts, currentWeek, userId, onWorkoutAdded, program
   const dayExercises = useMemo(() => {
     return currentDayConfig.exercises.map(ex => {
       const hist = getExHistory(workouts, ex);
-      const currentEntry = hist.find(h=>h.week===currentWeek)||null;
+      const currentEntry = hist.find(h=>h.week===currentWeek && h.day===selectedDay)||null;
       const histUpToPrev = hist.filter(h=>h.week<currentWeek);
       const prevEntry = histUpToPrev.slice(-1)[0]||null;
       const suggCurrent = !currentEntry ? getSuggestion(histUpToPrev, isDeloadWeek(currentWeek), ex) : null;
@@ -1342,9 +1342,9 @@ function BodyTab({ metrics, nutrition }) {
 // PROGRESS TAB
 // ─────────────────────────────────────────────────────────────────────────────
 const DAY_EXERCISE_ORDER = {
-  "Upper Push": ["Barbell Bench Press","Seated DB OHP","Incline DB Press (Push)","Cable Flyes","Lateral Raises","Tricep Pushdowns","OH Tricep Extension","Face Pulls"],
+  "Upper Push": ["Barbell Bench Press","Seated DB OHP","Incline DB Press (Push)","Cable Flyes","Lateral Raises","Tricep Pushdowns","Face Pulls"],
   "Lower A":    ["Barbell Back Squat","Leg Press","Romanian Deadlifts","Leg Curls","Leg Extensions","Goblet Squats","Hanging Leg Raises"],
-  "Upper Pull": ["Lat Pulldowns","DB Rows","Cable Rows Close","Cable Rows Wide","Incline DB Press (Pull)","Barbell Curls","Hammer Curls","Face Pulls"],
+  "Upper Pull": ["Lat Pulldowns","DB Rows","Cable Rows Close","Cable Rows Wide","Incline DB Press (Pull)","OH Tricep Extension","Barbell Curls","Hammer Curls","Face Pulls"],
   "Lower B":    ["Trap Bar Deadlift","Bulgarian Split Squats","Leg Press","Leg Curls","Hip Thrusts","Plank"],
 };
 
