@@ -1850,10 +1850,7 @@ function ProfileApp() {
       <div style={S.content}>
         {tab==="overview"     && <OverviewTab workouts={workouts} metrics={metrics} nutrition={nutrition} currentWeek={currentWeek} cardio={cardio} />}
         {tab==="next workout" && (
-          <div style={{ position:"relative" }}>
-            <NextWorkoutTab workouts={workouts} currentWeek={currentWeek} userId={null} onWorkoutAdded={()=>{}} program={program} />
-            <div style={{ position:"absolute", inset:0, zIndex:5 }} />
-          </div>
+          <NextWorkoutTab workouts={workouts} currentWeek={currentWeek} userId={null} onWorkoutAdded={()=>{}} program={program} />
         )}
         {tab==="progress"     && <ProgressTab workouts={workouts} />}
         {tab==="body"         && <BodyTab metrics={metrics} nutrition={nutrition} />}
