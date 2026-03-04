@@ -85,6 +85,7 @@ const PROTEIN_TARGET = 165;
 const SEED_WORKOUTS = [
   { week:1, day:"Upper Push", date:"2025-01-04", exercise:"Barbell Bench Press", sets:[{reps:6,weight:105},{reps:5,weight:105},{reps:8,weight:95},{reps:8,weight:95}] },
   { week:1, day:"Upper Push", date:"2025-01-04", exercise:"Seated DB OHP", sets:[{reps:10,weight:22.5},{reps:10,weight:22.5},{reps:9,weight:25},{reps:8,weight:25}] },
+  { week:1, day:"Upper Push", date:"2025-01-04", exercise:"Cable Rows Wide", sets:[{reps:8,weight:85},{reps:10,weight:85},{reps:10,weight:85},{reps:9,weight:85}] },
   { week:1, day:"Upper Push", date:"2025-01-04", exercise:"Incline DB Press (Push)", sets:[{reps:12,weight:35},{reps:10,weight:35},{reps:8,weight:35}] },
   { week:1, day:"Upper Push", date:"2025-01-04", exercise:"Cable Flyes", sets:[{reps:15,weight:40},{reps:15,weight:45},{reps:15,weight:50}] },
   { week:1, day:"Upper Push", date:"2025-01-04", exercise:"Lateral Raises", sets:[{reps:15,weight:7.5},{reps:15,weight:7.5},{reps:15,weight:7.5}] },
@@ -110,6 +111,7 @@ const SEED_WORKOUTS = [
   { week:1, day:"Lower B", date:"2025-01-09", exercise:"Hip Thrusts", sets:[{reps:15,weight:50},{reps:15,weight:50},{reps:15,weight:50}] },
   { week:2, day:"Upper Push", date:"2025-01-11", exercise:"Barbell Bench Press", sets:[{reps:8,weight:100},{reps:8,weight:100},{reps:8,weight:100},{reps:7,weight:100}] },
   { week:2, day:"Upper Push", date:"2025-01-11", exercise:"Seated DB OHP", sets:[{reps:10,weight:25},{reps:10,weight:25},{reps:10,weight:25}] },
+  { week:2, day:"Upper Push", date:"2025-01-11", exercise:"Cable Rows Wide", sets:[{reps:10,weight:85},{reps:10,weight:85},{reps:10,weight:85}] },
   { week:2, day:"Upper Push", date:"2025-01-11", exercise:"Incline DB Press (Push)", sets:[{reps:12,weight:35},{reps:12,weight:35},{reps:10,weight:35}] },
   { week:2, day:"Upper Push", date:"2025-01-11", exercise:"Cable Flyes", sets:[{reps:15,weight:50},{reps:12,weight:50},{reps:10,weight:50}] },
   { week:2, day:"Upper Push", date:"2025-01-11", exercise:"Lateral Raises", sets:[{reps:15,weight:10},{reps:15,weight:10},{reps:15,weight:10}] },
@@ -135,6 +137,7 @@ const SEED_WORKOUTS = [
   { week:2, day:"Lower B", date:"2025-01-15", exercise:"Hip Thrusts", sets:[{reps:15,weight:60},{reps:15,weight:60},{reps:15,weight:60}] },
   { week:3, day:"Upper Push", date:"2025-01-21", exercise:"Barbell Bench Press", sets:[{reps:8,weight:100},{reps:8,weight:100},{reps:8,weight:100},{reps:8,weight:100}] },
   { week:3, day:"Upper Push", date:"2025-01-21", exercise:"Seated DB OHP", sets:[{reps:9,weight:30},{reps:9,weight:30},{reps:7,weight:30}] },
+  { week:3, day:"Upper Push", date:"2025-01-21", exercise:"Cable Rows Wide", sets:[{reps:10,weight:95},{reps:10,weight:95},{reps:9,weight:95}], notes:"Accidentally heavy" },
   { week:3, day:"Upper Push", date:"2025-01-21", exercise:"Incline DB Press (Push)", sets:[{reps:9,weight:40},{reps:9,weight:35},{reps:8,weight:35}] },
   { week:3, day:"Upper Push", date:"2025-01-21", exercise:"Cable Flyes", sets:[{reps:12,weight:25},{reps:12,weight:25},{reps:9,weight:25}] },
   { week:3, day:"Upper Push", date:"2025-01-21", exercise:"Lateral Raises", sets:[{reps:15,weight:12.5},{reps:15,weight:12.5},{reps:10,weight:12.5}] },
@@ -161,6 +164,7 @@ const SEED_WORKOUTS = [
   { week:3, day:"Lower B", date:"2025-01-25", exercise:"Plank", sets:[{reps:60,weight:0},{reps:60,weight:0},{reps:60,weight:0}] },
   { week:4, day:"Upper Push", date:"2025-01-28", exercise:"Barbell Bench Press", sets:[{reps:8,weight:105},{reps:8,weight:105},{reps:7,weight:105},{reps:8,weight:105}] },
   { week:4, day:"Upper Push", date:"2025-01-28", exercise:"Seated DB OHP", sets:[{reps:10,weight:30},{reps:9,weight:30},{reps:8,weight:30}] },
+  { week:4, day:"Upper Push", date:"2025-01-28", exercise:"Cable Rows Wide", sets:[{reps:10,weight:95},{reps:10,weight:95},{reps:9,weight:95}] },
   { week:4, day:"Upper Push", date:"2025-01-28", exercise:"Incline DB Press (Push)", sets:[{reps:10,weight:35},{reps:12,weight:35},{reps:10,weight:35}] },
   { week:4, day:"Upper Push", date:"2025-01-28", exercise:"Lateral Raises", sets:[{reps:15,weight:12.5},{reps:15,weight:12.5},{reps:13,weight:12.5}] },
   { week:4, day:"Upper Push", date:"2025-01-28", exercise:"Cable Flyes", sets:[{reps:15,weight:50},{reps:15,weight:50},{reps:13,weight:50}] },
@@ -710,9 +714,10 @@ function NextWorkoutTab({ workouts, currentWeek, userId, onWorkoutAdded, program
 
   const dayExercises = useMemo(() => {
     return currentDayConfig.exercises.map(ex => {
-      const hist = getExHistory(workouts, ex);
-      const currentEntry = hist.find(h=>h.week===currentWeek && h.day===selectedDay)||null;
-      const histUpToPrev = hist.filter(h=>h.week<currentWeek);
+      const hist = getExHistory(workouts, ex); // all days, all weeks
+      const histSameDay = hist.filter(h=>h.day===selectedDay); // same day only
+      const currentEntry = histSameDay.find(h=>h.week===currentWeek)||null;
+      const histUpToPrev = hist.filter(h=>h.week<currentWeek); // all days, for suggestion
       const prevEntry = histUpToPrev.slice(-1)[0]||null;
       const suggCurrent = !currentEntry ? getSuggestion(histUpToPrev, isDeloadWeek(currentWeek), ex) : null;
       return { exercise:ex, currentEntry, prevEntry, suggCurrent };
