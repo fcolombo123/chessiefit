@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Chessie's Fitness Profile</title>
+  <title>Health Journal</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -85,6 +85,7 @@ const PROTEIN_TARGET = 165;
 const SEED_WORKOUTS = [
   { week:1, day:"Upper Push", date:"2025-01-04", exercise:"Barbell Bench Press", sets:[{reps:6,weight:105},{reps:5,weight:105},{reps:8,weight:95},{reps:8,weight:95}] },
   { week:1, day:"Upper Push", date:"2025-01-04", exercise:"Seated DB OHP", sets:[{reps:10,weight:22.5},{reps:10,weight:22.5},{reps:9,weight:25},{reps:8,weight:25}] },
+  { week:1, day:"Upper Push", date:"2025-01-04", exercise:"Cable Rows Wide", sets:[{reps:8,weight:85},{reps:10,weight:85},{reps:10,weight:85},{reps:9,weight:85}] },
   { week:1, day:"Upper Push", date:"2025-01-04", exercise:"Incline DB Press (Push)", sets:[{reps:12,weight:35},{reps:10,weight:35},{reps:8,weight:35}] },
   { week:1, day:"Upper Push", date:"2025-01-04", exercise:"Cable Flyes", sets:[{reps:15,weight:40},{reps:15,weight:45},{reps:15,weight:50}] },
   { week:1, day:"Upper Push", date:"2025-01-04", exercise:"Lateral Raises", sets:[{reps:15,weight:7.5},{reps:15,weight:7.5},{reps:15,weight:7.5}] },
@@ -110,6 +111,7 @@ const SEED_WORKOUTS = [
   { week:1, day:"Lower B", date:"2025-01-09", exercise:"Hip Thrusts", sets:[{reps:15,weight:50},{reps:15,weight:50},{reps:15,weight:50}] },
   { week:2, day:"Upper Push", date:"2025-01-11", exercise:"Barbell Bench Press", sets:[{reps:8,weight:100},{reps:8,weight:100},{reps:8,weight:100},{reps:7,weight:100}] },
   { week:2, day:"Upper Push", date:"2025-01-11", exercise:"Seated DB OHP", sets:[{reps:10,weight:25},{reps:10,weight:25},{reps:10,weight:25}] },
+  { week:2, day:"Upper Push", date:"2025-01-11", exercise:"Cable Rows Wide", sets:[{reps:10,weight:85},{reps:10,weight:85},{reps:10,weight:85}] },
   { week:2, day:"Upper Push", date:"2025-01-11", exercise:"Incline DB Press (Push)", sets:[{reps:12,weight:35},{reps:12,weight:35},{reps:10,weight:35}] },
   { week:2, day:"Upper Push", date:"2025-01-11", exercise:"Cable Flyes", sets:[{reps:15,weight:50},{reps:12,weight:50},{reps:10,weight:50}] },
   { week:2, day:"Upper Push", date:"2025-01-11", exercise:"Lateral Raises", sets:[{reps:15,weight:10},{reps:15,weight:10},{reps:15,weight:10}] },
@@ -135,6 +137,7 @@ const SEED_WORKOUTS = [
   { week:2, day:"Lower B", date:"2025-01-15", exercise:"Hip Thrusts", sets:[{reps:15,weight:60},{reps:15,weight:60},{reps:15,weight:60}] },
   { week:3, day:"Upper Push", date:"2025-01-21", exercise:"Barbell Bench Press", sets:[{reps:8,weight:100},{reps:8,weight:100},{reps:8,weight:100},{reps:8,weight:100}] },
   { week:3, day:"Upper Push", date:"2025-01-21", exercise:"Seated DB OHP", sets:[{reps:9,weight:30},{reps:9,weight:30},{reps:7,weight:30}] },
+  { week:3, day:"Upper Push", date:"2025-01-21", exercise:"Cable Rows Wide", sets:[{reps:10,weight:95},{reps:10,weight:95},{reps:9,weight:95}], notes:"Accidentally heavy" },
   { week:3, day:"Upper Push", date:"2025-01-21", exercise:"Incline DB Press (Push)", sets:[{reps:9,weight:40},{reps:9,weight:35},{reps:8,weight:35}] },
   { week:3, day:"Upper Push", date:"2025-01-21", exercise:"Cable Flyes", sets:[{reps:12,weight:25},{reps:12,weight:25},{reps:9,weight:25}] },
   { week:3, day:"Upper Push", date:"2025-01-21", exercise:"Lateral Raises", sets:[{reps:15,weight:12.5},{reps:15,weight:12.5},{reps:10,weight:12.5}] },
@@ -161,6 +164,7 @@ const SEED_WORKOUTS = [
   { week:3, day:"Lower B", date:"2025-01-25", exercise:"Plank", sets:[{reps:60,weight:0},{reps:60,weight:0},{reps:60,weight:0}] },
   { week:4, day:"Upper Push", date:"2025-01-28", exercise:"Barbell Bench Press", sets:[{reps:8,weight:105},{reps:8,weight:105},{reps:7,weight:105},{reps:8,weight:105}] },
   { week:4, day:"Upper Push", date:"2025-01-28", exercise:"Seated DB OHP", sets:[{reps:10,weight:30},{reps:9,weight:30},{reps:8,weight:30}] },
+  { week:4, day:"Upper Push", date:"2025-01-28", exercise:"Cable Rows Wide", sets:[{reps:10,weight:95},{reps:10,weight:95},{reps:9,weight:95}] },
   { week:4, day:"Upper Push", date:"2025-01-28", exercise:"Incline DB Press (Push)", sets:[{reps:10,weight:35},{reps:12,weight:35},{reps:10,weight:35}] },
   { week:4, day:"Upper Push", date:"2025-01-28", exercise:"Lateral Raises", sets:[{reps:15,weight:12.5},{reps:15,weight:12.5},{reps:13,weight:12.5}] },
   { week:4, day:"Upper Push", date:"2025-01-28", exercise:"Cable Flyes", sets:[{reps:15,weight:50},{reps:15,weight:50},{reps:13,weight:50}] },
@@ -194,15 +198,42 @@ const Storage = {
         sb.from("workouts").select("id").eq("user_id", uid).limit(1),
         new Promise((_, r) => setTimeout(() => r(new Error("timeout")), 5000))
       ]);
-      if (data && data.length === 0 && isChessie) {
-        const workouts = SEED_WORKOUTS.map(w => ({ ...w, user_id: uid, sets: w.sets }));
-        await sb.from("workouts").insert(workouts);
-        const metrics = SEED_METRICS.map(m => ({ ...m, user_id: uid }));
-        await sb.from("metrics").insert(metrics);
+      if (data && data.length === 0) {
+        if (isChessie) {
+          // Seed Chessie's full history
+          const workouts = SEED_WORKOUTS.map(w => ({ ...w, user_id: uid, sets: w.sets }));
+          await sb.from("workouts").insert(workouts);
+          const metrics = SEED_METRICS.map(m => ({ ...m, user_id: uid }));
+          await sb.from("metrics").insert(metrics);
+        }
+        // Save default program config for all new users
+        await Storage.saveProgram(uid, DEFAULT_PROGRAM);
       }
     } catch(e) {
       console.warn("initUser skipped:", e.message);
     }
+  },
+  async saveProgram(uid, program) {
+    try {
+      await sb.from("user_settings").upsert({ user_id: uid, key: "program", value: JSON.stringify(program) }, { onConflict: "user_id,key" });
+    } catch(e) { console.warn("saveProgram:", e.message); }
+  },
+  async getProgram(uid) {
+    try {
+      const { data } = await sb.from("user_settings").select("value").eq("user_id", uid).eq("key", "program").single();
+      return data ? JSON.parse(data.value) : DEFAULT_PROGRAM;
+    } catch(e) { return DEFAULT_PROGRAM; }
+  },
+  async saveProfile(uid, profile) {
+    try {
+      await sb.from("user_settings").upsert({ user_id: uid, key: "profile", value: JSON.stringify(profile) }, { onConflict: "user_id,key" });
+    } catch(e) { console.warn("saveProfile:", e.message); }
+  },
+  async getProfile(uid) {
+    try {
+      const { data } = await sb.from("user_settings").select("value").eq("user_id", uid).eq("key", "profile").single();
+      return data ? JSON.parse(data.value) : null;
+    } catch(e) { return null; }
   },
   async getWorkouts(uid) {
     try {
@@ -234,6 +265,22 @@ const Storage = {
   },
   async deleteMetric(uid, date) {
     await sb.from("metrics").delete().eq("user_id", uid).eq("date", date);
+  },
+  async addCardio(uid, entry) {
+    const { data } = await sb.from("cardio").insert({ ...entry, user_id: uid }).select().single();
+    return data;
+  },
+  async getCardio(uid) {
+    try {
+      const { data } = await Promise.race([
+        sb.from("cardio").select("*").eq("user_id", uid).order("date"),
+        new Promise((_,r)=>setTimeout(()=>r(new Error("timeout")),8000))
+      ]);
+      return data || [];
+    } catch(e) { console.warn("getCardio:", e.message); return []; }
+  },
+  async deleteCardio(uid, id) {
+    await sb.from("cardio").delete().eq("id", id).eq("user_id", uid);
   },
   async getNutrition(uid) {
     try {
@@ -399,10 +446,17 @@ function MiniChart({ data, color }) {
   }));
   const pts = coords.map(c=>`${c.x},${c.y}`).join(" ");
   return (
-    <svg viewBox={`0 0 ${VW} ${H}`} width="100%" height={H} style={{ display:"block" }}>
+    <svg viewBox={`0 0 ${VW} ${H+16}`} width="100%" height={H+16} style={{ display:"block" }}>
       <polyline fill="none" stroke={color||T.accent} strokeWidth={2} points={pts} />
       {coords.map((c,i) => (
-        <circle key={i} cx={c.x} cy={c.y} r={3} fill={color||T.accent} />
+        <g key={i}>
+          <circle cx={c.x} cy={c.y} r={3} fill={color||T.accent} />
+          {(i === 0 || i === coords.length-1) && (
+            <text x={c.x} y={c.y-6} textAnchor={i===0?"start":"end"} fontSize="8" fill={color||T.accent} fontFamily="Inter,sans-serif">
+              {data[i].y}
+            </text>
+          )}
+        </g>
       ))}
     </svg>
   );
@@ -508,7 +562,7 @@ function AuthScreen({ onAuth }) {
 // ─────────────────────────────────────────────────────────────────────────────
 // OVERVIEW TAB
 // ─────────────────────────────────────────────────────────────────────────────
-function OverviewTab({ workouts, metrics, nutrition, currentWeek }) {
+function OverviewTab({ workouts, metrics, nutrition, currentWeek, cardio }) {
   const latestMetric = metrics.slice(-1)[0];
   const avgCal = sevenDayAvg(nutrition, "calories");
   const avgPro = sevenDayAvg(nutrition, "protein");
@@ -518,6 +572,11 @@ function OverviewTab({ workouts, metrics, nutrition, currentWeek }) {
     return { day, logged: logged.length > 0 };
   });
   const weekWorkouts = workouts.filter(w=>w.week===currentWeek);
+
+  // Cardio this week (last 7 days)
+  const sevenDaysAgo = new Date(); sevenDaysAgo.setDate(sevenDaysAgo.getDate()-7);
+  const weekCardio = (cardio||[]).filter(c=>new Date(c.date)>=sevenDaysAgo);
+  const CARDIO_TARGET = 4; // TODO: make customizable via settings
   const allExercises = [...new Set(workouts.map(w=>w.exercise))];
   const e1rmData = allExercises.filter(ex=>REP_SCHEMES[ex]&&REP_SCHEMES[ex][1]<=10).map(ex => {
     const hist = getExHistory(workouts, ex);
@@ -546,7 +605,8 @@ function OverviewTab({ workouts, metrics, nutrition, currentWeek }) {
         </div>
         <div style={S.card}>
           <div style={{ fontSize:10, color:T.muted, textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:8 }}>This Week</div>
-          <div style={{ display:"flex", gap:8, marginTop:4 }}>
+          <div style={{ fontSize:10, color:T.dim, marginBottom:4 }}>Lifting</div>
+          <div style={{ display:"flex", gap:8, marginBottom:8 }}>
             {sessionsByDay.map(({day,logged}) => (
               <div key={day} title={day} style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:4 }}>
                 <div style={{ width:10, height:10, borderRadius:"50%", background:logged?DAY_COLORS[day]:T.border }} />
@@ -554,7 +614,17 @@ function OverviewTab({ workouts, metrics, nutrition, currentWeek }) {
               </div>
             ))}
           </div>
-          <div style={{ fontSize:11, color:T.muted, marginTop:8 }}>{weekWorkouts.length} exercises logged</div>
+          <div style={{ fontSize:10, color:T.dim, marginBottom:4 }}>Cardio <span style={{ color:weekCardio.length>=CARDIO_TARGET?T.green:T.accent }}>{weekCardio.length}/{CARDIO_TARGET}</span></div>
+          <div style={{ display:"flex", gap:6 }}>
+            {Array(CARDIO_TARGET).fill(null).map((_,i) => {
+              const session = weekCardio[i];
+              return (
+                <div key={i} title={session ? `${session.type} · ${session.duration}min` : "Not done"}
+                  style={{ width:10, height:10, borderRadius:"50%", background:session?T.accent:T.border }} />
+              );
+            })}
+          </div>
+          <div style={{ fontSize:11, color:T.muted, marginTop:8 }}>{weekWorkouts.length} exercises · {weekCardio.length} cardio sessions</div>
         </div>
       </div>
       <div style={S.grid2}>
@@ -608,14 +678,45 @@ function OverviewTab({ workouts, metrics, nutrition, currentWeek }) {
 // ─────────────────────────────────────────────────────────────────────────────
 // NEXT WORKOUT TAB
 // ─────────────────────────────────────────────────────────────────────────────
-function NextWorkoutTab({ workouts, currentWeek }) {
-  const [selectedDay, setSelectedDay] = useState(DAYS[0]);
+const COMPOUND_EXERCISES = new Set([
+  "Barbell Bench Press","Barbell Back Squat","Trap Bar Deadlift","Romanian Deadlifts",
+  "Lat Pulldowns","DB Rows","Cable Rows Close","Cable Rows Wide","Seated DB OHP",
+  "Incline DB Press (Push)","Incline DB Press (Pull)","Bulgarian Split Squats",
+  "Hip Thrusts","Leg Press","Goblet Squats",
+]);
+function defaultSets(exercise) { return COMPOUND_EXERCISES.has(exercise) ? 4 : 3; }
+const DEFAULT_PROGRAM = {
+  days: [
+    { name:"Upper Push", exercises:["Barbell Bench Press","Seated DB OHP","Incline DB Press (Push)","Cable Flyes","Lateral Raises","Tricep Pushdowns","Cable Rows Wide","Face Pulls"] },
+    { name:"Lower A",    exercises:["Barbell Back Squat","Leg Press","Romanian Deadlifts","Leg Curls","Leg Extensions","Goblet Squats","Hanging Leg Raises"] },
+    { name:"Upper Pull", exercises:["Lat Pulldowns","DB Rows","Cable Rows Close","Cable Rows Wide","Incline DB Press (Pull)","OH Tricep Extension","Barbell Curls","Hammer Curls","Face Pulls"] },
+    { name:"Lower B",    exercises:["Trap Bar Deadlift","Bulgarian Split Squats","Leg Press","Leg Curls","Hip Thrusts","Plank"] },
+  ]
+};
+
+function NextWorkoutTab({ workouts, currentWeek, userId, onWorkoutAdded, program, readOnly=false }) {
+  const programDays = program?.days || DEFAULT_PROGRAM.days;
+  const dayNames = programDays.map(d => d.name);
+  const [selectedDay, setSelectedDay] = useState(dayNames[0]);
+  const [expandedEx, setExpandedEx] = useState(null);
+  const [logSets, setLogSets] = useState([{ reps:"", weight:"" }]);
+  const [logNotes, setLogNotes] = useState("");
+  const [logIntensity, setLogIntensity] = useState("medium");
+  const [saving, setSaving] = useState(false);
+  // Week 1 setup: weight inputs per exercise
+  const [week1Weights, setWeek1Weights] = useState({});
+  const [savingWeek1, setSavingWeek1] = useState(false);
+
+  const isWeek1Setup = currentWeek === 1 && workouts.length === 0;
+
+  const currentDayConfig = programDays.find(d => d.name === selectedDay) || programDays[0];
+  const dayColor = DAY_COLORS[selectedDay] || T.accent;
 
   const dayExercises = useMemo(() => {
-    const exercises = [...new Set(workouts.filter(w=>w.day===selectedDay).map(w=>w.exercise))];
-    return exercises.map(ex => {
+    return currentDayConfig.exercises.map(ex => {
       const hist = getExHistory(workouts, ex);
-      const currentEntry = hist.find(h=>h.week===currentWeek)||null;
+      const histSameDay = hist.filter(h=>h.day===selectedDay);
+      const currentEntry = histSameDay.find(h=>h.week===currentWeek)||null;
       const histUpToPrev = hist.filter(h=>h.week<currentWeek);
       const histUpToCurrent = hist.filter(h=>h.week<=currentWeek);
       const prevEntry = histUpToPrev.slice(-1)[0]||null;
@@ -623,14 +724,55 @@ function NextWorkoutTab({ workouts, currentWeek }) {
       const suggNext = getSuggestion(histUpToCurrent, isDeloadWeek(currentWeek+1), ex);
       return { exercise:ex, currentEntry, prevEntry, suggCurrent, suggNext };
     });
-  }, [workouts, selectedDay, currentWeek]);
+  }, [workouts, selectedDay, currentWeek, program]);
+
+  function openLog(ex, sugg) {
+    setExpandedEx(ex);
+    setLogNotes("");
+    setLogIntensity("medium");
+    const w = sugg?.suggestedWeight || "";
+    const numSets = defaultSets(ex);
+    setLogSets(Array(numSets).fill(null).map(()=>({ reps:"", weight:w })));
+  }
+
+  function closeLog() { setExpandedEx(null); }
+
+  async function saveLog(exercise) {
+    const sets = logSets.filter(s=>s.reps!==""&&s.weight!=="").map(s=>({reps:Number(s.reps),weight:Number(s.weight)}));
+    if (!sets.length) return;
+    setSaving(true);
+    const today = new Date().toISOString().split("T")[0];
+    await Storage.addWorkout(userId, { week:currentWeek, day:selectedDay, date:today, exercise, sets, notes:logNotes, intensity:logIntensity });
+    onWorkoutAdded();
+    setSaving(false);
+    setExpandedEx(null);
+  }
+
+  async function saveWeek1() {
+    const exercises = currentDayConfig.exercises;
+    const hasWeights = exercises.some(ex => week1Weights[ex]);
+    if (!hasWeights) return;
+    setSavingWeek1(true);
+    const today = new Date().toISOString().split("T")[0];
+    const [repMin, repMax] = [8, 12]; // default middle rep range for week 1
+    for (const ex of exercises) {
+      const w = Number(week1Weights[ex]);
+      if (!w) continue;
+      const numSets = defaultSets(ex);
+      const [rMin] = REP_SCHEMES[ex] || [8,12];
+      const sets = Array(numSets).fill(null).map(()=>({ reps:rMin, weight:w }));
+      await Storage.addWorkout(userId, { week:1, day:selectedDay, date:today, exercise:ex, sets, notes:"Starting weight", intensity:"medium" });
+    }
+    onWorkoutAdded();
+    setSavingWeek1(false);
+  }
 
   return (
     <div>
       <div style={{ display:"flex", gap:8, marginBottom:20, flexWrap:"wrap" }}>
-        {DAYS.map(d => (
-          <button key={d} onClick={()=>setSelectedDay(d)}
-            style={{ ...S.btnSm, background:selectedDay===d?DAY_COLORS[d]+"22":T.border, color:selectedDay===d?DAY_COLORS[d]:T.muted, border:`1px solid ${selectedDay===d?DAY_COLORS[d]+"55":T.border}` }}>
+        {dayNames.map(d => (
+          <button key={d} onClick={()=>{ setSelectedDay(d); setExpandedEx(null); }}
+            style={{ ...S.btnSm, background:selectedDay===d?(DAY_COLORS[d]||T.accent)+"22":T.border, color:selectedDay===d?(DAY_COLORS[d]||T.accent):T.muted, border:`1px solid ${selectedDay===d?(DAY_COLORS[d]||T.accent)+"55":T.border}` }}>
             {d}
           </button>
         ))}
@@ -638,53 +780,138 @@ function NextWorkoutTab({ workouts, currentWeek }) {
           {isDeloadWeek(currentWeek+1)?`🔄 Week ${currentWeek+1} is deload`:`Next: Week ${currentWeek+1}`}
         </span>
       </div>
-      {dayExercises.map(({ exercise, currentEntry, prevEntry, suggCurrent, suggNext }) => (
-        <div key={exercise} style={{ ...S.card, marginBottom:10 }}>
-          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:10 }}>
-            <div>
-              <div style={{ fontWeight:700, fontSize:13 }}>{exercise}</div>
-              {prevEntry && (
-                <div style={{ fontSize:11, color:T.dim, marginTop:3 }}>
-                  W{prevEntry.week}: {prevEntry.sets.map(s=>`${s.reps}×${s.weight}`).join(", ")}
+
+      {/* Week 1 setup mode */}
+      {currentWeek === 1 && !dayExercises.some(e=>e.currentEntry) && (
+        <div style={{ ...S.card, marginBottom:16, border:`1px solid ${T.accent}44`, background:T.accent+"11" }}>
+          <div style={{ fontSize:12, fontWeight:700, color:T.accent, marginBottom:4 }}>👋 Week 1 Setup</div>
+          <div style={{ fontSize:11, color:T.muted, marginBottom:12 }}>Enter your starting weights for {selectedDay}. Use a weight you can do comfortably for the target reps.</div>
+          {currentDayConfig.exercises.map(ex => {
+            const [repMin, repMax] = REP_SCHEMES[ex] || [8,12];
+            const numSets = defaultSets(ex);
+            return (
+              <div key={ex} style={{ display:"grid", gridTemplateColumns:"1fr auto auto", gap:8, alignItems:"center", marginBottom:8 }}>
+                <div>
+                  <div style={{ fontSize:12, fontWeight:600, color:T.text }}>{ex}</div>
+                  <div style={{ fontSize:10, color:T.dim }}>{numSets} sets × {repMin}–{repMax} reps</div>
                 </div>
+                <input style={{ ...S.input, width:80 }} type="number" placeholder="lbs"
+                  value={week1Weights[ex]||""}
+                  onChange={e=>setWeek1Weights(w=>({...w,[ex]:e.target.value}))} />
+              </div>
+            );
+          })}
+          <button style={{ ...S.btn, marginTop:8, width:"100%" }} onClick={saveWeek1} disabled={savingWeek1}>
+            {savingWeek1 ? "Saving…" : `Save ${selectedDay} Starting Weights`}
+          </button>
+        </div>
+      )}
+
+      {/* Normal exercise cards */}
+      {dayExercises.map(({ exercise, currentEntry, prevEntry, suggCurrent, suggNext }) => {
+        const isExpanded = expandedEx === exercise;
+        const isDone = !!currentEntry;
+        return (
+          <div key={exercise} style={{ ...S.card, marginBottom:10 }}>
+            {/* Header row */}
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:10 }}>
+              <div>
+                <div style={{ fontWeight:700, fontSize:13, color:T.text }}>{exercise} {isDone && <span style={{ color:T.green }}>✓</span>}</div>
+                {prevEntry && (
+                  <div style={{ fontSize:11, color:T.dim, marginTop:3 }}>
+                    W{prevEntry.week}: {prevEntry.sets.map(s=>`${s.reps}×${s.weight}`).join(", ")}
+                  </div>
+                )}
+              </div>
+              {!isDone && (
+                <button onClick={()=>isExpanded ? closeLog() : openLog(exercise, suggCurrent)}
+                  style={{ ...S.btn, padding:"6px 14px", fontSize:11, marginLeft:12, background:isExpanded?T.border:T.accent, color:isExpanded?T.muted:"#0f2220" }}>
+                  {isExpanded ? "Cancel" : "Log"}
+                </button>
               )}
             </div>
-            <Pill label={selectedDay} color={DAY_COLORS[selectedDay]} />
-          </div>
-          <div style={S.divider} />
-          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:16 }}>
-            <div style={{ borderRight:`1px solid ${T.border}`, paddingRight:16 }}>
-              <div style={{ fontSize:10, textTransform:"uppercase", letterSpacing:"0.1em", fontWeight:700, marginBottom:8, color:currentEntry?T.green:T.accent }}>
-                Week {currentWeek} — {currentEntry?"✓ Logged":"Target"}
+
+            {/* Two-column: current week target | next week preview */}
+            {!isExpanded && (
+              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:16 }}>
+                <div style={{ borderRight:`1px solid ${T.border}`, paddingRight:16 }}>
+                  <div style={{ fontSize:10, textTransform:"uppercase", letterSpacing:"0.1em", fontWeight:700, marginBottom:8, color:isDone?T.green:T.accent }}>
+                    Week {currentWeek} — {isDone?"✓ Logged":"Target"}
+                  </div>
+                  {isDone ? (
+                    <>
+                      <SetsDisplay sets={currentEntry.sets} />
+                      <div style={{ fontSize:11, color:T.dim, marginTop:6 }}>{currentEntry.sets.length} sets logged</div>
+                    </>
+                  ) : suggCurrent ? (
+                    <>
+                      <div style={{ fontSize:26, fontWeight:700, color:T.text }}>{suggCurrent.suggestedWeight}<span style={{ fontSize:12, color:T.muted }}> lbs</span></div>
+                      <div style={{ fontSize:13, color:T.muted, marginTop:2 }}>{`× ${suggCurrent.repMin}–${suggCurrent.repMax} reps`}</div>
+                      <div style={{ fontSize:11, color:T.dim, marginTop:6, lineHeight:1.5 }}>{suggCurrent.note}</div>
+                    </>
+                  ) : <div style={{ fontSize:11, color:T.dim }}>No history yet.</div>}
+                </div>
+                <div>
+                  <div style={{ fontSize:10, color:T.dim, textTransform:"uppercase", letterSpacing:"0.1em", fontWeight:700, marginBottom:8 }}>
+                    Week {currentWeek+1} Preview {isDeloadWeek(currentWeek+1)?"🔄":""}
+                  </div>
+                  {suggNext ? (
+                    <>
+                      <div style={{ fontSize:26, fontWeight:700, color:"#6b8884" }}>{suggNext.suggestedWeight}<span style={{ fontSize:12, color:T.dim }}> lbs</span></div>
+                      <div style={{ fontSize:13, color:T.dim, marginTop:2 }}>{`× ${suggNext.repMin}–${suggNext.repMax} reps`}</div>
+                      <div style={{ fontSize:11, color:T.dim, marginTop:6, lineHeight:1.5 }}>{suggNext.note}</div>
+                    </>
+                  ) : <div style={{ fontSize:11, color:T.dim }}>No history yet.</div>}
+                </div>
               </div>
-              {currentEntry ? (
-                <>
-                  <SetsDisplay sets={currentEntry.sets} />
-                  <div style={{ fontSize:11, color:T.dim, marginTop:6 }}>{currentEntry.sets.length} sets logged</div>
-                </>
-              ) : suggCurrent ? (
-                <>
-                  <div style={{ fontSize:26, fontWeight:700, color:T.text }}>{suggCurrent.suggestedWeight}<span style={{ fontSize:12, color:T.muted }}> lbs</span></div>
-                  <div style={{ fontSize:13, color:T.muted, marginTop:2 }}>{`× ${suggCurrent.repMin}–${suggCurrent.repMax} reps`}</div>
-                  <div style={{ fontSize:11, color:T.dim, marginTop:6, lineHeight:1.5 }}>{suggCurrent.note}</div>
-                </>
-              ) : <div style={{ fontSize:11, color:T.dim }}>No history yet.</div>}
-            </div>
-            <div>
-              <div style={{ fontSize:10, color:T.dim, textTransform:"uppercase", letterSpacing:"0.1em", fontWeight:700, marginBottom:8 }}>
-                Week {currentWeek+1} Preview {isDeloadWeek(currentWeek+1)?"🔄":""}
+            )}
+
+            {/* Inline log form */}
+            {isExpanded && (
+              <div style={{ borderTop:`1px solid ${T.border}`, paddingTop:12 }}>
+                {suggCurrent && (
+                  <div style={{ fontSize:12, color:T.accent, marginBottom:10 }}>
+                    Target: <strong>{suggCurrent.suggestedWeight} lbs × {suggCurrent.repMin}–{suggCurrent.repMax} reps</strong>
+                  </div>
+                )}
+                <div style={{ marginBottom:8 }}>
+                  <div style={{ fontSize:10, color:T.muted, textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:6 }}>Sets (reps / weight)</div>
+                  {logSets.map((s,i) => (
+                    <div key={i} style={{ display:"flex", gap:6, marginBottom:6, alignItems:"center" }}>
+                      <input style={{ ...S.input, width:70 }} type="number" placeholder="reps" value={s.reps}
+                        onChange={e=>setLogSets(sets=>{ const n=[...sets]; n[i]={...n[i],reps:e.target.value}; return n; })} />
+                      <input style={{ ...S.input, width:80 }} type="number" placeholder="lbs" value={s.weight}
+                        onChange={e=>setLogSets(sets=>{ const n=[...sets]; n[i]={...n[i],weight:e.target.value}; return n; })} />
+                      {logSets.length>1 && <button style={{ background:"transparent", border:"none", color:T.dim, cursor:"pointer", fontSize:14 }}
+                        onClick={()=>setLogSets(s=>s.filter((_,j)=>j!==i))}>×</button>}
+                    </div>
+                  ))}
+                  <button style={S.btnSm} onClick={()=>setLogSets(s=>[...s,{reps:"",weight:logSets[logSets.length-1]?.weight||""}])}>+ Set</button>
+                </div>
+                <div style={{ marginBottom:10 }}>
+                  <div style={{ fontSize:10, color:T.muted, textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:6 }}>Intensity</div>
+                  <div style={{ display:"flex", gap:6 }}>
+                    {["easy","medium","hard","very hard"].map(level => (
+                      <button key={level} onClick={()=>setLogIntensity(level)}
+                        style={{ ...S.btnSm, flex:1, textTransform:"capitalize",
+                          background: logIntensity===level ? ({easy:T.green,medium:T.accent,hard:T.amber,"very hard":T.red}[level]+"33") : T.border,
+                          color: logIntensity===level ? ({easy:T.green,medium:T.accent,hard:T.amber,"very hard":T.red}[level]) : T.muted,
+                          border: `1px solid ${logIntensity===level ? ({easy:T.green,medium:T.accent,hard:T.amber,"very hard":T.red}[level])+"66" : T.border}`,
+                        }}>
+                        {level}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <input style={{ ...S.input, marginBottom:10 }} value={logNotes} onChange={e=>setLogNotes(e.target.value)} placeholder="Notes (optional)" />
+                <button style={{ ...S.btn, width:"100%" }} onClick={()=>saveLog(exercise)} disabled={saving}>
+                  {saving ? "Saving…" : "Save"}
+                </button>
               </div>
-              {suggNext ? (
-                <>
-                  <div style={{ fontSize:26, fontWeight:700, color:"#6b8884" }}>{suggNext.suggestedWeight}<span style={{ fontSize:12, color:T.dim }}> lbs</span></div>
-                  <div style={{ fontSize:13, color:T.dim, marginTop:2 }}>{`× ${suggNext.repMin}–${suggNext.repMax} reps`}</div>
-                  <div style={{ fontSize:11, color:T.dim, marginTop:6, lineHeight:1.5 }}>{suggNext.note}</div>
-                </>
-              ) : <div style={{ fontSize:11, color:T.dim }}>No history yet.</div>}
-            </div>
+            )}
           </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
@@ -699,7 +926,7 @@ function ExerciseTab({ workouts, currentWeek }) {
 
   const hist = useMemo(()=>getExHistory(workouts,selected),[workouts,selected]);
   const suggestion = useMemo(()=>getSuggestion(hist,isDeloadWeek(currentWeek+1),selected),[hist,currentWeek,selected]);
-  const chartData = hist.map(h=>({ x:h.week, y:Math.round(avgE1rm(h.sets)) }));
+  const chartData = hist.map(h=>({ x:h.week, y:Math.max(...h.sets.map(s=>s.weight)) }));
 
   return (
     <div>
@@ -711,7 +938,7 @@ function ExerciseTab({ workouts, currentWeek }) {
       </div>
       <div style={S.grid2}>
         <div style={S.card}>
-          <div style={{ fontSize:10, color:T.muted, textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:10 }}>e1RM Trend</div>
+          <div style={{ fontSize:10, color:T.muted, textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:10 }}>Weight Trend</div>
           <MiniChart data={chartData} color={T.accent} />
           <div style={{ marginTop:8, fontSize:11, color:T.muted }}>
             {chartData.length>=2 && (() => {
@@ -761,13 +988,15 @@ function ExerciseTab({ workouts, currentWeek }) {
 // ─────────────────────────────────────────────────────────────────────────────
 // LOG TAB
 // ─────────────────────────────────────────────────────────────────────────────
-function LogTab({ workouts, nutrition, metrics, currentWeek, userId, onWorkoutAdded, onNutritionUpsert, onMetricUpsert }) {
+function LogTab({ workouts, nutrition, metrics, cardio, currentWeek, userId, onWorkoutAdded, onNutritionUpsert, onMetricUpsert, onCardioAdded, readOnly }) {
   const today = new Date().toISOString().slice(0,10);
   const allExercises = [...new Set(workouts.map(w=>w.exercise))].sort();
 
   const [wForm, setWForm] = useState({ week:currentWeek, day:DAYS[0], date:today, exercise:allExercises[0]||"", sets:[{reps:"",weight:""}], notes:"", intensity:"medium" });
   const [nForm, setNForm] = useState({ date:today, calories:"", protein:"" });
   const [mForm, setMForm] = useState({ date:today, weight:"", bodyFat:"" });
+  const [cForm, setCForm] = useState({ date:today, type:"steady", duration:"", distance:"", speed:"", incline:"", heartRate:"", intervals:"" });
+  const [cSuccess, setCSuccess] = useState("");
 
   function addSet() { setWForm(f=>({...f,sets:[...f.sets,{reps:"",weight:""}]})); }
   function removeSet(i) { setWForm(f=>({...f,sets:f.sets.filter((_,j)=>j!==i)})); }
@@ -792,6 +1021,29 @@ function LogTab({ workouts, nutrition, metrics, currentWeek, userId, onWorkoutAd
     await Storage.upsertNutrition(userId, { date:nForm.date, calories:nForm.calories?Number(nForm.calories):null, protein:nForm.protein?Number(nForm.protein):null });
     onNutritionUpsert();
     setNForm(f=>({...f,calories:"",protein:""}));
+  }
+
+  async function submitCardio() {
+    if (!cForm.duration) return;
+    await Storage.addCardio(userId, {
+      date: cForm.date,
+      type: cForm.type,
+      duration: Number(cForm.duration),
+      distance: cForm.distance ? Number(cForm.distance) : null,
+      speed: cForm.speed ? Number(cForm.speed) : null,
+      incline: cForm.incline ? Number(cForm.incline) : null,
+      heart_rate: cForm.heartRate ? Number(cForm.heartRate) : null,
+      intervals: cForm.intervals || null,
+    });
+    onCardioAdded();
+    setCForm(f=>({...f,duration:"",distance:"",speed:"",incline:"",heartRate:"",intervals:""}));
+    setCSuccess("Saved!"); setTimeout(()=>setCSuccess(""),2000);
+  }
+
+  async function deleteCardio(id) {
+    if (!window.confirm("Delete this cardio entry?")) return;
+    await Storage.deleteCardio(userId, id);
+    onCardioAdded();
   }
 
   const [mError, setMError] = useState("");
@@ -841,7 +1093,9 @@ function LogTab({ workouts, nutrition, metrics, currentWeek, userId, onWorkoutAd
 
   return (
     <div>
-      <div style={S.grid2}>
+      <div style={{ position:"relative" }}>
+        {readOnly && <div style={{ position:"absolute", inset:0, zIndex:10, cursor:"not-allowed" }} />}
+        <div style={{ ...S.grid2, opacity: readOnly ? 0.35 : 1, pointerEvents: readOnly ? "none" : "auto" }}>
         {/* Workout log */}
         <div style={S.card}>
           <div style={{ fontSize:11, fontWeight:700, color:T.muted, textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:14 }}>Log Workout</div>
@@ -904,7 +1158,7 @@ function LogTab({ workouts, nutrition, metrics, currentWeek, userId, onWorkoutAd
             </div>
             <button style={S.btn} onClick={submitNutrition}>Save</button>
           </div>
-          <div style={S.card}>
+          <div style={{ ...S.card, marginBottom:14 }}>
             <div style={{ fontSize:11, fontWeight:700, color:T.muted, textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:14 }}>Log Body Metrics</div>
             <div style={{ marginBottom:10 }}><label style={S.label}>Date</label><input style={S.input} type="date" value={mForm.date} onChange={e=>setMForm(f=>({...f,date:e.target.value}))} /></div>
             <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, marginBottom:14 }}>
@@ -915,10 +1169,66 @@ function LogTab({ workouts, nutrition, metrics, currentWeek, userId, onWorkoutAd
             {mSuccess && <div style={{ color:T.green, fontSize:11, marginBottom:8 }}>{mSuccess}</div>}
             <button style={S.btn} onClick={submitMetric}>Save</button>
           </div>
+          <div style={S.card}>
+            <div style={{ fontSize:11, fontWeight:700, color:T.muted, textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:14 }}>Log Cardio</div>
+            <div style={{ marginBottom:10 }}><label style={S.label}>Date</label><input style={S.input} type="date" value={cForm.date} onChange={e=>setCForm(f=>({...f,date:e.target.value}))} /></div>
+            <div style={{ marginBottom:10 }}>
+              <label style={S.label}>Type</label>
+              <div style={{ display:"flex", gap:6 }}>
+                {["steady","hiit"].map(t=>(
+                  <button key={t} onClick={()=>setCForm(f=>({...f,type:t}))}
+                    style={{ ...S.btnSm, flex:1, textTransform:"capitalize",
+                      background: cForm.type===t ? T.accent+"33" : T.border,
+                      color: cForm.type===t ? T.accent : T.muted,
+                      border: `1px solid ${cForm.type===t ? T.accent+"66" : T.border}` }}>
+                    {t === "steady" ? "Steady State" : "HIIT"}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, marginBottom:10 }}>
+              <div><label style={S.label}>Duration (min)</label><input style={S.input} type="number" value={cForm.duration} onChange={e=>setCForm(f=>({...f,duration:e.target.value}))} /></div>
+              <div><label style={S.label}>Avg Heart Rate</label><input style={S.input} type="number" value={cForm.heartRate} onChange={e=>setCForm(f=>({...f,heartRate:e.target.value}))} placeholder="bpm" /></div>
+            </div>
+            {cForm.type === "steady" ? (
+              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:8, marginBottom:14 }}>
+                <div><label style={S.label}>Distance (mi)</label><input style={S.input} type="number" step="0.1" value={cForm.distance} onChange={e=>setCForm(f=>({...f,distance:e.target.value}))} /></div>
+                <div><label style={S.label}>Speed (mph)</label><input style={S.input} type="number" step="0.1" value={cForm.speed} onChange={e=>setCForm(f=>({...f,speed:e.target.value}))} /></div>
+                <div><label style={S.label}>Incline (%)</label><input style={S.input} type="number" step="0.5" value={cForm.incline} onChange={e=>setCForm(f=>({...f,incline:e.target.value}))} /></div>
+              </div>
+            ) : (
+              <div style={{ marginBottom:14 }}>
+                <label style={S.label}>Intervals (e.g. 8×30s on/30s off)</label>
+                <input style={S.input} value={cForm.intervals} onChange={e=>setCForm(f=>({...f,intervals:e.target.value}))} placeholder="8×30s on/30s off" />
+              </div>
+            )}
+            {cSuccess && <div style={{ color:T.green, fontSize:11, marginBottom:8 }}>{cSuccess}</div>}
+            <button style={S.btn} onClick={submitCardio}>Save</button>
+          </div>
         </div>
-      </div>
+        </div>{/* end grid2 */}
+      </div>{/* end readOnly wrapper */}
 
-      {/* Recent workouts */}
+      {/* Recent cardio */}
+      {(cardio||[]).length > 0 && (
+        <div style={{ ...S.card, marginTop:16 }}>
+          <div style={{ fontSize:10, color:T.muted, textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:10 }}>Recent Cardio</div>
+          {[...(cardio||[])].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,10).map(c=>(
+            <div key={c.id} style={{ display:"grid", gridTemplateColumns:"1fr auto", gap:8, padding:"8px 4px", borderTop:`1px solid ${T.border}`, fontSize:12, alignItems:"center" }}>
+              <div>
+                <span style={{ fontWeight:600, textTransform:"capitalize" }}>{c.type === "steady" ? "Steady State" : "HIIT"}</span>
+                <span style={{ color:T.dim, marginLeft:6 }}>{c.date}</span>
+                <span style={{ ...S.tag(T.accent), marginLeft:6, fontSize:9 }}>{c.duration}min</span>
+                <div style={{ fontSize:11, color:T.muted, marginTop:2 }}>
+                  {c.type === "steady" ? [c.speed&&`${c.speed}mph`, c.incline&&`${c.incline}% incline`, c.distance&&`${c.distance}mi`].filter(Boolean).join(" · ") : c.intervals||""}
+                  {c.heart_rate && <span style={{ color:T.red, marginLeft:6 }}>♥ {c.heart_rate}bpm</span>}
+                </div>
+              </div>
+              <button style={{ background:"transparent", border:"none", color:T.dim, cursor:"pointer", fontSize:14, padding:"2px 6px" }} onClick={()=>deleteCardio(c.id)} title="Delete">×</button>
+            </div>
+          ))}
+        </div>
+      )}
       {workouts.length > 0 && (() => {
         const recent = [...workouts].sort((a,b) => b.week-a.week || b.date.localeCompare(a.date)).slice(0,20);
         return (
@@ -1079,9 +1389,9 @@ function BodyTab({ metrics, nutrition }) {
 // PROGRESS TAB
 // ─────────────────────────────────────────────────────────────────────────────
 const DAY_EXERCISE_ORDER = {
-  "Upper Push": ["Barbell Bench Press","Seated DB OHP","Incline DB Press (Push)","Cable Flyes","Lateral Raises","Tricep Pushdowns","OH Tricep Extension","Face Pulls"],
+  "Upper Push": ["Barbell Bench Press","Seated DB OHP","Incline DB Press (Push)","Cable Flyes","Lateral Raises","Tricep Pushdowns","Cable Rows Wide","Face Pulls"],
   "Lower A":    ["Barbell Back Squat","Leg Press","Romanian Deadlifts","Leg Curls","Leg Extensions","Goblet Squats","Hanging Leg Raises"],
-  "Upper Pull": ["Lat Pulldowns","DB Rows","Cable Rows Close","Cable Rows Wide","Incline DB Press (Pull)","Barbell Curls","Hammer Curls","Face Pulls"],
+  "Upper Pull": ["Lat Pulldowns","DB Rows","Cable Rows Close","Cable Rows Wide","Incline DB Press (Pull)","OH Tricep Extension","Barbell Curls","Hammer Curls","Face Pulls"],
   "Lower B":    ["Trap Bar Deadlift","Bulgarian Split Squats","Leg Press","Leg Curls","Hip Thrusts","Plank"],
 };
 
@@ -1102,7 +1412,7 @@ function ExerciseMiniCard({ exercise, workouts }) {
         <span style={{ fontSize:18, fontWeight:700, color:T.accent }}>{lastWeight}</span>
         <span style={{ fontSize:10, color:T.muted }}>lbs</span>
         {chartData.length >= 2 && (
-          <span style={{ fontSize:10, color:gain>=0?T.green:T.red, marginLeft:2 }}>{gain>=0?"+":""}{gain} e1RM</span>
+          <span style={{ fontSize:10, color:gain>=0?T.green:T.red, marginLeft:2 }}>{gain>=0?"+":""}{gain} lbs</span>
         )}
       </div>
       <MiniChart data={chartData} color={T.accent} />
@@ -1213,11 +1523,11 @@ function ProgressTab({ workouts }) {
         </div>
         <div style={S.grid2}>
           <div style={S.card}>
-            <div style={{ fontSize:10, color:T.muted, textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:10 }}>e1RM Trend</div>
+            <div style={{ fontSize:10, color:T.muted, textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:10 }}>Weight Trend</div>
             <MiniChart data={chartData} color={T.accent} />
             {chartData.length >= 2 && (
               <div style={{ fontSize:11, color:gain>=0?T.green:T.red, marginTop:8 }}>
-                {gain>=0?"+":""}{gain} lbs e1RM since W{chartData[0].x}
+                {gain>=0?"+":""}{gain} lbs since W{chartData[0].x}
               </div>
             )}
           </div>
@@ -1263,9 +1573,57 @@ function ProgressTab({ workouts }) {
 // ─────────────────────────────────────────────────────────────────────────────
 // SETTINGS TAB
 // ─────────────────────────────────────────────────────────────────────────────
-function SettingsTab({ darkMode, onToggleDark, user, onSignOut, profileUrl }) {
+function SettingsTab({ darkMode, onToggleDark, user, onSignOut, profileUrl, program, userId, onProgramSave }) {
+  const [editProgram, setEditProgram] = useState(()=>JSON.parse(JSON.stringify(program)));
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  // Sync if program prop changes
+  useEffect(()=>{ setEditProgram(JSON.parse(JSON.stringify(program))); },[program]);
+
+  function updateDayName(i, name) {
+    setEditProgram(p=>{ const d=[...p.days]; d[i]={...d[i],name}; return {...p,days:d}; });
+  }
+  function updateSets(i, ex, val) {
+    setEditProgram(p=>{ const d=[...p.days]; const exList=[...d[i].exercises]; exList[exList.indexOf(ex)]=ex; return {...p,days:d}; });
+  }
+  function addExercise(dayIdx, ex) {
+    if (!ex.trim()) return;
+    setEditProgram(p=>{ const d=[...p.days]; d[dayIdx]={...d[dayIdx],exercises:[...d[dayIdx].exercises,ex.trim()]}; return {...p,days:d}; });
+  }
+  function removeExercise(dayIdx, exIdx) {
+    setEditProgram(p=>{ const d=[...p.days]; d[dayIdx]={...d[dayIdx],exercises:d[dayIdx].exercises.filter((_,i)=>i!==exIdx)}; return {...p,days:d}; });
+  }
+  function moveExercise(dayIdx, exIdx, dir) {
+    setEditProgram(p=>{
+      const d=[...p.days]; const exs=[...d[dayIdx].exercises];
+      const swap=exIdx+dir; if(swap<0||swap>=exs.length) return p;
+      [exs[exIdx],exs[swap]]=[exs[swap],exs[exIdx]];
+      d[dayIdx]={...d[dayIdx],exercises:exs}; return {...p,days:d};
+    });
+  }
+  function addDay() {
+    setEditProgram(p=>({...p,days:[...p.days,{name:`Day ${p.days.length+1}`,exercises:[]}]}));
+  }
+  function removeDay(i) {
+    if (!window.confirm("Remove this day?")) return;
+    setEditProgram(p=>({...p,days:p.days.filter((_,j)=>j!==i)}));
+  }
+
+  async function saveProgram() {
+    setSaving(true);
+    await Storage.saveProgram(userId, editProgram);
+    onProgramSave(editProgram);
+    setSaving(false);
+    setSaved(true);
+    setTimeout(()=>setSaved(false), 2000);
+  }
+
+  const [newExInputs, setNewExInputs] = useState({});
+
   return (
-    <div style={{ maxWidth:480 }}>
+    <div style={{ maxWidth:600 }}>
+      {/* Appearance */}
       <div style={{ ...S.card, marginBottom:16 }}>
         <div style={{ fontSize:11, fontWeight:700, color:T.muted, textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:16 }}>Appearance</div>
         <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between" }}>
@@ -1278,11 +1636,53 @@ function SettingsTab({ darkMode, onToggleDark, user, onSignOut, profileUrl }) {
           </div>
         </div>
       </div>
+
+      {/* Program editor */}
+      <div style={{ ...S.card, marginBottom:16 }}>
+        <div style={{ fontSize:11, fontWeight:700, color:T.muted, textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:4 }}>Program</div>
+        <div style={{ fontSize:11, color:T.dim, marginBottom:16 }}>Rename days, reorder or add/remove exercises. Changes take effect immediately in Next Workout.</div>
+        {editProgram.days.map((day, dayIdx) => (
+          <div key={dayIdx} style={{ ...S.card, marginBottom:12, padding:"12px 14px" }}>
+            <div style={{ display:"flex", gap:8, alignItems:"center", marginBottom:10 }}>
+              <input style={{ ...S.input, fontWeight:700, fontSize:13 }} value={day.name}
+                onChange={e=>updateDayName(dayIdx, e.target.value)} />
+              <button style={{ background:"transparent", border:"none", color:T.red, cursor:"pointer", fontSize:16, padding:"0 4px" }}
+                onClick={()=>removeDay(dayIdx)} title="Remove day">×</button>
+            </div>
+            {day.exercises.map((ex, exIdx) => (
+              <div key={exIdx} style={{ display:"flex", gap:6, alignItems:"center", marginBottom:6 }}>
+                <span style={{ flex:1, fontSize:12, color:T.text }}>{ex}</span>
+                <span style={{ fontSize:10, color:T.dim, minWidth:60 }}>
+                  {defaultSets(ex)}s · {(REP_SCHEMES[ex]||[8,12]).join("–")}r
+                </span>
+                <button style={{ background:"transparent", border:"none", color:T.muted, cursor:"pointer", fontSize:12 }} onClick={()=>moveExercise(dayIdx,exIdx,-1)}>↑</button>
+                <button style={{ background:"transparent", border:"none", color:T.muted, cursor:"pointer", fontSize:12 }} onClick={()=>moveExercise(dayIdx,exIdx,1)}>↓</button>
+                <button style={{ background:"transparent", border:"none", color:T.red, cursor:"pointer", fontSize:14 }} onClick={()=>removeExercise(dayIdx,exIdx)}>×</button>
+              </div>
+            ))}
+            <div style={{ display:"flex", gap:6, marginTop:8 }}>
+              <input style={{ ...S.input, fontSize:11 }} placeholder="Add exercise…"
+                value={newExInputs[dayIdx]||""}
+                onChange={e=>setNewExInputs(n=>({...n,[dayIdx]:e.target.value}))}
+                onKeyDown={e=>{ if(e.key==="Enter"){ addExercise(dayIdx, newExInputs[dayIdx]||""); setNewExInputs(n=>({...n,[dayIdx]:""})); }}} />
+              <button style={S.btnSm} onClick={()=>{ addExercise(dayIdx, newExInputs[dayIdx]||""); setNewExInputs(n=>({...n,[dayIdx]:""})); }}>Add</button>
+            </div>
+          </div>
+        ))}
+        <button style={{ ...S.btnSm, marginBottom:14 }} onClick={addDay}>+ Add Day</button>
+        <button style={{ ...S.btn, width:"100%" }} onClick={saveProgram} disabled={saving}>
+          {saving ? "Saving…" : saved ? "✓ Saved!" : "Save Program"}
+        </button>
+      </div>
+
+      {/* Account */}
       <div style={{ ...S.card, marginBottom:16 }}>
         <div style={{ fontSize:11, fontWeight:700, color:T.muted, textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:16 }}>Account</div>
         <div style={{ fontSize:12, color:T.muted, marginBottom:12 }}>{user.email}</div>
-        <button style={{ ...S.btnDanger }} onClick={onSignOut}>Sign out</button>
+        <button style={S.btnDanger} onClick={onSignOut}>Sign out</button>
       </div>
+
+      {/* Public profile */}
       <div style={S.card}>
         <div style={{ fontSize:11, fontWeight:700, color:T.muted, textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:12 }}>Public Profile</div>
         <div style={{ fontSize:12, color:T.muted, marginBottom:12 }}>Share your progress publicly — no login required.</div>
@@ -1293,64 +1693,136 @@ function SettingsTab({ darkMode, onToggleDark, user, onSignOut, profileUrl }) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// PUBLIC PROFILE APP — read-only, no auth required
+// ONBOARDING SCREEN
 // ─────────────────────────────────────────────────────────────────────────────
-const READONLY_OVERLAY = {
-  position:"relative", pointerEvents:"none", opacity:0.4, userSelect:"none",
-};
-const READONLY_BANNER = {
-  position:"absolute", top:"50%", left:"50%", transform:"translate(-50%,-50%)",
-  background:T.accent+"22", border:`1px solid ${T.accent}44`, borderRadius:8,
-  padding:"6px 14px", fontSize:11, fontWeight:700, color:T.accent,
-  whiteSpace:"nowrap", zIndex:10, pointerEvents:"none",
-};
+function OnboardingScreen({ userId, onComplete }) {
+  const [form, setForm] = useState({ name:"", heightFt:"", heightIn:"", weight:"", age:"", sex:"" });
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
 
-function ReadOnlyOverlay({ children, label="Log in to edit" }) {
+  async function handleSave() {
+    if (!form.weight || !form.heightFt) { setError("Height and weight are required."); return; }
+    setSaving(true);
+    const heightIn = (Number(form.heightFt)*12) + Number(form.heightIn||0);
+    const profile = {
+      name: form.name,
+      heightIn,
+      weight: Number(form.weight),
+      age: form.age ? Number(form.age) : null,
+      sex: form.sex || null,
+    };
+    await Storage.saveProfile(userId, profile);
+    // Also log the starting weight as first metric
+    await Storage.upsertMetric(userId, { date: new Date().toISOString().slice(0,10), weight: profile.weight, bodyFat: null });
+    onComplete(profile);
+  }
+
+  const heightIn = (Number(form.heightFt)*12) + Number(form.heightIn||0);
+  const bmi = form.weight && heightIn ? ((Number(form.weight) / (heightIn * heightIn)) * 703).toFixed(1) : null;
+
   return (
-    <div style={{ position:"relative" }}>
-      <div style={READONLY_OVERLAY}>{children}</div>
-      <div style={READONLY_BANNER}>{label}</div>
+    <div style={{ minHeight:"100vh", background:T.bg, display:"flex", alignItems:"center", justifyContent:"center", padding:24 }}>
+      <div style={{ ...S.card, maxWidth:440, width:"100%" }}>
+        <div style={{ fontSize:22, fontWeight:700, color:T.accent, marginBottom:4 }}>Welcome 👋</div>
+        <div style={{ fontSize:13, color:T.muted, marginBottom:24 }}>Let's get a few basics before we start tracking.</div>
+
+        <div style={{ marginBottom:14 }}>
+          <label style={S.label}>Your Name (optional)</label>
+          <input style={S.input} placeholder="e.g. Alex" value={form.name} onChange={e=>setForm(f=>({...f,name:e.target.value}))} />
+        </div>
+
+        <div style={{ marginBottom:14 }}>
+          <label style={S.label}>Height</label>
+          <div style={{ display:"flex", gap:8 }}>
+            <div style={{ flex:1 }}>
+              <input style={S.input} type="number" placeholder="ft" value={form.heightFt} onChange={e=>setForm(f=>({...f,heightFt:e.target.value}))} />
+            </div>
+            <div style={{ flex:1 }}>
+              <input style={S.input} type="number" placeholder="in" value={form.heightIn} onChange={e=>setForm(f=>({...f,heightIn:e.target.value}))} />
+            </div>
+          </div>
+        </div>
+
+        <div style={{ marginBottom:14 }}>
+          <label style={S.label}>Current Weight (lbs)</label>
+          <input style={S.input} type="number" placeholder="lbs" value={form.weight} onChange={e=>setForm(f=>({...f,weight:e.target.value}))} />
+        </div>
+
+        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, marginBottom:14 }}>
+          <div>
+            <label style={S.label}>Age (optional)</label>
+            <input style={S.input} type="number" placeholder="years" value={form.age} onChange={e=>setForm(f=>({...f,age:e.target.value}))} />
+          </div>
+          <div>
+            <label style={S.label}>Sex (optional)</label>
+            <select style={S.select} value={form.sex} onChange={e=>setForm(f=>({...f,sex:e.target.value}))}>
+              <option value="">Prefer not to say</option>
+              <option value="female">Female</option>
+              <option value="male">Male</option>
+            </select>
+          </div>
+        </div>
+
+        {bmi && (
+          <div style={{ ...S.card, marginBottom:14, padding:"10px 14px", background:T.border }}>
+            <span style={{ fontSize:11, color:T.muted }}>BMI: </span>
+            <span style={{ fontSize:13, fontWeight:700, color:T.text }}>{bmi}</span>
+            <span style={{ fontSize:11, color:T.dim, marginLeft:8 }}>
+              {bmi<18.5?"Underweight":bmi<25?"Normal":bmi<30?"Overweight":"Obese"}
+            </span>
+          </div>
+        )}
+
+        {error && <div style={{ color:T.red, fontSize:11, marginBottom:10 }}>{error}</div>}
+        <button style={{ ...S.btn, width:"100%" }} onClick={handleSave} disabled={saving}>
+          {saving ? "Saving…" : "Get Started →"}
+        </button>
+      </div>
     </div>
   );
 }
 
-function App() {
-  const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState("overview");
-  const [currentWeek, setCurrentWeek] = useState(1);
+// ─────────────────────────────────────────────────────────────────────────────
+// MAIN APP
+// ─────────────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// PUBLIC PROFILE APP
+// ─────────────────────────────────────────────────────────────────────────────
+function ProfileApp() {
   const [workouts, setWorkouts] = useState([]);
   const [metrics, setMetrics] = useState([]);
   const [nutrition, setNutrition] = useState([]);
-  const [darkMode, setDarkMode] = useState(true);
+  const [cardio, setCardio] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [tab, setTab] = useState("overview");
+  const [program, setProgram] = useState(DEFAULT_PROGRAM);
 
-  T = getTheme(darkMode);
+  T = getTheme(true);
   S = getStyles(T);
 
-  useEffect(()=>{
+  const currentWeek = useMemo(() => {
+    if (!workouts.length) return 1;
+    return Math.max(...workouts.map(w => w.week));
+  }, [workouts]);
+
+  useEffect(() => {
     async function load() {
-      try {
-        const timeout = new Promise((_,r)=>setTimeout(()=>r(new Error("timeout")),8000));
-        const [wRes, mRes, nRes] = await Promise.all([
-          Promise.race([sb.from("workouts").select("*").order("week").order("date"), timeout]),
-          Promise.race([sb.from("metrics").select("*").order("date"), timeout]),
-          Promise.race([sb.from("nutrition").select("*").order("date"), timeout]),
-        ]);
-        const w = (wRes.data||[]).map(x=>({ ...x, sets:typeof x.sets==="string"?JSON.parse(x.sets):x.sets }));
-        const m = (mRes.data||[]).map(x=>({ ...x, bodyFat:x.body_fat }));
-        const n = nRes.data||[];
-        setWorkouts(w);
-        setMetrics(m);
-        setNutrition(n);
-        if (w.length) setCurrentWeek(Math.max(...w.map(x=>x.week)));
-      } catch(e) { console.warn("Profile load error:", e.message); }
+      const PROFILE_UID = 'bedea05c-ad57-4802-af78-4debd097536f';
+      const [w, m, n, c, p] = await Promise.all([
+        Storage.getWorkouts(PROFILE_UID),
+        Storage.getMetrics(PROFILE_UID),
+        Storage.getNutrition(PROFILE_UID),
+        Storage.getCardio(PROFILE_UID),
+        Storage.getProgram(PROFILE_UID),
+      ]);
+      setWorkouts(w); setMetrics(m); setNutrition(n); setCardio(c); setProgram(p);
       setLoading(false);
     }
     load();
-  },[]);
+  }, []);
 
   if (loading) return <div style={{ minHeight:"100vh", background:T.bg, display:"flex", alignItems:"center", justifyContent:"center", color:T.muted }}>Loading…</div>;
 
-  const weeksUntilDeload = 6-(currentWeek%6);
   const TABS = ["overview","next workout","progress","body","log"];
 
   return (
@@ -1358,14 +1830,9 @@ function App() {
       <div style={S.header}>
         <div>
           <div style={{ fontSize:18, fontWeight:700, color:T.accent, letterSpacing:"0.08em", textTransform:"uppercase" }}>Chessie's Fitness</div>
-          <div style={{ fontSize:10, color:T.muted, letterSpacing:"0.12em", textTransform:"uppercase", marginTop:2 }}>Progressive Overload Tracker · Public Profile</div>
+          <div style={{ fontSize:10, color:T.muted, letterSpacing:"0.12em", textTransform:"uppercase", marginTop:2 }}>Public Profile · Read Only</div>
         </div>
-        <div style={{ display:"flex", alignItems:"center", gap:12 }}>
-          {isDeloadWeek(currentWeek) && <span style={S.tag(T.green)}>🔄 DELOAD</span>}
-          {!isDeloadWeek(currentWeek) && <span style={{ fontSize:11, color:T.dim }}>{weeksUntilDeload}w to deload</span>}
-          <span style={{ fontSize:11, color:T.dim }}>Week {currentWeek}</span>
-          <a href="/" style={{ ...S.btnSm, textDecoration:"none" }}>Open App →</a>
-        </div>
+        <span style={{ ...S.tag(T.accent), fontSize:10 }}>👁 Viewing</span>
       </div>
       <div style={S.nav}>
         {TABS.map(t=>(
@@ -1374,22 +1841,37 @@ function App() {
           </button>
         ))}
       </div>
+
+      {/* Read-only banner */}
+      <div style={{ background:T.accent+"11", borderBottom:`1px solid ${T.accent}33`, padding:"8px 16px", display:"flex", alignItems:"center", justifyContent:"center", gap:8 }}>
+        <span style={{ fontSize:11, color:T.muted }}>🔒 Read-only view — sign up to track your own progress</span>
+      </div>
+
       <div style={S.content}>
-        {tab==="overview"     && <OverviewTab workouts={workouts} metrics={metrics} nutrition={nutrition} currentWeek={currentWeek} />}
-        {tab==="next workout" && <NextWorkoutTab workouts={workouts} currentWeek={currentWeek} />}
+        {tab==="overview"     && <OverviewTab workouts={workouts} metrics={metrics} nutrition={nutrition} currentWeek={currentWeek} cardio={cardio} />}
+        {tab==="next workout" && (
+          <div style={{ position:"relative" }}>
+            <NextWorkoutTab workouts={workouts} currentWeek={currentWeek} userId={null} onWorkoutAdded={()=>{}} program={program} />
+            <div style={{ position:"absolute", inset:0, zIndex:5 }} />
+          </div>
+        )}
         {tab==="progress"     && <ProgressTab workouts={workouts} />}
         {tab==="body"         && <BodyTab metrics={metrics} nutrition={nutrition} />}
         {tab==="log"          && (
-          <ReadOnlyOverlay label="🔒 Log in to add entries">
-            <LogTab workouts={workouts} nutrition={nutrition} metrics={metrics} currentWeek={currentWeek} userId="readonly" onWorkoutAdded={()=>{}} onNutritionUpsert={()=>{}} onMetricUpsert={()=>{}} />
-          </ReadOnlyOverlay>
+          <div style={{ position:"relative" }}>
+            <div style={{ pointerEvents:"none", userSelect:"none" }}>
+              {/* History sections fully visible */}
+              <LogTab workouts={workouts} nutrition={nutrition} metrics={metrics} cardio={cardio} currentWeek={currentWeek} userId={null} onWorkoutAdded={()=>{}} onNutritionUpsert={()=>{}} onMetricUpsert={()=>{}} onCardioAdded={()=>{}} readOnly={true} />
+            </div>
+            <div style={{ position:"absolute", inset:0, zIndex:5 }} />
+          </div>
         )}
       </div>
     </div>
   );
 }
 
-ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+ReactDOM.createRoot(document.getElementById("root")).render(<ProfileApp />);
 </script>
 </body>
 </html>

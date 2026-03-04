@@ -694,7 +694,7 @@ const DEFAULT_PROGRAM = {
   ]
 };
 
-function NextWorkoutTab({ workouts, currentWeek, userId, onWorkoutAdded, program }) {
+function NextWorkoutTab({ workouts, currentWeek, userId, onWorkoutAdded, program, readOnly=false }) {
   const programDays = program?.days || DEFAULT_PROGRAM.days;
   const dayNames = programDays.map(d => d.name);
   const [selectedDay, setSelectedDay] = useState(dayNames[0]);
@@ -714,13 +714,15 @@ function NextWorkoutTab({ workouts, currentWeek, userId, onWorkoutAdded, program
 
   const dayExercises = useMemo(() => {
     return currentDayConfig.exercises.map(ex => {
-      const hist = getExHistory(workouts, ex); // all days, all weeks
-      const histSameDay = hist.filter(h=>h.day===selectedDay); // same day only
+      const hist = getExHistory(workouts, ex);
+      const histSameDay = hist.filter(h=>h.day===selectedDay);
       const currentEntry = histSameDay.find(h=>h.week===currentWeek)||null;
-      const histUpToPrev = hist.filter(h=>h.week<currentWeek); // all days, for suggestion
+      const histUpToPrev = hist.filter(h=>h.week<currentWeek);
+      const histUpToCurrent = hist.filter(h=>h.week<=currentWeek);
       const prevEntry = histUpToPrev.slice(-1)[0]||null;
       const suggCurrent = !currentEntry ? getSuggestion(histUpToPrev, isDeloadWeek(currentWeek), ex) : null;
-      return { exercise:ex, currentEntry, prevEntry, suggCurrent };
+      const suggNext = getSuggestion(histUpToCurrent, isDeloadWeek(currentWeek+1), ex);
+      return { exercise:ex, currentEntry, prevEntry, suggCurrent, suggNext };
     });
   }, [workouts, selectedDay, currentWeek, program]);
 
@@ -806,28 +808,18 @@ function NextWorkoutTab({ workouts, currentWeek, userId, onWorkoutAdded, program
       )}
 
       {/* Normal exercise cards */}
-      {dayExercises.map(({ exercise, currentEntry, prevEntry, suggCurrent }) => {
+      {dayExercises.map(({ exercise, currentEntry, prevEntry, suggCurrent, suggNext }) => {
         const isExpanded = expandedEx === exercise;
         const isDone = !!currentEntry;
         return (
           <div key={exercise} style={{ ...S.card, marginBottom:10 }}>
-            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
-              <div style={{ flex:1 }}>
+            {/* Header row */}
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:10 }}>
+              <div>
                 <div style={{ fontWeight:700, fontSize:13, color:T.text }}>{exercise} {isDone && <span style={{ color:T.green }}>✓</span>}</div>
                 {prevEntry && (
                   <div style={{ fontSize:11, color:T.dim, marginTop:3 }}>
                     W{prevEntry.week}: {prevEntry.sets.map(s=>`${s.reps}×${s.weight}`).join(", ")}
-                  </div>
-                )}
-                {isDone && (
-                  <div style={{ fontSize:11, color:T.muted, marginTop:3 }}>
-                    Logged: {currentEntry.sets.map(s=>`${s.reps}×${s.weight}`).join(", ")}
-                  </div>
-                )}
-                {!isExpanded && !isDone && suggCurrent && (
-                  <div style={{ fontSize:12, color:T.muted, marginTop:4 }}>
-                    Target: <span style={{ color:T.text, fontWeight:600 }}>{suggCurrent.suggestedWeight} lbs × {suggCurrent.repMin}–{suggCurrent.repMax}</span>
-                    <span style={{ color:T.dim, marginLeft:8, fontSize:11 }}>{suggCurrent.note}</span>
                   </div>
                 )}
               </div>
@@ -839,8 +831,44 @@ function NextWorkoutTab({ workouts, currentWeek, userId, onWorkoutAdded, program
               )}
             </div>
 
+            {/* Two-column: current week target | next week preview */}
+            {!isExpanded && (
+              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:16 }}>
+                <div style={{ borderRight:`1px solid ${T.border}`, paddingRight:16 }}>
+                  <div style={{ fontSize:10, textTransform:"uppercase", letterSpacing:"0.1em", fontWeight:700, marginBottom:8, color:isDone?T.green:T.accent }}>
+                    Week {currentWeek} — {isDone?"✓ Logged":"Target"}
+                  </div>
+                  {isDone ? (
+                    <>
+                      <SetsDisplay sets={currentEntry.sets} />
+                      <div style={{ fontSize:11, color:T.dim, marginTop:6 }}>{currentEntry.sets.length} sets logged</div>
+                    </>
+                  ) : suggCurrent ? (
+                    <>
+                      <div style={{ fontSize:26, fontWeight:700, color:T.text }}>{suggCurrent.suggestedWeight}<span style={{ fontSize:12, color:T.muted }}> lbs</span></div>
+                      <div style={{ fontSize:13, color:T.muted, marginTop:2 }}>{`× ${suggCurrent.repMin}–${suggCurrent.repMax} reps`}</div>
+                      <div style={{ fontSize:11, color:T.dim, marginTop:6, lineHeight:1.5 }}>{suggCurrent.note}</div>
+                    </>
+                  ) : <div style={{ fontSize:11, color:T.dim }}>No history yet.</div>}
+                </div>
+                <div>
+                  <div style={{ fontSize:10, color:T.dim, textTransform:"uppercase", letterSpacing:"0.1em", fontWeight:700, marginBottom:8 }}>
+                    Week {currentWeek+1} Preview {isDeloadWeek(currentWeek+1)?"🔄":""}
+                  </div>
+                  {suggNext ? (
+                    <>
+                      <div style={{ fontSize:26, fontWeight:700, color:"#6b8884" }}>{suggNext.suggestedWeight}<span style={{ fontSize:12, color:T.dim }}> lbs</span></div>
+                      <div style={{ fontSize:13, color:T.dim, marginTop:2 }}>{`× ${suggNext.repMin}–${suggNext.repMax} reps`}</div>
+                      <div style={{ fontSize:11, color:T.dim, marginTop:6, lineHeight:1.5 }}>{suggNext.note}</div>
+                    </>
+                  ) : <div style={{ fontSize:11, color:T.dim }}>No history yet.</div>}
+                </div>
+              </div>
+            )}
+
+            {/* Inline log form */}
             {isExpanded && (
-              <div style={{ borderTop:`1px solid ${T.border}`, paddingTop:12, marginTop:10 }}>
+              <div style={{ borderTop:`1px solid ${T.border}`, paddingTop:12 }}>
                 {suggCurrent && (
                   <div style={{ fontSize:12, color:T.accent, marginBottom:10 }}>
                     Target: <strong>{suggCurrent.suggestedWeight} lbs × {suggCurrent.repMin}–{suggCurrent.repMax} reps</strong>
