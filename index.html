@@ -257,13 +257,17 @@ const Storage = {
   },
   async saveProgram(uid, program) {
     try {
-      await sb.from("user_settings").upsert({ user_id: uid, key: "program", value: JSON.stringify(program) }, { onConflict: "user_id,key" });
-    } catch(e) { console.warn("saveProgram:", e.message); }
+      const { error } = await sb.from("user_settings").upsert({ user_id: uid, key: "program", value: JSON.stringify(program) }, { onConflict: "user_id,key" });
+      if (error) { console.error("saveProgram error:", error); throw error; }
+      console.log("saveProgram: saved", program.days.map(d=>d.name+':'+d.exercises.length+'ex').join(', '));
+    } catch(e) { console.warn("saveProgram failed:", e.message); }
   },
   async getProgram(uid) {
     try {
-      const { data } = await sb.from("user_settings").select("value").eq("user_id", uid).eq("key", "program").single();
-      if (!data) return DEFAULT_PROGRAM;
+      const { data, error } = await sb.from("user_settings").select("value").eq("user_id", uid).eq("key", "program").single();
+      if (error) { console.warn("getProgram error:", error.message); return DEFAULT_PROGRAM; }
+      if (!data) { console.log("getProgram: no saved program, using default"); return DEFAULT_PROGRAM; }
+      console.log("getProgram: loaded from DB");
       const p = JSON.parse(data.value);
       // Migrate: normalize string exercises to {name, sets, repMin, repMax} objects
       p.days = p.days.map(day => ({
@@ -276,6 +280,7 @@ const Storage = {
             sets: base.sets != null ? base.sets : defaultSets(name),
             repMin: base.repMin != null ? base.repMin : (REP_SCHEMES[name]||[8,12])[0],
             repMax: base.repMax != null ? base.repMax : (REP_SCHEMES[name]||[8,12])[1],
+            ...(base.increment != null ? { increment: base.increment } : {}),
           };
         })
       }));
@@ -2101,18 +2106,23 @@ function App() {
   useEffect(()=>{
     if (!user) return;
     async function load() {
-      const [w, m, n, p, c, prof] = await Promise.all([
+      const [w, m, n, c, prof] = await Promise.all([
         Storage.getWorkouts(user.id),
         Storage.getMetrics(user.id),
         Storage.getNutrition(user.id),
-        Storage.getProgram(user.id),
         Storage.getCardio(user.id),
         Storage.getProfile(user.id),
       ]);
-      setWorkouts(w); setMetrics(m); setNutrition(n); setProgram(p); setCardio(c); setUserProfile(prof);
+      setWorkouts(w); setMetrics(m); setNutrition(n); setCardio(c); setUserProfile(prof);
     }
     load();
   },[user, tick]);
+
+  // Load program only once on login, not on every reload tick
+  useEffect(()=>{
+    if (!user) return;
+    Storage.getProgram(user.id).then(p => setProgram(p));
+  },[user]);
 
   async function handleAuth(u) {
     const isChessie = u.email.toLowerCase() === CHESSIE_EMAIL.toLowerCase();
