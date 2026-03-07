@@ -69,6 +69,67 @@ const REP_SCHEMES = {
   "Plank":                    [45, 60],
 };
 
+const REST_PERIODS = {
+  "Barbell Bench Press": 180, "Barbell Back Squat": 180, "Trap Bar Deadlift": 180, "Lat Pulldowns": 180,
+  "Seated DB OHP": 120, "Romanian Deadlifts": 120, "DB Rows": 120,
+  "Leg Press": 120, "Incline DB Press (Push)": 90, "Incline DB Press (Pull)": 90,
+  "Cable Rows Wide": 90, "Cable Rows Close": 90, "Bulgarian Split Squats": 90,
+  "Barbell Curls": 90, "Leg Curls": 90, "Hip Thrusts": 90,
+  "Cable Flyes": 60, "Lateral Raises": 60, "Tricep Pushdowns": 60,
+  "OH Tricep Extension": 60, "Hammer Curls": 60, "Face Pulls": 60,
+  "Leg Extensions": 60, "Hanging Leg Raises": 60, "Plank": 60,
+};
+
+// Warmup categories
+const WARMUP_HEAVY = ["Barbell Bench Press","Barbell Back Squat","Trap Bar Deadlift"];
+const WARMUP_MODERATE = ["Lat Pulldowns","Romanian Deadlifts","DB Rows"];
+const WARMUP_LIGHT = ["Bulgarian Split Squats","Hip Thrusts"];
+
+function roundWarmup(w) { return Math.ceil(w / 5) * 5; }
+
+function getWarmupSets(exercise, workingWeight, savedWarmups) {
+  const w = workingWeight || 0;
+  if (!w) return [];
+
+  // Use saved overrides if present
+  if (savedWarmups && savedWarmups.length > 0) {
+    return savedWarmups.map(s => ({
+      label: s.label,
+      weight: s.weightType === "pct" ? roundWarmup(w * s.weightVal / 100) : s.weightVal,
+      reps: s.reps,
+      rest: s.rest,
+    }));
+  }
+
+  if (WARMUP_HEAVY.includes(exercise)) {
+    const isDeadlift = exercise === "Trap Bar Deadlift";
+    if (isDeadlift) return [
+      { weight: roundWarmup(w * 0.65), reps: 8, rest: 90, label: "Warmup 1" },
+      { weight: roundWarmup(w * 0.80), reps: 5, rest: 120, label: "Warmup 2" },
+    ];
+    return [
+      { weight: 45, reps: 10, rest: 60, label: "Bar warmup" },
+      { weight: roundWarmup(w * 0.60), reps: 8, rest: 90, label: "Warmup 2" },
+      { weight: roundWarmup(w * 0.80), reps: 5, rest: 120, label: "Warmup 3" },
+    ];
+  }
+  if (WARMUP_MODERATE.includes(exercise)) {
+    const sets = [{ weight: roundWarmup(w * 0.55), reps: 10, rest: 60, label: "Warmup 1" }];
+    if (w >= 80) sets.push({ weight: roundWarmup(w * 0.75), reps: 8, rest: 90, label: "Warmup 2" });
+    return sets;
+  }
+  if (WARMUP_LIGHT.includes(exercise)) {
+    const isHipThrust = exercise === "Hip Thrusts";
+    return [{ weight: isHipThrust ? 40 : 0, reps: isHipThrust ? 12 : 8, rest: 60, label: isHipThrust ? "Bar warmup" : "Bodyweight" }];
+  }
+  return [];
+}
+
+function formatRest(secs) {
+  if (secs < 60) return `${secs}s`;
+  const m = Math.floor(secs/60), s = secs%60;
+  return s ? `${m}m ${s}s` : `${m}m`;
+}
 const DAYS = ["Upper Push", "Lower A", "Upper Pull", "Lower B"];
 const DAY_COLORS = {
   "Upper Push": "#2dd4bf",
@@ -487,6 +548,23 @@ let S = getStyles(T);
 // ─────────────────────────────────────────────────────────────────────────────
 const { useState, useMemo, useEffect, useCallback } = React;
 
+class ErrorBoundary extends React.Component {
+  constructor(props) { super(props); this.state = { error: null }; }
+  static getDerivedStateFromError(e) { return { error: e }; }
+  render() {
+    if (this.state.error) {
+      return (
+        <div style={{ padding:20, color:"#ff6b6b", fontFamily:"monospace", fontSize:12, background:"#1a1a1a", minHeight:"100vh" }}>
+          <div style={{ fontSize:16, marginBottom:12 }}>⚠️ Render Error</div>
+          <pre style={{ whiteSpace:"pre-wrap", wordBreak:"break-all" }}>{String(this.state.error)}</pre>
+          <pre style={{ whiteSpace:"pre-wrap", wordBreak:"break-all", color:"#888", marginTop:12 }}>{this.state.error?.stack}</pre>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 function Pill({ label, color }) {
   return <span style={S.tag(color||T.accent)}>{label}</span>;
 }
@@ -749,6 +827,233 @@ function OverviewTab({ workouts, metrics, nutrition, currentWeek, cardio }) {
 // ─────────────────────────────────────────────────────────────────────────────
 // NEXT WORKOUT TAB
 // ─────────────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// EDIT WORKOUT INLINE COMPONENT
+// ─────────────────────────────────────────────────────────────────────────────
+function EditWorkoutInline({ entry, onSave, onCancel }) {
+  const [sets, setSets] = useState(entry.sets.map(s=>({reps:String(s.reps),weight:String(s.weight)})));
+  const [intensity, setIntensity] = useState(entry.intensity||"medium");
+  const [notes, setNotes] = useState(entry.notes||"");
+  return (
+    <div style={{ borderTop:`1px solid ${T.border}`, paddingTop:12 }}>
+      <div style={{ fontSize:10, color:T.muted, textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:8 }}>Edit Sets</div>
+      {sets.map((s,i) => (
+        <div key={i} style={{ display:"flex", gap:6, marginBottom:6, alignItems:"center" }}>
+          <input style={{ ...S.input, width:70 }} type="number" placeholder="reps" value={s.reps}
+            onChange={e=>setSets(prev=>{ const n=[...prev]; n[i]={...n[i],reps:e.target.value}; return n; })} />
+          <input style={{ ...S.input, width:80 }} type="number" placeholder="lbs" value={s.weight}
+            onChange={e=>setSets(prev=>{ const n=[...prev]; n[i]={...n[i],weight:e.target.value}; return n; })} />
+          {sets.length>1 && <button style={{ background:"transparent", border:"none", color:T.dim, cursor:"pointer", fontSize:14 }}
+            onClick={()=>setSets(s=>s.filter((_,j)=>j!==i))}>×</button>}
+        </div>
+      ))}
+      <button style={S.btnSm} onClick={()=>setSets(s=>[...s,{reps:"",weight:s[s.length-1]?.weight||""}])}>+ Set</button>
+      <div style={{ display:"flex", gap:6, margin:"10px 0" }}>
+        {["easy","medium","hard","very hard"].map(level => (
+          <button key={level} onClick={()=>setIntensity(level)}
+            style={{ ...S.btnSm, flex:1, textTransform:"capitalize",
+              background: intensity===level ? ({easy:T.green,medium:T.accent,hard:T.amber,"very hard":T.red}[level]+"33") : T.border,
+              color: intensity===level ? ({easy:T.green,medium:T.accent,hard:T.amber,"very hard":T.red}[level]) : T.muted,
+              border:`1px solid ${intensity===level ? ({easy:T.green,medium:T.accent,hard:T.amber,"very hard":T.red}[level])+"66" : T.border}`,
+            }}>{level}</button>
+        ))}
+      </div>
+      <input style={{ ...S.input, marginBottom:10 }} value={notes} onChange={e=>setNotes(e.target.value)} placeholder="Notes (optional)" />
+      <div style={{ display:"flex", gap:8 }}>
+        <button style={{ ...S.btn, flex:1 }} onClick={()=>onSave(sets.filter(s=>s.reps&&s.weight).map(s=>({reps:Number(s.reps),weight:Number(s.weight)})), intensity, notes)}>Save</button>
+        <button style={{ ...S.btnSm, flex:1 }} onClick={onCancel}>Cancel</button>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// REST TIMER COMPONENT
+// ─────────────────────────────────────────────────────────────────────────────
+function RestTimer({ seconds, onDone, onSkip }) {
+  const [remaining, setRemaining] = useState(seconds);
+  const [running, setRunning] = useState(true);
+  useEffect(() => {
+    if (!running) return;
+    if (remaining <= 0) { onDone(); return; }
+    const t = setTimeout(() => setRemaining(r => r-1), 1000);
+    return () => clearTimeout(t);
+  }, [remaining, running]);
+  const pct = remaining / seconds;
+  const color = pct > 0.5 ? T.green : pct > 0.25 ? T.amber : T.red;
+  return (
+    <div style={{ textAlign:"center", padding:"20px 0" }}>
+      <div style={{ fontSize:11, color:T.muted, textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:12 }}>Rest</div>
+      <div style={{ position:"relative", width:100, height:100, margin:"0 auto 16px" }}>
+        <svg viewBox="0 0 100 100" width="100" height="100">
+          <circle cx="50" cy="50" r="44" fill="none" stroke={T.border} strokeWidth="8" />
+          <circle cx="50" cy="50" r="44" fill="none" stroke={color} strokeWidth="8"
+            strokeDasharray={`${2*Math.PI*44}`}
+            strokeDashoffset={`${2*Math.PI*44*(1-pct)}`}
+            strokeLinecap="round"
+            transform="rotate(-90 50 50)"
+            style={{ transition:"stroke-dashoffset 1s linear, stroke 0.3s" }} />
+        </svg>
+        <div style={{ position:"absolute", inset:0, display:"flex", alignItems:"center", justifyContent:"center", flexDirection:"column" }}>
+          <div style={{ fontSize:28, fontWeight:700, color:T.text }}>{remaining}</div>
+          <div style={{ fontSize:10, color:T.dim }}>sec</div>
+        </div>
+      </div>
+      <div style={{ display:"flex", gap:8, justifyContent:"center" }}>
+        <button style={S.btnSm} onClick={()=>setRunning(r=>!r)}>{running?"Pause":"Resume"}</button>
+        <button style={{ ...S.btn, padding:"6px 20px" }} onClick={onSkip}>Skip →</button>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// WORKOUT LOGGER COMPONENT
+// ─────────────────────────────────────────────────────────────────────────────
+function WorkoutLogger({ exercise, numSets, repMin, repMax, restSeconds, suggWeight, savedWarmups, onSave, onCancel }) {
+  const warmupSets = getWarmupSets(exercise, suggWeight || 0, savedWarmups);
+  const totalPhases = warmupSets.length + numSets; // warmup sets + working sets
+  
+  // phase: "warmup-N", "rest-warmup-N", "working-N", "rest-working-N", "done"
+  const [phase, setPhase] = useState(warmupSets.length > 0 ? "warmup:0" : "working:0");
+  const [loggedSets, setLoggedSets] = useState([]); // working sets only
+  const [currentReps, setCurrentReps] = useState(String(repMax));
+  const [currentWeight, setCurrentWeight] = useState(String(suggWeight || ""));
+  const [intensity, setIntensity] = useState("medium");
+
+  // Phase format: "warmup:N", "rest-warmup:N", "working:N", "rest-working:N", "done"
+  function makePhase(type, idx) { return `${type}:${idx}`; }
+  function parsePhase(p) {
+    if (p === "done") return { type:"done", idx:0 };
+    const colon = p.lastIndexOf(":");
+    return { type: p.slice(0, colon), idx: parseInt(p.slice(colon+1)||"0") };
+  }
+
+  function completeSet() {
+    const { type, idx } = parsePhase(phase);
+    if (type === "warmup") {
+      setPhase(makePhase("rest-warmup", idx));
+    } else if (type === "working") {
+      const reps = parseInt(currentReps) || 0;
+      const weight = parseFloat(currentWeight) || 0;
+      setLoggedSets(prev => [...prev, { reps, weight }]);
+      if (idx + 1 < numSets) {
+        setPhase(makePhase("rest-working", idx));
+      } else {
+        setPhase("done");
+      }
+    }
+  }
+
+  function afterRest() {
+    const { type, idx } = parsePhase(phase);
+    if (type === "rest-warmup") {
+      const nextIdx = idx + 1;
+      setPhase(nextIdx < warmupSets.length ? makePhase("warmup", nextIdx) : makePhase("working", 0));
+    } else if (type === "rest-working") {
+      setCurrentReps(String(repMax));
+      setPhase(makePhase("working", idx+1));
+    }
+  }
+
+  const { type, idx } = parsePhase(phase);
+  const warmupSet = (type === "warmup" || type === "rest-warmup") ? warmupSets[idx] : null;
+  const restSecs = type === "rest-warmup" ? (warmupSets[idx]?.rest || 60) : restSeconds;
+
+  // Progress indicator
+  const warmupDone = type === "warmup" ? idx : type === "rest-warmup" ? idx+1 : (type === "working" || type === "rest-working" || type === "done") ? warmupSets.length : 0;
+  const workingDone = loggedSets.length;
+
+  return (
+    <div style={{ borderTop:`1px solid ${T.border}`, paddingTop:16 }}>
+      {/* Progress bar */}
+      <div style={{ marginBottom:16 }}>
+        <div style={{ display:"flex", gap:4, marginBottom:6 }}>
+          {warmupSets.map((_, i) => (
+            <div key={`w${i}`} style={{ flex:1, height:4, borderRadius:2, background: i < warmupDone ? T.amber : T.border }} />
+          ))}
+          {Array(numSets).fill(null).map((_, i) => (
+            <div key={`s${i}`} style={{ flex:1, height:4, borderRadius:2, background: i < workingDone ? T.accent : T.border }} />
+          ))}
+        </div>
+        <div style={{ fontSize:10, color:T.dim }}>
+          {warmupSets.length > 0 && `${warmupDone}/${warmupSets.length} warmup · `}
+          {workingDone}/{numSets} working sets
+        </div>
+      </div>
+
+      {/* WARMUP SET */}
+      {type === "warmup" && warmupSet && (
+        <div>
+          <div style={{ fontSize:11, color:T.amber, fontWeight:700, textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:8 }}>
+            {warmupSet.label}
+          </div>
+          <div style={{ fontSize:26, fontWeight:700, color:T.text, marginBottom:4 }}>
+            {warmupSet.weight === 0 ? "Bodyweight" : `${warmupSet.weight} lbs`}
+            {warmupSet.weight > 0 && <span style={{ fontSize:13, color:T.muted }}> × {warmupSet.reps} reps</span>}
+          </div>
+          <button style={{ ...S.btn, width:"100%", marginTop:12 }} onClick={completeSet}>Done ✓</button>
+        </div>
+      )}
+
+      {/* REST TIMER */}
+      {(type === "rest-warmup" || type === "rest-working") && (
+        <RestTimer seconds={restSecs} onDone={afterRest} onSkip={afterRest} />
+      )}
+
+      {/* WORKING SET */}
+      {type === "working" && (
+        <div>
+          <div style={{ fontSize:11, color:T.accent, fontWeight:700, textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:8 }}>
+            Set {idx+1} of {numSets}
+          </div>
+          <div style={{ display:"flex", gap:8, marginBottom:12, alignItems:"center" }}>
+            <div style={{ flex:1 }}>
+              <div style={{ fontSize:10, color:T.muted, marginBottom:4 }}>Reps</div>
+              <input style={{ ...S.input, fontSize:20, fontWeight:700, textAlign:"center" }} type="number"
+                value={currentReps} onChange={e=>setCurrentReps(e.target.value)} />
+            </div>
+            <div style={{ fontSize:18, color:T.dim, paddingTop:20 }}>×</div>
+            <div style={{ flex:1 }}>
+              <div style={{ fontSize:10, color:T.muted, marginBottom:4 }}>Weight (lbs)</div>
+              <input style={{ ...S.input, fontSize:20, fontWeight:700, textAlign:"center" }} type="number"
+                value={currentWeight} onChange={e=>setCurrentWeight(e.target.value)} />
+            </div>
+          </div>
+          {suggWeight && <div style={{ fontSize:11, color:T.dim, marginBottom:12 }}>Target: {suggWeight} lbs × {repMin}–{repMax} reps</div>}
+          <button style={{ ...S.btn, width:"100%" }} onClick={completeSet}>Done ✓</button>
+        </div>
+      )}
+
+      {/* DONE — rate intensity */}
+      {phase === "done" && (
+        <div>
+          <div style={{ fontSize:13, fontWeight:600, color:T.text, marginBottom:12 }}>How did that feel?</div>
+          <div style={{ display:"flex", gap:6, marginBottom:16 }}>
+            {["easy","medium","hard","very hard"].map(level => (
+              <button key={level} onClick={()=>setIntensity(level)}
+                style={{ ...S.btnSm, flex:1, textTransform:"capitalize",
+                  background: intensity===level ? ({easy:T.green,medium:T.accent,hard:T.amber,"very hard":T.red}[level]+"33") : T.border,
+                  color: intensity===level ? ({easy:T.green,medium:T.accent,hard:T.amber,"very hard":T.red}[level]) : T.muted,
+                  border:`1px solid ${intensity===level ? ({easy:T.green,medium:T.accent,hard:T.amber,"very hard":T.red}[level])+"66" : T.border}`,
+                }}>{level}</button>
+            ))}
+          </div>
+          <div style={{ fontSize:11, color:T.dim, marginBottom:12 }}>
+            {loggedSets.map((s,i)=>`Set ${i+1}: ${s.reps}×${s.weight}`).join(" · ")}
+          </div>
+          <button style={{ ...S.btn, width:"100%", marginBottom:8 }} onClick={()=>onSave(loggedSets, intensity)}>Save & Next →</button>
+          <button style={{ ...S.btnSm, width:"100%" }} onClick={onCancel}>Cancel</button>
+        </div>
+      )}
+
+      <button style={{ background:"transparent", border:"none", color:T.dim, fontSize:11, cursor:"pointer", marginTop:8 }} onClick={onCancel}>
+        ← Cancel
+      </button>
+    </div>
+  );
+}
+
 function NextWorkoutTab({ workouts, currentWeek, userId, onWorkoutAdded, program, readOnly=false }) {
   const programDays = program?.days || DEFAULT_PROGRAM.days;
   const dayNames = programDays.map(d => d.name);
@@ -782,7 +1087,7 @@ function NextWorkoutTab({ workouts, currentWeek, userId, onWorkoutAdded, program
       const prevEntry = histUpToPrev.slice(-1)[0]||null;
       const suggCurrent = !currentEntry ? getSuggestion(histUpToPrev, isDeloadWeek(currentWeek), ex, repMin, repMax, increment) : null;
       const suggNext = getSuggestion(histUpToCurrent, isDeloadWeek(currentWeek+1), ex, repMin, repMax, increment);
-      return { exercise:ex, numSets, repMin, repMax, currentEntry, prevEntry, suggCurrent, suggNext };
+      return { exercise:ex, numSets, repMin, repMax, currentEntry, prevEntry, suggCurrent, suggNext, warmups: exEntry.warmups || null };
     });
   }, [workouts, selectedDay, currentWeek, program]);
 
@@ -827,6 +1132,7 @@ function NextWorkoutTab({ workouts, currentWeek, userId, onWorkoutAdded, program
   }
 
   const [addingOneOff, setAddingOneOff] = useState(false);
+  const [editingDoneEx, setEditingDoneEx] = useState(null);
   const [oneOffEx, setOneOffEx] = useState("");
   const [oneOffSets, setOneOffSets] = useState([{reps:"",weight:""}]);
   const [oneOffNotes, setOneOffNotes] = useState("");
@@ -888,9 +1194,11 @@ function NextWorkoutTab({ workouts, currentWeek, userId, onWorkoutAdded, program
       )}
 
       {/* Normal exercise cards */}
-      {dayExercises.map(({ exercise, numSets, currentEntry, prevEntry, suggCurrent, suggNext }) => {
+      {dayExercises.map(({ exercise, numSets, repMin, repMax, currentEntry, prevEntry, suggCurrent, suggNext, warmups }) => {
         const isExpanded = expandedEx === exercise;
         const isDone = !!currentEntry;
+        const restSecs = REST_PERIODS[exercise] || null;
+        const isEditingDone = editingDoneEx === exercise;
         return (
           <div key={exercise} style={{ ...S.card, marginBottom:10 }}>
             {/* Header row */}
@@ -902,21 +1210,30 @@ function NextWorkoutTab({ workouts, currentWeek, userId, onWorkoutAdded, program
                     W{prevEntry.week}: {prevEntry.sets.map(s=>`${s.reps}×${s.weight}`).join(", ")}
                   </div>
                 )}
+                {restSecs && !isExpanded && (
+                  <div style={{ fontSize:10, color:T.dim, marginTop:3 }}>⏱ {formatRest(restSecs)} rest</div>
+                )}
               </div>
-              {!isDone && (
-                <button onClick={()=>!readOnly && (isExpanded ? closeLog() : openLog(exercise, suggCurrent, numSets))}
-                  style={{ ...S.btn, padding:"6px 14px", fontSize:11, marginLeft:12,
-                    background: readOnly ? T.border : (isExpanded ? T.border : T.accent),
-                    color: readOnly ? T.dim : (isExpanded ? T.muted : "#0f2220"),
-                    opacity: readOnly ? 0.5 : 1,
-                    cursor: readOnly ? "not-allowed" : "pointer" }}>
-                  {isExpanded ? "Cancel" : "Log"}
-                </button>
-              )}
+              <div style={{ display:"flex", gap:6 }}>
+                {isDone && !readOnly && (
+                  <button onClick={()=>setEditingDoneEx(isEditingDone ? null : exercise)}
+                    style={{ ...S.btnSm, fontSize:11, padding:"4px 10px" }}>
+                    {isEditingDone ? "Cancel" : "Edit"}
+                  </button>
+                )}
+                {!isDone && !readOnly && (
+                  <button onClick={()=>isExpanded ? closeLog() : openLog(exercise, suggCurrent, numSets)}
+                    style={{ ...S.btn, padding:"6px 14px", fontSize:11,
+                      background: isExpanded ? T.border : T.accent,
+                      color: isExpanded ? T.muted : "#0f2220" }}>
+                    {isExpanded ? "Cancel" : "Log"}
+                  </button>
+                )}
+              </div>
             </div>
 
             {/* Two-column: current week target | next week preview */}
-            {!isExpanded && (
+            {!isExpanded && !isEditingDone && (
               <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:16 }}>
                 <div style={{ borderRight:`1px solid ${T.border}`, paddingRight:16 }}>
                   <div style={{ fontSize:10, textTransform:"uppercase", letterSpacing:"0.1em", fontWeight:700, marginBottom:8, color:isDone?T.green:T.accent }}>
@@ -950,48 +1267,43 @@ function NextWorkoutTab({ workouts, currentWeek, userId, onWorkoutAdded, program
               </div>
             )}
 
-            {/* Inline log form */}
+            {/* Edit logged workout inline */}
+            {isEditingDone && currentEntry && !readOnly && (
+              <EditWorkoutInline
+                entry={currentEntry}
+                onSave={async (sets, intensity, notes) => {
+                  await Storage.updateWorkout(userId, currentEntry.id, { sets, intensity, notes });
+                  onWorkoutAdded();
+                  setEditingDoneEx(null);
+                }}
+                onCancel={()=>setEditingDoneEx(null)}
+              />
+            )}
+
+            {/* Workout Logger */}
             {isExpanded && !readOnly && (
-              <div style={{ borderTop:`1px solid ${T.border}`, paddingTop:12 }}>
-                {suggCurrent && (
-                  <div style={{ fontSize:12, color:T.accent, marginBottom:10 }}>
-                    Target: <strong>{suggCurrent.suggestedWeight} lbs × {suggCurrent.repMin}–{suggCurrent.repMax} reps</strong>
-                  </div>
-                )}
-                <div style={{ marginBottom:8 }}>
-                  <div style={{ fontSize:10, color:T.muted, textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:6 }}>Sets (reps / weight)</div>
-                  {logSets.map((s,i) => (
-                    <div key={i} style={{ display:"flex", gap:6, marginBottom:6, alignItems:"center" }}>
-                      <input style={{ ...S.input, width:70 }} type="number" placeholder="reps" value={s.reps}
-                        onChange={e=>setLogSets(sets=>{ const n=[...sets]; n[i]={...n[i],reps:e.target.value}; return n; })} />
-                      <input style={{ ...S.input, width:80 }} type="number" placeholder="lbs" value={s.weight}
-                        onChange={e=>setLogSets(sets=>{ const n=[...sets]; n[i]={...n[i],weight:e.target.value}; return n; })} />
-                      {logSets.length>1 && <button style={{ background:"transparent", border:"none", color:T.dim, cursor:"pointer", fontSize:14 }}
-                        onClick={()=>setLogSets(s=>s.filter((_,j)=>j!==i))}>×</button>}
-                    </div>
-                  ))}
-                  <button style={S.btnSm} onClick={()=>setLogSets(s=>[...s,{reps:"",weight:logSets[logSets.length-1]?.weight||""}])}>+ Set</button>
-                </div>
-                <div style={{ marginBottom:10 }}>
-                  <div style={{ fontSize:10, color:T.muted, textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:6 }}>Intensity</div>
-                  <div style={{ display:"flex", gap:6 }}>
-                    {["easy","medium","hard","very hard"].map(level => (
-                      <button key={level} onClick={()=>setLogIntensity(level)}
-                        style={{ ...S.btnSm, flex:1, textTransform:"capitalize",
-                          background: logIntensity===level ? ({easy:T.green,medium:T.accent,hard:T.amber,"very hard":T.red}[level]+"33") : T.border,
-                          color: logIntensity===level ? ({easy:T.green,medium:T.accent,hard:T.amber,"very hard":T.red}[level]) : T.muted,
-                          border: `1px solid ${logIntensity===level ? ({easy:T.green,medium:T.accent,hard:T.amber,"very hard":T.red}[level])+"66" : T.border}`,
-                        }}>
-                        {level}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                <input style={{ ...S.input, marginBottom:10 }} value={logNotes} onChange={e=>setLogNotes(e.target.value)} placeholder="Notes (optional)" />
-                <button style={{ ...S.btn, width:"100%" }} onClick={()=>saveLog(exercise)} disabled={saving}>
-                  {saving ? "Saving…" : "Save"}
-                </button>
-              </div>
+              <WorkoutLogger
+                exercise={exercise}
+                numSets={numSets}
+                repMin={repMin}
+                repMax={repMax}
+                restSeconds={restSecs || 60}
+                suggWeight={suggCurrent?.suggestedWeight}
+                savedWarmups={warmups}
+                onSave={async (sets, intensity) => {
+                  const today = new Date().toISOString().split("T")[0];
+                  await Storage.addWorkout(userId, { week:currentWeek, day:selectedDay, date:today, exercise, sets, notes:"", intensity });
+                  onWorkoutAdded();
+                  closeLog();
+                  const allEx = dayExercises.map(e=>e.exercise);
+                  const nextIdx = allEx.indexOf(exercise) + 1;
+                  if (nextIdx < allEx.length) {
+                    const nextEx = dayExercises[nextIdx];
+                    if (!nextEx.currentEntry) openLog(allEx[nextIdx], nextEx.suggCurrent, nextEx.numSets);
+                  }
+                }}
+                onCancel={closeLog}
+              />
             )}
           </div>
         );
@@ -1773,6 +2085,101 @@ function ProgressTab({ workouts }) {
 // ─────────────────────────────────────────────────────────────────────────────
 // SETTINGS TAB
 // ─────────────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// WARMUP EDITOR (used in Settings)
+// ─────────────────────────────────────────────────────────────────────────────
+function WarmupEditor({ exName: exercise, exEntry, onUpdate }) {
+  const defaultSets = getWarmupSets(exercise, 100); // use 100 as reference for % defaults
+  const hasWarmups = [...WARMUP_HEAVY, ...WARMUP_MODERATE, ...WARMUP_LIGHT].includes(exercise);
+
+  // Local state: array of {weightType:"pct"|"flat", weightVal:number, reps:number, rest:number, label:string}
+  const [sets, setSets] = useState(() => {
+    if (exEntry.warmups) return exEntry.warmups;
+    if (!hasWarmups) return [];
+    return defaultSets.map(s => ({
+      label: s.label,
+      weightType: s.weight === 0 ? "flat" : s.weight === 40 || s.weight === 45 ? "flat" : "pct",
+      weightVal: s.weight === 0 ? 0 : s.weight === 40 ? 40 : s.weight === 45 ? 45 : Math.round(s.weight),
+      reps: s.reps,
+      rest: s.rest,
+    }));
+  });
+
+  // Keep parent in sync whenever sets change
+  useEffect(() => { onUpdate(sets); }, [sets]);
+
+  function updateSet(i, field, val) {
+    setSets(prev => { const n=[...prev]; n[i]={...n[i],[field]:val}; return n; });
+  }
+  function addSet() {
+    setSets(prev => [...prev, { label:`Warmup ${prev.length+1}`, weightType:"pct", weightVal:50, reps:8, rest:60 }]);
+  }
+  function removeSet(i) {
+    setSets(prev => prev.filter((_,j)=>j!==i));
+  }
+
+  if (!hasWarmups && sets.length === 0) return (
+    <div style={{ borderTop:`1px solid ${T.border}`, paddingTop:8, marginTop:8 }}>
+      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:6 }}>
+        <span style={{ fontSize:10, color:T.dim, textTransform:"uppercase", letterSpacing:"0.1em" }}>Warmup Sets</span>
+        <button style={S.btnSm} onClick={addSet}>+ Add Warmup</button>
+      </div>
+      <div style={{ fontSize:11, color:T.dim }}>No warmups — muscles warm from prior sets.</div>
+    </div>
+  );
+
+  return (
+    <div style={{ borderTop:`1px solid ${T.border}`, paddingTop:8, marginTop:8 }}>
+      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:8 }}>
+        <span style={{ fontSize:10, color:T.amber, textTransform:"uppercase", letterSpacing:"0.1em", fontWeight:700 }}>Warmup Sets</span>
+        <button style={S.btnSm} onClick={addSet}>+ Add</button>
+      </div>
+      {sets.length === 0 && <div style={{ fontSize:11, color:T.dim, marginBottom:4 }}>No warmup sets.</div>}
+      {sets.map((s, i) => (
+        <div key={i} style={{ background:T.bg, borderRadius:6, padding:"8px 10px", marginBottom:6 }}>
+          <div style={{ display:"flex", gap:6, alignItems:"center", flexWrap:"wrap" }}>
+            <input style={{ ...S.input, width:80, padding:"3px 6px", fontSize:11 }} value={s.label}
+              onChange={e=>updateSet(i,"label",e.target.value)} placeholder="Label" />
+
+            {/* Weight toggle */}
+            <div style={{ display:"flex", alignItems:"center", gap:4 }}>
+              <button onClick={()=>updateSet(i,"weightType",s.weightType==="pct"?"flat":"pct")}
+                style={{ ...S.btnSm, padding:"3px 8px", fontSize:10,
+                  background: s.weightType==="pct" ? T.accent+"33" : T.border,
+                  color: s.weightType==="pct" ? T.accent : T.muted }}>
+                {s.weightType==="pct" ? "%" : "lbs"}
+              </button>
+              <input style={{ ...S.input, width:50, padding:"3px 6px", textAlign:"center", fontSize:12 }}
+                type="number" min="0" step={s.weightType==="pct"?5:2.5}
+                value={s.weightVal}
+                onChange={e=>updateSet(i,"weightVal",Number(e.target.value))} />
+              <span style={{ fontSize:10, color:T.dim }}>{s.weightType==="pct"?"%":"lbs"}</span>
+            </div>
+
+            <div style={{ display:"flex", alignItems:"center", gap:4 }}>
+              <span style={{ fontSize:10, color:T.dim }}>reps</span>
+              <input style={{ ...S.input, width:44, padding:"3px 6px", textAlign:"center", fontSize:12 }}
+                type="number" min="1" value={s.reps}
+                onChange={e=>updateSet(i,"reps",Number(e.target.value))} />
+            </div>
+
+            <div style={{ display:"flex", alignItems:"center", gap:4 }}>
+              <span style={{ fontSize:10, color:T.dim }}>rest</span>
+              <input style={{ ...S.input, width:50, padding:"3px 6px", textAlign:"center", fontSize:12 }}
+                type="number" min="0" step="15" value={s.rest}
+                onChange={e=>updateSet(i,"rest",Number(e.target.value))} />
+              <span style={{ fontSize:10, color:T.dim }}>s</span>
+            </div>
+
+            <button style={{ background:"transparent", border:"none", color:T.red, cursor:"pointer", fontSize:14, marginLeft:"auto" }}
+              onClick={()=>removeSet(i)}>×</button>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function SettingsTab({ darkMode, onToggleDark, user, onSignOut, profileUrl, program, userId, onProgramSave }) {
   const [editProgram, setEditProgram] = useState(()=>JSON.parse(JSON.stringify(program)));
   const [saving, setSaving] = useState(false);
@@ -1910,6 +2317,16 @@ function SettingsTab({ darkMode, onToggleDark, user, onSignOut, profileUrl, prog
                           <button style={{ ...S.btn, padding:"4px 12px", fontSize:11 }} onClick={()=>setEditingEx(null)}>Done</button>
                         </div>
                       </div>
+
+                      {/* Warmup Sets Editor */}
+                      <WarmupEditor exName={ex} exEntry={exEntry} onUpdate={warmups => {
+                        setEditProgram(p => {
+                          const d = [...p.days]; const exs = [...d[dayIdx].exercises];
+                          exs[exIdx] = { ...exs[exIdx], warmups };
+                          d[dayIdx] = { ...d[dayIdx], exercises: exs };
+                          return { ...p, days: d };
+                        });
+                      }} />
                     </div>
                   )}
                 </div>
@@ -2182,7 +2599,7 @@ function App() {
   );
 }
 
-ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+ReactDOM.createRoot(document.getElementById("root")).render(<ErrorBoundary><App /></ErrorBoundary>);
 </script>
 </body>
 </html>
