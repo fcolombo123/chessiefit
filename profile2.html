@@ -24,6 +24,8 @@
 <div id="root"></div>
 <script type="text/babel">
 
+
+
 // ─────────────────────────────────────────────────────────────────────────────
 // CONFIG
 // ─────────────────────────────────────────────────────────────────────────────
@@ -86,6 +88,7 @@ const WARMUP_MODERATE = ["Lat Pulldowns","Romanian Deadlifts","DB Rows"];
 const WARMUP_LIGHT = ["Bulgarian Split Squats","Hip Thrusts"];
 
 function roundWarmup(w) { return Math.ceil(w / 5) * 5; }
+
 function getWarmupSets(exercise, workingWeight, savedWarmups) {
   const w = workingWeight || 0;
   if (!w) return [];
@@ -123,6 +126,7 @@ function getWarmupSets(exercise, workingWeight, savedWarmups) {
   }
   return [];
 }
+
 function formatRest(secs) {
   if (secs < 60) return `${secs}s`;
   const m = Math.floor(secs/60), s = secs%60;
@@ -248,10 +252,10 @@ const SEED_WORKOUTS = [
 ];
 
 const SEED_METRICS = [
-  { date:"2024-12-21", weight:207.7, bodyFat:44.3, leanMass:109.8, fatMass:92, visceralFat:2.8, agRatio:null, boneTScore:null, boneZScore:null, skeletalMass:null },
-  { date:"2025-01-04",  weight:208,   bodyFat:null,  leanMass:null,  fatMass:null, visceralFat:null, agRatio:null, boneTScore:null, boneZScore:null, skeletalMass:null },
-  { date:"2025-01-11",  weight:207,   bodyFat:null,  leanMass:null,  fatMass:null, visceralFat:null, agRatio:null, boneTScore:null, boneZScore:null, skeletalMass:null },
-  { date:"2026-02-18",  weight:208.2, bodyFat:43.7,  leanMass:111.4, fatMass:null, visceralFat:2.53, agRatio:1.6, boneTScore:3.0, boneZScore:1.7, skeletalMass:5.9 },
+  { date:"2025-12-21", weight:207.7, bodyFat:44.3, leanMass:109.8, fatMass:92.0, visceralFat:2.82, boneDensity:1.35, skeletalMass:5.9 },
+  { date:"2025-01-04",  weight:208,   bodyFat:null,  leanMass:null,  fatMass:null, visceralFat:null, boneDensity:null, skeletalMass:null },
+  { date:"2025-01-11",  weight:207,   bodyFat:null,  leanMass:null,  fatMass:null, visceralFat:null, boneDensity:null, skeletalMass:null },
+  { date:"2026-02-18",  weight:208.2, bodyFat:43.7,  leanMass:111.4, fatMass:90.9, visceralFat:2.53, boneDensity:1.382, skeletalMass:5.9 },
 ];
 
 const SEED_RMR = [
@@ -260,6 +264,245 @@ const SEED_RMR = [
 
 // ─────────────────────────────────────────────────────────────────────────────
 // STORAGE
+// ─────────────────────────────────────────────────────────────────────────────
+function lsKey(uid, t) { return `hj_${uid}_${t}`; }
+function lsGet(uid, t) { try { return JSON.parse(localStorage.getItem(lsKey(uid,t))) || []; } catch { return []; } }
+function lsSet(uid, t, d) { localStorage.setItem(lsKey(uid,t), JSON.stringify(d)); }
+
+function simpleHash(s) {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) { h = ((h<<5)-h)+s.charCodeAt(i); h|=0; }
+  return String(h);
+}
+
+const DEFAULT_SETS = {
+  "Barbell Bench Press": 4,
+  "Barbell Back Squat": 4,
+  "Lat Pulldowns": 4,
+  "Trap Bar Deadlift": 4,
+  "Face Pulls": 2,
+};
+function defaultSets(exercise) {
+  if (exercise in DEFAULT_SETS) return DEFAULT_SETS[exercise];
+  return 3;
+}
+
+const DEFAULT_PROGRAM = {
+  days: [
+    { name:"Upper Push", exercises:[
+      {name:"Barbell Bench Press",sets:4,repMin:6,repMax:8},{name:"Seated DB OHP",sets:3,repMin:8,repMax:10},{name:"Incline DB Press (Push)",sets:3,repMin:10,repMax:12},
+      {name:"Cable Flyes",sets:3,repMin:12,repMax:15},{name:"Lateral Raises",sets:3,repMin:12,repMax:15},{name:"Tricep Pushdowns",sets:3,repMin:10,repMax:12},
+      {name:"Cable Rows Wide",sets:3,repMin:8,repMax:10},{name:"Face Pulls",sets:2,repMin:15,repMax:20}
+    ]},
+    { name:"Lower A", exercises:[
+      {name:"Barbell Back Squat",sets:4,repMin:6,repMax:8},{name:"Leg Press",sets:3,repMin:10,repMax:12},{name:"Romanian Deadlifts",sets:3,repMin:8,repMax:10},
+      {name:"Leg Curls",sets:3,repMin:10,repMax:12},{name:"Leg Extensions",sets:3,repMin:12,repMax:15},{name:"Goblet Squats",sets:3,repMin:10,repMax:12},{name:"Hanging Leg Raises",sets:3,repMin:12,repMax:15}
+    ]},
+    { name:"Upper Pull", exercises:[
+      {name:"Lat Pulldowns",sets:4,repMin:6,repMax:8},{name:"DB Rows",sets:3,repMin:8,repMax:10},{name:"Cable Rows Close",sets:3,repMin:10,repMax:12},
+      {name:"Cable Rows Wide",sets:3,repMin:8,repMax:10},{name:"Incline DB Press (Pull)",sets:3,repMin:10,repMax:12},{name:"OH Tricep Extension",sets:3,repMin:10,repMax:12},
+      {name:"Barbell Curls",sets:3,repMin:10,repMax:12},{name:"Hammer Curls",sets:3,repMin:10,repMax:12},{name:"Face Pulls",sets:2,repMin:15,repMax:20}
+    ]},
+    { name:"Lower B", exercises:[
+      {name:"Trap Bar Deadlift",sets:4,repMin:6,repMax:8},{name:"Bulgarian Split Squats",sets:3,repMin:10,repMax:12},{name:"Leg Press",sets:3,repMin:10,repMax:12},
+      {name:"Leg Curls",sets:3,repMin:10,repMax:12},{name:"Hip Thrusts",sets:3,repMin:12,repMax:15},{name:"Plank",sets:3,repMin:45,repMax:60}
+    ]},
+  ]
+};
+
+// Normalize exercise entry — handles both string and {name,sets,repMin,repMax} formats
+function exName(ex) { return typeof ex === "string" ? ex : ex.name; }
+function exSets(ex) { return typeof ex === "string" ? defaultSets(ex) : (ex.sets || defaultSets(ex.name)); }
+function exRepMin(ex) { return typeof ex === "string" ? (REP_SCHEMES[ex]||[8,12])[0] : (ex.repMin != null ? ex.repMin : (REP_SCHEMES[ex.name]||[8,12])[0]); }
+function exRepMax(ex) { return typeof ex === "string" ? (REP_SCHEMES[ex]||[8,12])[1] : (ex.repMax != null ? ex.repMax : (REP_SCHEMES[ex.name]||[8,12])[1]); }
+function exIncrement(ex) { return typeof ex === "string" ? null : (ex.increment != null ? ex.increment : null); }
+
+const Storage = {
+  async initUser(uid, isChessie) {
+    try {
+      const { data } = await Promise.race([
+        sb.from("workouts").select("id").eq("user_id", uid).limit(1),
+        new Promise((_, r) => setTimeout(() => r(new Error("timeout")), 5000))
+      ]);
+      if (data && data.length === 0) {
+        if (isChessie) {
+          // Seed Chessie's full history
+          const workouts = SEED_WORKOUTS.map(w => ({ ...w, user_id: uid, sets: w.sets }));
+          await sb.from("workouts").insert(workouts);
+          const metrics = SEED_METRICS.map(m => ({
+            user_id: uid, date: m.date,
+            weight: m.weight ?? null,
+            body_fat: m.bodyFat ?? null,
+            lean_mass: m.leanMass ?? null,
+            fat_mass: m.fatMass ?? null,
+            visceral_fat: m.visceralFat ?? null,
+            bone_density: m.boneDensity ?? null,
+            skeletal_mass: m.skeletalMass ?? null,
+          }));
+          await sb.from("metrics").insert(metrics);
+          await Storage.saveRmr(uid, SEED_RMR);
+        }
+        // Save default program config for all new users
+        await Storage.saveProgram(uid, DEFAULT_PROGRAM);
+      }
+    } catch(e) {
+      console.warn("initUser skipped:", e.message);
+    }
+  },
+  async saveProgram(uid, program) {
+    try {
+      const { error } = await sb.from("user_settings").upsert({ user_id: uid, key: "program", value: JSON.stringify(program) }, { onConflict: "user_id,key" });
+      if (error) { console.error("saveProgram error:", error); throw error; }
+      console.log("saveProgram: saved", program.days.map(d=>d.name+':'+d.exercises.length+'ex').join(', '));
+    } catch(e) { console.warn("saveProgram failed:", e.message); }
+  },
+  async getProgram(uid) {
+    try {
+      const { data, error } = await sb.from("user_settings").select("value").eq("user_id", uid).eq("key", "program").single();
+      if (error) { console.warn("getProgram error:", error.message); return DEFAULT_PROGRAM; }
+      if (!data) { console.log("getProgram: no saved program, using default"); return DEFAULT_PROGRAM; }
+      console.log("getProgram: loaded from DB");
+      const p = JSON.parse(data.value);
+      // Migrate: normalize string exercises to {name, sets, repMin, repMax} objects
+      p.days = p.days.map(day => ({
+        ...day,
+        exercises: day.exercises.map(ex => {
+          const name = typeof ex === "string" ? ex : ex.name;
+          const base = typeof ex === "string" ? {} : ex;
+          return {
+            name,
+            sets: base.sets != null ? base.sets : defaultSets(name),
+            repMin: base.repMin != null ? base.repMin : (REP_SCHEMES[name]||[8,12])[0],
+            repMax: base.repMax != null ? base.repMax : (REP_SCHEMES[name]||[8,12])[1],
+            ...(base.increment != null ? { increment: base.increment } : {}),
+          };
+        })
+      }));
+      return p;
+    } catch(e) { return DEFAULT_PROGRAM; }
+  },
+  async saveProfile(uid, profile) {
+    try {
+      await sb.from("user_settings").upsert({ user_id: uid, key: "profile", value: JSON.stringify(profile) }, { onConflict: "user_id,key" });
+    } catch(e) { console.warn("saveProfile:", e.message); }
+  },
+  async getProfile(uid) {
+    try {
+      const { data } = await sb.from("user_settings").select("value").eq("user_id", uid).eq("key", "profile").single();
+      return data ? JSON.parse(data.value) : null;
+    } catch(e) { return null; }
+  },
+  async getWorkouts(uid) {
+    try {
+      const to = new Promise((_, r) => setTimeout(() => r(new Error("timeout")), 8000));
+      const { data } = await Promise.race([sb.from("workouts").select("*").eq("user_id", uid).order("week").order("date"), to]);
+      return (data || []).map(w => ({ ...w, sets: typeof w.sets === "string" ? JSON.parse(w.sets) : w.sets }));
+    } catch(e) { console.warn("getWorkouts:", e.message); return []; }
+  },
+  async addWorkout(uid, w) {
+    const { data } = await sb.from("workouts").insert({ ...w, user_id: uid }).select().single();
+    return data;
+  },
+  async deleteWorkout(uid, id) {
+    await sb.from("workouts").delete().eq("id", id).eq("user_id", uid);
+  },
+  async updateWorkout(uid, id, updates) {
+    await sb.from("workouts").update(updates).eq("id", id).eq("user_id", uid);
+  },
+  async getMetrics(uid) {
+    try {
+      const to = new Promise((_, r) => setTimeout(() => r(new Error("timeout")), 8000));
+      const { data } = await Promise.race([sb.from("metrics").select("*").eq("user_id", uid).order("date"), to]);
+      return (data || []).map(m => ({
+        ...m,
+        bodyFat: m.body_fat,
+        leanMass: m.lean_mass,
+        fatMass: m.fat_mass,
+        visceralFat: m.visceral_fat,
+        boneDensity: m.bone_density,
+        skeletalMass: m.skeletal_mass,
+      }));
+    } catch(e) { console.warn("getMetrics:", e.message); return []; }
+  },
+  async upsertMetric(uid, m) {
+    const { error } = await sb.from("metrics").upsert({
+      user_id: uid, date: m.date,
+      weight: m.weight ?? null,
+      body_fat: m.bodyFat ?? null,
+      lean_mass: m.leanMass ?? null,
+      fat_mass: m.fatMass ?? null,
+      visceral_fat: m.visceralFat ?? null,
+      bone_density: m.boneDensity ?? null,
+      skeletal_mass: m.skeletalMass ?? null,
+    }, { onConflict: "user_id,date" });
+    if (error) { console.error("upsertMetric error:", error); throw error; }
+  },
+  async deleteMetric(uid, date) {
+    await sb.from("metrics").delete().eq("user_id", uid).eq("date", date);
+  },
+  async addCardio(uid, entry) {
+    const { data } = await sb.from("cardio").insert({ ...entry, user_id: uid }).select().single();
+    return data;
+  },
+  async getCardio(uid) {
+    try {
+      const { data } = await Promise.race([
+        sb.from("cardio").select("*").eq("user_id", uid).order("date"),
+        new Promise((_,r)=>setTimeout(()=>r(new Error("timeout")),8000))
+      ]);
+      return data || [];
+    } catch(e) { console.warn("getCardio:", e.message); return []; }
+  },
+  async getRmr(uid) {
+    try {
+      const { data } = await Promise.race([
+        sb.from("user_settings").select("value").eq("user_id", uid).eq("key", "rmr_log").single(),
+        new Promise((_,r)=>setTimeout(()=>r(new Error("timeout")),5000))
+      ]);
+      return data ? JSON.parse(data.value) : [];
+    } catch(e) { return []; }
+  },
+  async saveRmr(uid, entries) {
+    try {
+      await sb.from("user_settings").upsert({ user_id: uid, key: "rmr_log", value: JSON.stringify(entries) }, { onConflict: "user_id,key" });
+    } catch(e) { console.warn("saveRmr:", e.message); }
+  },
+  async getNutrition(uid) {
+    try {
+      const to = new Promise((_, r) => setTimeout(() => r(new Error("timeout")), 8000));
+      const { data } = await Promise.race([sb.from("nutrition").select("*").eq("user_id", uid).order("date"), to]);
+      return data || [];
+    } catch(e) { console.warn("getNutrition:", e.message); return []; }
+  },
+  async upsertNutrition(uid, n) {
+    await sb.from("nutrition").upsert({ ...n, user_id: uid }, { onConflict: "user_id,date" });
+  },
+};
+
+const Auth = {
+  async getUser() {
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) return null;
+    return { id: session.user.id, email: session.user.email };
+  },
+  async signUp(email, password) {
+    const { data, error } = await sb.auth.signUp({ email, password });
+    if (error) return { user: null, error: error.message };
+    if (data.user && !data.session) return { user: null, error: "Check your email to confirm your account." };
+    return { user: { id: data.user.id, email }, error: null };
+  },
+  async signIn(email, password) {
+    const { data, error } = await sb.auth.signInWithPassword({ email, password });
+    if (error) return { user: null, error: "Invalid email or password." };
+    return { user: { id: data.user.id, email }, error: null };
+  },
+  async signOut() {
+    await sb.auth.signOut();
+  },
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// FITNESS HELPERS
 // ─────────────────────────────────────────────────────────────────────────────
 function calcBMI(weightLbs, heightIn) {
   if (!weightLbs || !heightIn) return null;
@@ -302,6 +545,7 @@ function sevenDayAvg(entries, field) {
   if (!r.length) return null;
   return Math.round(r.reduce((a,e)=>a+e[field],0)/r.length);
 }
+
 function getSuggestion(history, isDeload, exercise, repMinOverride, repMaxOverride, incrementOverride) {
   const sorted = [...history].sort((a,b)=>a.week-b.week);
   if (!sorted.length) return null;
@@ -369,6 +613,7 @@ function getTheme(dark) {
   };
 }
 let T = getTheme(true);
+
 function getStyles(T) { return {
   root: { fontFamily:"'Inter',sans-serif", background:T.bg, minHeight:"100vh", color:T.text },
   header: { background:T.bgCard, borderBottom:`1px solid ${T.border}`, padding:"18px 28px", display:"flex", alignItems:"center", justifyContent:"space-between" },
@@ -415,6 +660,7 @@ class ErrorBoundary extends React.Component {
 function Pill({ label, color }) {
   return <span style={S.tag(color||T.accent)}>{label}</span>;
 }
+
 function ProgressBar({ value, max, color }) {
   const pct = Math.min(100, Math.round((value/max)*100));
   return (
@@ -423,6 +669,7 @@ function ProgressBar({ value, max, color }) {
     </div>
   );
 }
+
 function MiniChart({ data, color }) {
   if (data.length < 2) return <span style={{ color:T.dim, fontSize:11 }}>Not enough data</span>;
   const AX=32, H=70, pad=10, VW=280;
@@ -441,11 +688,13 @@ function MiniChart({ data, color }) {
       {/* Y axis */}
       <line x1={AX} y1={pad} x2={AX} y2={H-pad} stroke={T.border} strokeWidth="1" />
       <text x={AX-4} y={yOf(maxV)+4} textAnchor="end" fontSize="9" fill={T.dim} fontFamily="Inter,sans-serif">{maxV}</text>
-      <text x={AX-4} y={yOf(mid)+4}  textAnchor="end" fontSize="9" fill={T.dim} fontFamily="Inter,sans-serif">{mid}</text>
       <text x={AX-4} y={yOf(minV)+4} textAnchor="end" fontSize="9" fill={T.dim} fontFamily="Inter,sans-serif">{minV}</text>
       <line x1={AX-3} y1={yOf(maxV)} x2={AX} y2={yOf(maxV)} stroke={T.dim} strokeWidth="1" />
-      <line x1={AX-3} y1={yOf(mid)}  x2={AX} y2={yOf(mid)}  stroke={T.dim} strokeWidth="1" />
       <line x1={AX-3} y1={yOf(minV)} x2={AX} y2={yOf(minV)} stroke={T.dim} strokeWidth="1" />
+      {Math.abs(yOf(mid)-yOf(maxV)) > 14 && Math.abs(yOf(mid)-yOf(minV)) > 14 && [
+        <text key="mt" x={AX-4} y={yOf(mid)+4} textAnchor="end" fontSize="9" fill={T.dim} fontFamily="Inter,sans-serif">{mid}</text>,
+        <line key="ml" x1={AX-3} y1={yOf(mid)} x2={AX} y2={yOf(mid)} stroke={T.dim} strokeWidth="1" />
+      ]}
       {/* X axis date labels */}
       <text x={xOf(0)}            y={H+14} textAnchor="start" fontSize="9" fill={T.dim} fontFamily="Inter,sans-serif">{fmtDate(first.x)}</text>
       <text x={xOf(data.length-1)} y={H+14} textAnchor="end"   fontSize="9" fill={T.dim} fontFamily="Inter,sans-serif">{fmtDate(last.x)}</text>
@@ -457,6 +706,7 @@ function MiniChart({ data, color }) {
     </svg>
   );
 }
+
 function SetsDisplay({ sets }) {
   const weights = sets.map(s=>s.weight);
   const uniform = weights.every(w=>w===weights[0]);
@@ -476,6 +726,86 @@ function SetsDisplay({ sets }) {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // AUTH SCREEN
+// ─────────────────────────────────────────────────────────────────────────────
+function AuthScreen({ onAuth }) {
+  const [mode, setMode] = useState("signin");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+
+  async function handleSubmit() {
+    setError(""); setMessage(""); setLoading(true);
+    try {
+      const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error("Request timed out. Check your internet connection.")), 8000));
+      const authPromise = mode === "signin"
+        ? Auth.signIn(email.trim(), password)
+        : Auth.signUp(email.trim(), password);
+      const result = await Promise.race([authPromise, timeoutPromise]);
+      setLoading(false);
+      if (result.error) { setError(result.error); return; }
+      if (result.user) onAuth(result.user);
+    } catch(e) {
+      setLoading(false);
+      setError(e.message || "Something went wrong. Try again.");
+    }
+  }
+
+  async function handleForgotPassword() {
+    if (!email.trim()) { setError("Enter your email above first."); return; }
+    setLoading(true);
+    const { error } = await sb.auth.resetPasswordForEmail(email.trim(), {
+      redirectTo: window.location.origin,
+    });
+    setLoading(false);
+    if (error) setError(error.message);
+    else setMessage("Password reset email sent — check your inbox.");
+  }
+
+  return (
+    <div style={{ minHeight:"100vh", background:T.bg, display:"flex", alignItems:"center", justifyContent:"center" }}>
+      <div style={{ ...S.card, width:380, padding:"36px 32px" }}>
+        <div style={{ fontSize:22, fontWeight:700, color:T.accent, letterSpacing:"0.08em", textTransform:"uppercase", marginBottom:4 }}>Health Journal</div>
+        <div style={{ fontSize:11, color:T.muted, marginBottom:28, letterSpacing:"0.1em", textTransform:"uppercase" }}>Progressive Overload Tracker</div>
+        <div style={{ marginBottom:14 }}>
+          <label style={S.label}>Email</label>
+          <input style={S.input} type="email" value={email} onChange={e=>setEmail(e.target.value)} onKeyDown={e=>e.key==="Enter"&&handleSubmit()} autoFocus />
+        </div>
+        <div style={{ marginBottom:6 }}>
+          <label style={S.label}>Password</label>
+          <div style={{ position:"relative" }}>
+            <input style={{ ...S.input, paddingRight:44 }} type={showPassword?"text":"password"} value={password} onChange={e=>setPassword(e.target.value)} onKeyDown={e=>e.key==="Enter"&&handleSubmit()} />
+            <span onClick={()=>setShowPassword(p=>!p)} style={{ position:"absolute", right:10, top:"50%", transform:"translateY(-50%)", cursor:"pointer", fontSize:11, color:T.muted, userSelect:"none" }}>
+              {showPassword?"Hide":"Show"}
+            </span>
+          </div>
+        </div>
+        {mode === "signin" && (
+          <div style={{ textAlign:"right", marginBottom:16 }}>
+            <span style={{ fontSize:11, color:T.accent, cursor:"pointer" }} onClick={handleForgotPassword}>Forgot password?</span>
+          </div>
+        )}
+        {!message && <div style={{ marginBottom:16 }} />}
+        {error && <div style={{ color:T.red, fontSize:12, marginBottom:14 }}>{error}</div>}
+        {message && <div style={{ color:T.green, fontSize:12, marginBottom:14 }}>{message}</div>}
+        <button style={{ ...S.btn, width:"100%", padding:"10px" }} onClick={handleSubmit} disabled={loading}>
+          {loading ? "..." : mode==="signin" ? "Sign In" : "Create Account"}
+        </button>
+        <div style={{ textAlign:"center", marginTop:16, fontSize:12, color:T.muted }}>
+          {mode==="signin" ? "No account? " : "Already have one? "}
+          <span style={{ color:T.accent, cursor:"pointer" }} onClick={()=>{setMode(mode==="signin"?"signup":"signin");setError("");setMessage("");}}>
+            {mode==="signin" ? "Sign up" : "Sign in"}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// OVERVIEW TAB
 // ─────────────────────────────────────────────────────────────────────────────
 function MiniLineChart({ data, color, unit }) {
     const [hovered, setHovered] = React.useState(null);
@@ -524,6 +854,7 @@ function MiniLineChart({ data, color, unit }) {
       </div>
     );
   }
+
 function OverviewTab({ workouts, metrics, nutrition, currentWeek, cardio, rmr, userProfile, calTarget=CAL_TARGET, proteinTarget=PROTEIN_TARGET }) {
   const latestMetric = [...metrics].sort((a,b)=>a.date.localeCompare(b.date)).slice(-1)[0];
   const latestMetricWithBf = [...metrics].filter(m=>m.bodyFat!=null).sort((a,b)=>a.date.localeCompare(b.date)).slice(-1)[0];
@@ -737,7 +1068,6 @@ function OverviewTab({ workouts, metrics, nutrition, currentWeek, cardio, rmr, u
 // ─────────────────────────────────────────────────────────────────────────────
 // EDIT WORKOUT INLINE COMPONENT
 // ─────────────────────────────────────────────────────────────────────────────
-
 function EditWorkoutInline({ entry, onSave, onCancel }) {
   const [sets, setSets] = useState(entry.sets.map(s=>({reps:String(s.reps),weight:String(s.weight)})));
   const [intensity, setIntensity] = useState(entry.intensity||"medium");
@@ -961,6 +1291,7 @@ function WorkoutLogger({ exercise, numSets, repMin, repMax, restSeconds, suggWei
     </div>
   );
 }
+
 function NextWorkoutTab({ workouts, currentWeek, userId, onWorkoutAdded, program, readOnly=false, manualWeek, setManualWeek, autoWeek, demoMode=false, weekStartDate: nwsd=weekStartDate }) {
   const programDays = program?.days || DEFAULT_PROGRAM.days;
   const dayNames = programDays.map(d => d.name);
@@ -1305,7 +1636,7 @@ function ExerciseTab({ workouts, currentWeek }) {
           {allExercises.map(ex=><option key={ex}>{ex}</option>)}
         </select>
       </div>
-      <div style={S.grid2}>
+      <div style={{ ...S.grid2, marginBottom:16 }}>
         <div style={S.card}>
           <div style={{ fontSize:10, color:T.muted, textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:10 }}>Weight Trend</div>
           <MiniChart data={chartData} color={T.accent} />
@@ -1759,7 +2090,6 @@ function LogTab({ workouts, nutrition, metrics, cardio, currentWeek, userId, onW
 // ─────────────────────────────────────────────────────────────────────────────
 // BODY TAB
 // ─────────────────────────────────────────────────────────────────────────────
-
 function BodyTab({ metrics, nutrition, rmr, userId, onRmrSave, onMetricUpsert, userProfile, calTarget=calTarget, proteinTarget=proteinTarget }) {
   const today = new Date().toISOString().slice(0,10);
   const [bodySection, setBodySection] = useState("weight"); // "weight" | "dexa" | "rmr"
@@ -1769,7 +2099,7 @@ function BodyTab({ metrics, nutrition, rmr, userId, onRmrSave, onMetricUpsert, u
   const [wSaving, setWSaving] = useState(false);
 
   // DEXA form
-  const [dexaForm, setDexaForm] = useState({ date:today, weight:"", bodyFat:"", leanMass:"", fatMass:"", visceralFat:"", agRatio:"", boneTScore:"", boneZScore:"", skeletalMass:"" });
+  const [dexaForm, setDexaForm] = useState({ date:today, weight:"", bodyFat:"", leanMass:"", fatMass:"", visceralFat:"", boneDensity:"", skeletalMass:"" });
   const [dexaSaving, setDexaSaving] = useState(false);
 
   // RMR form
@@ -1800,12 +2130,9 @@ function BodyTab({ metrics, nutrition, rmr, userId, onRmrSave, onMetricUpsert, u
         leanMass: dexaForm.leanMass ? Number(dexaForm.leanMass) : null,
         fatMass: dexaForm.fatMass ? Number(dexaForm.fatMass) : null,
         visceralFat: dexaForm.visceralFat ? Number(dexaForm.visceralFat) : null,
-        agRatio: dexaForm.agRatio ? Number(dexaForm.agRatio) : null,
-        boneTScore: dexaForm.boneTScore ? Number(dexaForm.boneTScore) : null,
-        boneZScore: dexaForm.boneZScore ? Number(dexaForm.boneZScore) : null,
         skeletalMass: dexaForm.skeletalMass ? Number(dexaForm.skeletalMass) : null,
       });
-      setDexaForm({ date:today, weight:"", bodyFat:"", leanMass:"", fatMass:"", visceralFat:"", agRatio:"", boneTScore:"", boneZScore:"", skeletalMass:"" });
+      setDexaForm({ date:today, weight:"", bodyFat:"", leanMass:"", fatMass:"", visceralFat:"", boneDensity:"", skeletalMass:"" });
     } finally { setDexaSaving(false); }
   }
 
@@ -1821,7 +2148,7 @@ function BodyTab({ metrics, nutrition, rmr, userId, onRmrSave, onMetricUpsert, u
   }
 
   // DEXA history — only entries with leanMass
-  const dexaEntries = [...metrics].filter(m=>m.leanMass||m.boneTScore||m.visceralFat).sort((a,b)=>b.date.localeCompare(a.date));
+  const dexaEntries = [...metrics].filter(m=>m.leanMass||m.visceralFat||m.skeletalMass).sort((a,b)=>b.date.localeCompare(a.date));
 
   const inp = (val, onChange, placeholder, type="number") => (
     <input style={{ ...S.input, marginBottom:0 }} type={type} placeholder={placeholder} value={val} step="any"
@@ -1868,10 +2195,8 @@ function BodyTab({ metrics, nutrition, rmr, userId, onRmrSave, onMetricUpsert, u
               <div><label style={S.label}>Lean Mass (lbs)</label>{inp(dexaForm.leanMass, v=>setDexaForm(f=>({...f,leanMass:v})), "e.g. 111.4")}</div>
               <div><label style={S.label}>Fat Mass (lbs)</label>{inp(dexaForm.fatMass, v=>setDexaForm(f=>({...f,fatMass:v})), "e.g. 92")}</div>
               <div><label style={S.label}>Visceral Fat (lbs)</label>{inp(dexaForm.visceralFat, v=>setDexaForm(f=>({...f,visceralFat:v})), "e.g. 2.53")}</div>
-              <div><label style={S.label}>A/G Ratio</label>{inp(dexaForm.agRatio, v=>setDexaForm(f=>({...f,agRatio:v})), "e.g. 1.6")}</div>
-              <div><label style={S.label}>Bone T-Score</label>{inp(dexaForm.boneTScore, v=>setDexaForm(f=>({...f,boneTScore:v})), "e.g. 3.0")}</div>
-              <div><label style={S.label}>Bone Z-Score</label>{inp(dexaForm.boneZScore, v=>setDexaForm(f=>({...f,boneZScore:v})), "e.g. 1.7")}</div>
               <div><label style={S.label}>Skeletal Mass (lbs)</label>{inp(dexaForm.skeletalMass, v=>setDexaForm(f=>({...f,skeletalMass:v})), "e.g. 5.9")}</div>
+              <div><label style={S.label}>Bone Density (g/cm²)</label>{inp(dexaForm.boneDensity, v=>setDexaForm(f=>({...f,boneDensity:v})), "e.g. 1.382")}</div>
             </div>
             <button style={{ ...S.btn, marginTop:4 }} onClick={saveDEXA} disabled={dexaSaving}>{dexaSaving?"Saving…":"Save DEXA Entry"}</button>
           </div>
@@ -2023,10 +2348,8 @@ function BodyTab({ metrics, nutrition, rmr, userId, onRmrSave, onMetricUpsert, u
                       {m.leanMass!=null && <span>Lean: <b>{m.leanMass} lbs</b>{prev?.leanMass!=null&&<span style={{ color:m.leanMass>=prev.leanMass?T.green:T.red, marginLeft:4 }}>{(m.leanMass-prev.leanMass>0?"+":"")+(m.leanMass-prev.leanMass).toFixed(1)}</span>}</span>}
                       {m.visceralFat!=null && <span>Visceral: <b>{m.visceralFat}</b>{prev?.visceralFat!=null&&<span style={{ color:m.visceralFat<=prev.visceralFat?T.green:T.red, marginLeft:4 }}>{(m.visceralFat-prev.visceralFat>0?"+":"")+(m.visceralFat-prev.visceralFat).toFixed(2)}</span>}</span>}
                       {m.fatMass!=null && <span style={{ color:T.dim }}>Fat mass: {m.fatMass} lbs</span>}
-                      {m.agRatio!=null && <span style={{ color:T.dim }}>A/G: {m.agRatio}</span>}
-                      {m.boneTScore!=null && <span style={{ color:T.dim }}>T-score: {m.boneTScore}</span>}
-                      {m.boneZScore!=null && <span style={{ color:T.dim }}>Z-score: {m.boneZScore}</span>}
-                      {m.skeletalMass!=null && <span style={{ color:T.dim }}>Bone: {m.skeletalMass} lbs</span>}
+                      {m.boneDensity!=null && <span style={{ color:T.dim }}>Bone density: {m.boneDensity} g/cm²</span>}
+                      {m.skeletalMass!=null && <span style={{ color:T.dim }}>Skeletal mass: {m.skeletalMass} lbs</span>}
                     </div>
                   </div>
                 );
@@ -2099,6 +2422,7 @@ function ExerciseMiniCard({ exercise, workouts, chartMode="weight" }) {
     </div>
   );
 }
+
 function ProgressTab({ workouts }) {
   const [view, setView] = useState("by-day");
   const [activeDay, setActiveDay] = useState(DAYS[0]);
@@ -2353,6 +2677,7 @@ function WarmupEditor({ exName: exercise, exEntry, onUpdate }) {
     </div>
   );
 }
+
 function SettingsTab({ darkMode, onToggleDark, user, onSignOut, profileUrl, program, userId, onProgramSave, userProfile, onProfileSave, demoMode=false }) {
   const [editProgram, setEditProgram] = useState(()=>JSON.parse(JSON.stringify(program)));
   const [saving, setSaving] = useState(false);

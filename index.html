@@ -250,10 +250,10 @@ const SEED_WORKOUTS = [
 ];
 
 const SEED_METRICS = [
-  { date:"2024-12-21", weight:207.7, bodyFat:44.3, leanMass:109.8, fatMass:92, visceralFat:2.8, agRatio:null, boneTScore:null, boneZScore:null, skeletalMass:null },
-  { date:"2025-01-04",  weight:208,   bodyFat:null,  leanMass:null,  fatMass:null, visceralFat:null, agRatio:null, boneTScore:null, boneZScore:null, skeletalMass:null },
-  { date:"2025-01-11",  weight:207,   bodyFat:null,  leanMass:null,  fatMass:null, visceralFat:null, agRatio:null, boneTScore:null, boneZScore:null, skeletalMass:null },
-  { date:"2026-02-18",  weight:208.2, bodyFat:43.7,  leanMass:111.4, fatMass:null, visceralFat:2.53, agRatio:1.6, boneTScore:3.0, boneZScore:1.7, skeletalMass:5.9 },
+  { date:"2025-12-21", weight:207.7, bodyFat:44.3, leanMass:109.8, fatMass:92.0, visceralFat:2.82, boneDensity:1.35, skeletalMass:5.9 },
+  { date:"2025-01-04",  weight:208,   bodyFat:null,  leanMass:null,  fatMass:null, visceralFat:null, boneDensity:null, skeletalMass:null },
+  { date:"2025-01-11",  weight:207,   bodyFat:null,  leanMass:null,  fatMass:null, visceralFat:null, boneDensity:null, skeletalMass:null },
+  { date:"2026-02-18",  weight:208.2, bodyFat:43.7,  leanMass:111.4, fatMass:90.9, visceralFat:2.53, boneDensity:1.382, skeletalMass:5.9 },
 ];
 
 const SEED_RMR = [
@@ -334,9 +334,7 @@ const Storage = {
             lean_mass: m.leanMass ?? null,
             fat_mass: m.fatMass ?? null,
             visceral_fat: m.visceralFat ?? null,
-            ag_ratio: m.agRatio ?? null,
-            bone_t_score: m.boneTScore ?? null,
-            bone_z_score: m.boneZScore ?? null,
+            bone_density: m.boneDensity ?? null,
             skeletal_mass: m.skeletalMass ?? null,
           }));
           await sb.from("metrics").insert(metrics);
@@ -419,9 +417,7 @@ const Storage = {
         leanMass: m.lean_mass,
         fatMass: m.fat_mass,
         visceralFat: m.visceral_fat,
-        agRatio: m.ag_ratio,
-        boneTScore: m.bone_t_score,
-        boneZScore: m.bone_z_score,
+        boneDensity: m.bone_density,
         skeletalMass: m.skeletal_mass,
       }));
     } catch(e) { console.warn("getMetrics:", e.message); return []; }
@@ -434,9 +430,7 @@ const Storage = {
       lean_mass: m.leanMass ?? null,
       fat_mass: m.fatMass ?? null,
       visceral_fat: m.visceralFat ?? null,
-      ag_ratio: m.agRatio ?? null,
-      bone_t_score: m.boneTScore ?? null,
-      bone_z_score: m.boneZScore ?? null,
+      bone_density: m.boneDensity ?? null,
       skeletal_mass: m.skeletalMass ?? null,
     }, { onConflict: "user_id,date" });
     if (error) { console.error("upsertMetric error:", error); throw error; }
@@ -692,11 +686,13 @@ function MiniChart({ data, color }) {
       {/* Y axis */}
       <line x1={AX} y1={pad} x2={AX} y2={H-pad} stroke={T.border} strokeWidth="1" />
       <text x={AX-4} y={yOf(maxV)+4} textAnchor="end" fontSize="9" fill={T.dim} fontFamily="Inter,sans-serif">{maxV}</text>
-      <text x={AX-4} y={yOf(mid)+4}  textAnchor="end" fontSize="9" fill={T.dim} fontFamily="Inter,sans-serif">{mid}</text>
       <text x={AX-4} y={yOf(minV)+4} textAnchor="end" fontSize="9" fill={T.dim} fontFamily="Inter,sans-serif">{minV}</text>
       <line x1={AX-3} y1={yOf(maxV)} x2={AX} y2={yOf(maxV)} stroke={T.dim} strokeWidth="1" />
-      <line x1={AX-3} y1={yOf(mid)}  x2={AX} y2={yOf(mid)}  stroke={T.dim} strokeWidth="1" />
       <line x1={AX-3} y1={yOf(minV)} x2={AX} y2={yOf(minV)} stroke={T.dim} strokeWidth="1" />
+      {Math.abs(yOf(mid)-yOf(maxV)) > 14 && Math.abs(yOf(mid)-yOf(minV)) > 14 && [
+        <text key="mt" x={AX-4} y={yOf(mid)+4} textAnchor="end" fontSize="9" fill={T.dim} fontFamily="Inter,sans-serif">{mid}</text>,
+        <line key="ml" x1={AX-3} y1={yOf(mid)} x2={AX} y2={yOf(mid)} stroke={T.dim} strokeWidth="1" />
+      ]}
       {/* X axis date labels */}
       <text x={xOf(0)}            y={H+14} textAnchor="start" fontSize="9" fill={T.dim} fontFamily="Inter,sans-serif">{fmtDate(first.x)}</text>
       <text x={xOf(data.length-1)} y={H+14} textAnchor="end"   fontSize="9" fill={T.dim} fontFamily="Inter,sans-serif">{fmtDate(last.x)}</text>
@@ -2101,7 +2097,7 @@ function BodyTab({ metrics, nutrition, rmr, userId, onRmrSave, onMetricUpsert, u
   const [wSaving, setWSaving] = useState(false);
 
   // DEXA form
-  const [dexaForm, setDexaForm] = useState({ date:today, weight:"", bodyFat:"", leanMass:"", fatMass:"", visceralFat:"", agRatio:"", boneTScore:"", boneZScore:"", skeletalMass:"" });
+  const [dexaForm, setDexaForm] = useState({ date:today, weight:"", bodyFat:"", leanMass:"", fatMass:"", visceralFat:"", boneDensity:"", skeletalMass:"" });
   const [dexaSaving, setDexaSaving] = useState(false);
 
   // RMR form
@@ -2132,12 +2128,9 @@ function BodyTab({ metrics, nutrition, rmr, userId, onRmrSave, onMetricUpsert, u
         leanMass: dexaForm.leanMass ? Number(dexaForm.leanMass) : null,
         fatMass: dexaForm.fatMass ? Number(dexaForm.fatMass) : null,
         visceralFat: dexaForm.visceralFat ? Number(dexaForm.visceralFat) : null,
-        agRatio: dexaForm.agRatio ? Number(dexaForm.agRatio) : null,
-        boneTScore: dexaForm.boneTScore ? Number(dexaForm.boneTScore) : null,
-        boneZScore: dexaForm.boneZScore ? Number(dexaForm.boneZScore) : null,
         skeletalMass: dexaForm.skeletalMass ? Number(dexaForm.skeletalMass) : null,
       });
-      setDexaForm({ date:today, weight:"", bodyFat:"", leanMass:"", fatMass:"", visceralFat:"", agRatio:"", boneTScore:"", boneZScore:"", skeletalMass:"" });
+      setDexaForm({ date:today, weight:"", bodyFat:"", leanMass:"", fatMass:"", visceralFat:"", boneDensity:"", skeletalMass:"" });
     } finally { setDexaSaving(false); }
   }
 
@@ -2153,7 +2146,7 @@ function BodyTab({ metrics, nutrition, rmr, userId, onRmrSave, onMetricUpsert, u
   }
 
   // DEXA history — only entries with leanMass
-  const dexaEntries = [...metrics].filter(m=>m.leanMass||m.boneTScore||m.visceralFat).sort((a,b)=>b.date.localeCompare(a.date));
+  const dexaEntries = [...metrics].filter(m=>m.leanMass||m.visceralFat||m.skeletalMass).sort((a,b)=>b.date.localeCompare(a.date));
 
   const inp = (val, onChange, placeholder, type="number") => (
     <input style={{ ...S.input, marginBottom:0 }} type={type} placeholder={placeholder} value={val} step="any"
@@ -2200,10 +2193,8 @@ function BodyTab({ metrics, nutrition, rmr, userId, onRmrSave, onMetricUpsert, u
               <div><label style={S.label}>Lean Mass (lbs)</label>{inp(dexaForm.leanMass, v=>setDexaForm(f=>({...f,leanMass:v})), "e.g. 111.4")}</div>
               <div><label style={S.label}>Fat Mass (lbs)</label>{inp(dexaForm.fatMass, v=>setDexaForm(f=>({...f,fatMass:v})), "e.g. 92")}</div>
               <div><label style={S.label}>Visceral Fat (lbs)</label>{inp(dexaForm.visceralFat, v=>setDexaForm(f=>({...f,visceralFat:v})), "e.g. 2.53")}</div>
-              <div><label style={S.label}>A/G Ratio</label>{inp(dexaForm.agRatio, v=>setDexaForm(f=>({...f,agRatio:v})), "e.g. 1.6")}</div>
-              <div><label style={S.label}>Bone T-Score</label>{inp(dexaForm.boneTScore, v=>setDexaForm(f=>({...f,boneTScore:v})), "e.g. 3.0")}</div>
-              <div><label style={S.label}>Bone Z-Score</label>{inp(dexaForm.boneZScore, v=>setDexaForm(f=>({...f,boneZScore:v})), "e.g. 1.7")}</div>
               <div><label style={S.label}>Skeletal Mass (lbs)</label>{inp(dexaForm.skeletalMass, v=>setDexaForm(f=>({...f,skeletalMass:v})), "e.g. 5.9")}</div>
+              <div><label style={S.label}>Bone Density (g/cm²)</label>{inp(dexaForm.boneDensity, v=>setDexaForm(f=>({...f,boneDensity:v})), "e.g. 1.382")}</div>
             </div>
             <button style={{ ...S.btn, marginTop:4 }} onClick={saveDEXA} disabled={dexaSaving}>{dexaSaving?"Saving…":"Save DEXA Entry"}</button>
           </div>
@@ -2355,10 +2346,8 @@ function BodyTab({ metrics, nutrition, rmr, userId, onRmrSave, onMetricUpsert, u
                       {m.leanMass!=null && <span>Lean: <b>{m.leanMass} lbs</b>{prev?.leanMass!=null&&<span style={{ color:m.leanMass>=prev.leanMass?T.green:T.red, marginLeft:4 }}>{(m.leanMass-prev.leanMass>0?"+":"")+(m.leanMass-prev.leanMass).toFixed(1)}</span>}</span>}
                       {m.visceralFat!=null && <span>Visceral: <b>{m.visceralFat}</b>{prev?.visceralFat!=null&&<span style={{ color:m.visceralFat<=prev.visceralFat?T.green:T.red, marginLeft:4 }}>{(m.visceralFat-prev.visceralFat>0?"+":"")+(m.visceralFat-prev.visceralFat).toFixed(2)}</span>}</span>}
                       {m.fatMass!=null && <span style={{ color:T.dim }}>Fat mass: {m.fatMass} lbs</span>}
-                      {m.agRatio!=null && <span style={{ color:T.dim }}>A/G: {m.agRatio}</span>}
-                      {m.boneTScore!=null && <span style={{ color:T.dim }}>T-score: {m.boneTScore}</span>}
-                      {m.boneZScore!=null && <span style={{ color:T.dim }}>Z-score: {m.boneZScore}</span>}
-                      {m.skeletalMass!=null && <span style={{ color:T.dim }}>Bone: {m.skeletalMass} lbs</span>}
+                      {m.boneDensity!=null && <span style={{ color:T.dim }}>Bone density: {m.boneDensity} g/cm²</span>}
+                      {m.skeletalMass!=null && <span style={{ color:T.dim }}>Skeletal mass: {m.skeletalMass} lbs</span>}
                     </div>
                   </div>
                 );
