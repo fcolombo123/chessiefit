@@ -853,7 +853,7 @@ function MiniLineChart({ data, color, unit }) {
     );
   }
 
-function OverviewTab({ workouts, metrics, nutrition, currentWeek, cardio, rmr, userProfile, calTarget=CAL_TARGET, proteinTarget=PROTEIN_TARGET }) {
+function OverviewTab({ workouts, metrics, nutrition, currentWeek, cardio, rmr, userProfile, calTarget=CAL_TARGET, proteinTarget=PROTEIN_TARGET, activityMultiplier=1.6 }) {
   const latestMetric = [...metrics].sort((a,b)=>a.date.localeCompare(b.date)).slice(-1)[0];
   const latestMetricWithBf = [...metrics].filter(m=>m.bodyFat!=null).sort((a,b)=>a.date.localeCompare(b.date)).slice(-1)[0];
   const avgCal = sevenDayAvg(nutrition, "calories");
@@ -895,7 +895,7 @@ function OverviewTab({ workouts, metrics, nutrition, currentWeek, cardio, rmr, u
     : (userProfile ? calcRMR_MifflinStJeor(latestMetric?.weight, userProfile.heightIn, calcAge(userProfile.birthday) ?? userProfile.age, userProfile.sex) : null);
   const displayRmr = latestRmrEntry?.rmr || estimatedRmr;
   const rmrSource = latestRmrEntry ? `Measured ${latestRmrEntry.date}` : latestDexa ? "Est. · Katch-McArdle" : "Est. · Mifflin-St Jeor";
-  const tdee = latestRmrEntry?.tdee || (displayRmr ? Math.round(displayRmr * 1.6) : null);
+  const tdee = displayRmr ? Math.round(displayRmr * activityMultiplier) : null;
   const deficit = tdee && avgCal ? tdee - avgCal : null;
 
   return (
@@ -2684,14 +2684,14 @@ function SettingsTab({ darkMode, onToggleDark, user, onSignOut, profileUrl, prog
   // Profile editing
   const toFt = (totalIn) => ({ ft: Math.floor((totalIn||0)/12), in: (totalIn||0)%12 });
   const ftIn = toFt(userProfile?.heightIn);
-  const [profForm, setProfForm] = useState({ heightFt: ftIn.ft||"", heightIn: ftIn.in||"", birthday: userProfile?.birthday||"", sex: userProfile?.sex||"", displayName: userProfile?.displayName||"", calTarget: userProfile?.calTarget||"", proteinTarget: userProfile?.proteinTarget||"", week1Start: userProfile?.week1Start||"2026-02-11" });
+  const [profForm, setProfForm] = useState({ heightFt: ftIn.ft||"", heightIn: ftIn.in||"", birthday: userProfile?.birthday||"", sex: userProfile?.sex||"", displayName: userProfile?.displayName||"", calTarget: userProfile?.calTarget||"", proteinTarget: userProfile?.proteinTarget||"", week1Start: userProfile?.week1Start||"2026-02-11", activityMultiplier: userProfile?.activityMultiplier||"1.6" });
   const [profSaving, setProfSaving] = useState(false);
   const [profSaved, setProfSaved] = useState(false);
 
   async function saveProfile() {
     setProfSaving(true);
     const heightIn = (Number(profForm.heightFt)*12) + Number(profForm.heightIn||0);
-    await onProfileSave({ ...(userProfile||{}), heightIn: heightIn||null, birthday: profForm.birthday||null, sex: profForm.sex||null, displayName: profForm.displayName||null, calTarget: profForm.calTarget?Number(profForm.calTarget):null, proteinTarget: profForm.proteinTarget?Number(profForm.proteinTarget):null, week1Start: profForm.week1Start||null });
+    await onProfileSave({ ...(userProfile||{}), heightIn: heightIn||null, birthday: profForm.birthday||null, sex: profForm.sex||null, displayName: profForm.displayName||null, calTarget: profForm.calTarget?Number(profForm.calTarget):null, proteinTarget: profForm.proteinTarget?Number(profForm.proteinTarget):null, week1Start: profForm.week1Start||null, activityMultiplier: profForm.activityMultiplier?Number(profForm.activityMultiplier):null });
     setProfSaving(false);
     setProfSaved(true);
     setTimeout(()=>setProfSaved(false), 2000);
@@ -2806,6 +2806,16 @@ function SettingsTab({ darkMode, onToggleDark, user, onSignOut, profileUrl, prog
               <label style={S.label}>Protein target (g)</label>
               <input style={S.input} type="number" placeholder="165" value={profForm.proteinTarget} onChange={e=>setProfForm(f=>({...f,proteinTarget:e.target.value}))} />
             </div>
+          </div>
+          <div style={{ marginBottom:10 }}>
+            <label style={S.label}>Activity multiplier</label>
+            <select style={S.input} value={profForm.activityMultiplier} onChange={e=>setProfForm(f=>({...f,activityMultiplier:e.target.value}))}>
+              <option value="1.375">1.375 — Lightly active (1-3 days/week)</option>
+              <option value="1.55">1.55 — Moderately active (3-5 days/week)</option>
+              <option value="1.6">1.6 — Active (4 days lifting + cardio)</option>
+              <option value="1.725">1.725 — Very active (hard training daily)</option>
+            </select>
+            <div style={{ fontSize:10, color:T.dim, marginTop:3 }}>Used to estimate TDEE from your RMR.</div>
           </div>
           <div style={{ marginBottom:14 }}>
             <label style={S.label}>Program start date (Week 1, Day 1)</label>
@@ -3061,6 +3071,7 @@ function App() {
 
   // Derived from userProfile (fall back to module-level constants)
   const calTarget = userProfile?.calTarget ?? CAL_TARGET;
+  const activityMultiplier = userProfile?.activityMultiplier ?? 1.6;
   const proteinTarget = userProfile?.proteinTarget ?? PROTEIN_TARGET;
   const week1Start = userProfile?.week1Start ? new Date(userProfile.week1Start) : WEEK1_START;
   function effectiveWeekStartDate(week) {
@@ -3181,7 +3192,7 @@ function App() {
         ))}
       </div>
       <div style={S.content}>
-        {tab==="overview"     && <OverviewTab workouts={workouts} metrics={metrics} nutrition={nutrition} currentWeek={autoWeek} cardio={cardio} rmr={rmr} userProfile={userProfile} calTarget={calTarget} proteinTarget={proteinTarget} />}
+        {tab==="overview"     && <OverviewTab workouts={workouts} metrics={metrics} nutrition={nutrition} currentWeek={autoWeek} cardio={cardio} rmr={rmr} userProfile={userProfile} calTarget={calTarget} proteinTarget={proteinTarget} activityMultiplier={activityMultiplier} />}
         {tab==="workouts" && <NextWorkoutTab workouts={workouts} currentWeek={currentWeek} userId={user.id} onWorkoutAdded={reload} program={program} manualWeek={manualWeek} setManualWeek={setManualWeek} autoWeek={autoWeek} weekStartDate={effectiveWeekStartDate} />}
         {tab==="progress"     && <ProgressTab workouts={workouts} />}
         {tab==="body"         && <BodyTab metrics={metrics} nutrition={nutrition} rmr={rmr} userId={user.id} onRmrSave={async(entries)=>{ await Storage.saveRmr(user.id,entries); setRmr(entries); }} onMetricUpsert={async(m)=>{ await Storage.upsertMetric(user.id,m); reload(); }} userProfile={userProfile} calTarget={calTarget} proteinTarget={proteinTarget} />}
