@@ -8,7 +8,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.23.2/babel.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -140,103 +140,124 @@ const DAY_COLORS = {
 const CAL_TARGET = 2100;
 const PROTEIN_TARGET = 165;
 
+// Week 1 started Tue Feb 11 2026 (working back from week 4 = Tue Mar 4 2026)
+const WEEK1_START = new Date("2026-02-11");
+function calcAge(birthday) {
+  if (!birthday) return null;
+  const today = new Date(); const dob = new Date(birthday + "T12:00:00");
+  let age = today.getFullYear() - dob.getFullYear();
+  const m = today.getMonth() - dob.getMonth();
+  if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) age--;
+  return age;
+}
+function weekStartDate(week) {
+  const d = new Date(WEEK1_START);
+  d.setDate(d.getDate() + (week - 1) * 7);
+  return d.toISOString().slice(0, 10);
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // SEED DATA (Chessie only)
 // ─────────────────────────────────────────────────────────────────────────────
 const SEED_WORKOUTS = [
-  { week:1, day:"Upper Push", date:"2025-01-04", exercise:"Barbell Bench Press", sets:[{reps:6,weight:105},{reps:5,weight:105},{reps:8,weight:95},{reps:8,weight:95}] },
-  { week:1, day:"Upper Push", date:"2025-01-04", exercise:"Seated DB OHP", sets:[{reps:10,weight:22.5},{reps:10,weight:22.5},{reps:9,weight:25},{reps:8,weight:25}] },
-  { week:1, day:"Upper Push", date:"2025-01-04", exercise:"Cable Rows Wide", sets:[{reps:8,weight:85},{reps:10,weight:85},{reps:10,weight:85},{reps:9,weight:85}] },
-  { week:1, day:"Upper Push", date:"2025-01-04", exercise:"Incline DB Press (Push)", sets:[{reps:12,weight:35},{reps:10,weight:35},{reps:8,weight:35}] },
-  { week:1, day:"Upper Push", date:"2025-01-04", exercise:"Cable Flyes", sets:[{reps:15,weight:40},{reps:15,weight:45},{reps:15,weight:50}] },
-  { week:1, day:"Upper Push", date:"2025-01-04", exercise:"Lateral Raises", sets:[{reps:15,weight:7.5},{reps:15,weight:7.5},{reps:15,weight:7.5}] },
-  { week:1, day:"Upper Push", date:"2025-01-04", exercise:"Tricep Pushdowns", sets:[{reps:14,weight:27.5},{reps:10,weight:22.5},{reps:10,weight:22.5}] },
-  { week:1, day:"Upper Push", date:"2025-01-04", exercise:"Face Pulls", sets:[{reps:18,weight:22.5},{reps:19,weight:25}] },
-  { week:1, day:"Lower A", date:"2025-01-05", exercise:"Barbell Back Squat", sets:[{reps:8,weight:115},{reps:8,weight:115},{reps:8,weight:115},{reps:8,weight:115}] },
-  { week:1, day:"Lower A", date:"2025-01-05", exercise:"Leg Press", sets:[{reps:12,weight:180},{reps:12,weight:180},{reps:12,weight:180}] },
-  { week:1, day:"Lower A", date:"2025-01-05", exercise:"Romanian Deadlifts", sets:[{reps:10,weight:80},{reps:10,weight:80},{reps:10,weight:80}] },
-  { week:1, day:"Lower A", date:"2025-01-05", exercise:"Leg Curls", sets:[{reps:12,weight:60},{reps:12,weight:60},{reps:11,weight:60}] },
-  { week:1, day:"Lower A", date:"2025-01-05", exercise:"Leg Extensions", sets:[{reps:15,weight:60},{reps:15,weight:55},{reps:15,weight:50}] },
-  { week:1, day:"Lower A", date:"2025-01-05", exercise:"Hanging Leg Raises", sets:[{reps:10,weight:0},{reps:10,weight:0},{reps:10,weight:0}] },
-  { week:1, day:"Upper Pull", date:"2025-01-06", exercise:"Lat Pulldowns", sets:[{reps:7,weight:75},{reps:8,weight:70},{reps:8,weight:70},{reps:8,weight:70}] },
-  { week:1, day:"Upper Pull", date:"2025-01-06", exercise:"DB Rows", sets:[{reps:10,weight:35},{reps:10,weight:35},{reps:10,weight:35}] },
-  { week:1, day:"Upper Pull", date:"2025-01-06", exercise:"Cable Rows Close", sets:[{reps:12,weight:75},{reps:12,weight:75},{reps:10,weight:75}] },
-  { week:1, day:"Upper Pull", date:"2025-01-06", exercise:"Barbell Curls", sets:[{reps:10,weight:40},{reps:10,weight:40},{reps:7,weight:40}] },
-  { week:1, day:"Upper Pull", date:"2025-01-06", exercise:"OH Tricep Extension", sets:[{reps:14,weight:25},{reps:14,weight:25},{reps:14,weight:25}] },
-  { week:1, day:"Upper Pull", date:"2025-01-06", exercise:"Hammer Curls", sets:[{reps:9,weight:20},{reps:9,weight:20},{reps:8,weight:20}] },
-  { week:1, day:"Upper Pull", date:"2025-01-06", exercise:"Face Pulls", sets:[{reps:20,weight:25},{reps:20,weight:25}] },
-  { week:1, day:"Lower B", date:"2025-01-09", exercise:"Trap Bar Deadlift", sets:[{reps:8,weight:135},{reps:8,weight:135},{reps:8,weight:135},{reps:7,weight:135}] },
-  { week:1, day:"Lower B", date:"2025-01-09", exercise:"Goblet Squats", sets:[{reps:12,weight:40},{reps:12,weight:40},{reps:12,weight:40}] },
-  { week:1, day:"Lower B", date:"2025-01-09", exercise:"Leg Press", sets:[{reps:15,weight:160},{reps:15,weight:160},{reps:15,weight:160}] },
-  { week:1, day:"Lower B", date:"2025-01-09", exercise:"Leg Curls", sets:[{reps:12,weight:65},{reps:12,weight:65},{reps:11,weight:65}] },
-  { week:1, day:"Lower B", date:"2025-01-09", exercise:"Hip Thrusts", sets:[{reps:15,weight:50},{reps:15,weight:50},{reps:15,weight:50}] },
-  { week:2, day:"Upper Push", date:"2025-01-11", exercise:"Barbell Bench Press", sets:[{reps:8,weight:100},{reps:8,weight:100},{reps:8,weight:100},{reps:7,weight:100}] },
-  { week:2, day:"Upper Push", date:"2025-01-11", exercise:"Seated DB OHP", sets:[{reps:10,weight:25},{reps:10,weight:25},{reps:10,weight:25}] },
-  { week:2, day:"Upper Push", date:"2025-01-11", exercise:"Cable Rows Wide", sets:[{reps:10,weight:85},{reps:10,weight:85},{reps:10,weight:85}] },
-  { week:2, day:"Upper Push", date:"2025-01-11", exercise:"Incline DB Press (Push)", sets:[{reps:12,weight:35},{reps:12,weight:35},{reps:10,weight:35}] },
-  { week:2, day:"Upper Push", date:"2025-01-11", exercise:"Cable Flyes", sets:[{reps:15,weight:50},{reps:12,weight:50},{reps:10,weight:50}] },
-  { week:2, day:"Upper Push", date:"2025-01-11", exercise:"Lateral Raises", sets:[{reps:15,weight:10},{reps:15,weight:10},{reps:15,weight:10}] },
-  { week:2, day:"Upper Push", date:"2025-01-11", exercise:"Tricep Pushdowns", sets:[{reps:12,weight:25},{reps:12,weight:25}] },
-  { week:2, day:"Upper Push", date:"2025-01-11", exercise:"Face Pulls", sets:[{reps:20,weight:25},{reps:20,weight:25}] },
-  { week:2, day:"Lower A", date:"2025-01-12", exercise:"Barbell Back Squat", sets:[{reps:8,weight:115},{reps:8,weight:115},{reps:8,weight:115},{reps:8,weight:115}] },
-  { week:2, day:"Lower A", date:"2025-01-12", exercise:"Leg Press", sets:[{reps:12,weight:180},{reps:12,weight:180},{reps:12,weight:180}] },
-  { week:2, day:"Lower A", date:"2025-01-12", exercise:"Romanian Deadlifts", sets:[{reps:10,weight:115},{reps:10,weight:115},{reps:10,weight:115}] },
-  { week:2, day:"Lower A", date:"2025-01-12", exercise:"Leg Curls", sets:[{reps:12,weight:65},{reps:12,weight:65},{reps:12,weight:65}] },
-  { week:2, day:"Lower A", date:"2025-01-12", exercise:"Leg Extensions", sets:[{reps:15,weight:55},{reps:15,weight:55},{reps:15,weight:55}] },
-  { week:2, day:"Lower A", date:"2025-01-12", exercise:"Hanging Leg Raises", sets:[{reps:15,weight:0},{reps:15,weight:0},{reps:15,weight:0}] },
-  { week:2, day:"Upper Pull", date:"2025-01-13", exercise:"Lat Pulldowns", sets:[{reps:8,weight:75},{reps:8,weight:75},{reps:6,weight:75},{reps:6,weight:75}] },
-  { week:2, day:"Upper Pull", date:"2025-01-13", exercise:"DB Rows", sets:[{reps:12,weight:40},{reps:12,weight:40},{reps:12,weight:40}] },
-  { week:2, day:"Upper Pull", date:"2025-01-13", exercise:"Cable Rows Close", sets:[{reps:12,weight:80},{reps:12,weight:80},{reps:10,weight:80}] },
-  { week:2, day:"Upper Pull", date:"2025-01-13", exercise:"Barbell Curls", sets:[{reps:10,weight:40},{reps:10,weight:40},{reps:7,weight:40}] },
-  { week:2, day:"Upper Pull", date:"2025-01-13", exercise:"OH Tricep Extension", sets:[{reps:12,weight:30},{reps:12,weight:30},{reps:12,weight:30}] },
-  { week:2, day:"Upper Pull", date:"2025-01-13", exercise:"Hammer Curls", sets:[{reps:10,weight:20},{reps:10,weight:20},{reps:8,weight:20}] },
-  { week:2, day:"Upper Pull", date:"2025-01-13", exercise:"Face Pulls", sets:[{reps:20,weight:25},{reps:20,weight:25}] },
-  { week:2, day:"Lower B", date:"2025-01-15", exercise:"Trap Bar Deadlift", sets:[{reps:8,weight:135},{reps:8,weight:135},{reps:8,weight:135},{reps:8,weight:135}] },
-  { week:2, day:"Lower B", date:"2025-01-15", exercise:"Bulgarian Split Squats", sets:[{reps:10,weight:15},{reps:10,weight:15},{reps:10,weight:15}], notes:"Possibly one DB only" },
-  { week:2, day:"Lower B", date:"2025-01-15", exercise:"Leg Press", sets:[{reps:15,weight:180},{reps:15,weight:180},{reps:15,weight:180}] },
-  { week:2, day:"Lower B", date:"2025-01-15", exercise:"Leg Curls", sets:[{reps:12,weight:65},{reps:12,weight:65},{reps:12,weight:65}] },
-  { week:2, day:"Lower B", date:"2025-01-15", exercise:"Hip Thrusts", sets:[{reps:15,weight:60},{reps:15,weight:60},{reps:15,weight:60}] },
-  { week:3, day:"Upper Push", date:"2025-01-21", exercise:"Barbell Bench Press", sets:[{reps:8,weight:100},{reps:8,weight:100},{reps:8,weight:100},{reps:8,weight:100}] },
-  { week:3, day:"Upper Push", date:"2025-01-21", exercise:"Seated DB OHP", sets:[{reps:9,weight:30},{reps:9,weight:30},{reps:7,weight:30}] },
-  { week:3, day:"Upper Push", date:"2025-01-21", exercise:"Cable Rows Wide", sets:[{reps:10,weight:95},{reps:10,weight:95},{reps:9,weight:95}], notes:"Accidentally heavy" },
-  { week:3, day:"Upper Push", date:"2025-01-21", exercise:"Incline DB Press (Push)", sets:[{reps:9,weight:40},{reps:9,weight:35},{reps:8,weight:35}] },
-  { week:3, day:"Upper Push", date:"2025-01-21", exercise:"Cable Flyes", sets:[{reps:12,weight:25},{reps:12,weight:25},{reps:9,weight:25}] },
-  { week:3, day:"Upper Push", date:"2025-01-21", exercise:"Lateral Raises", sets:[{reps:15,weight:12.5},{reps:15,weight:12.5},{reps:10,weight:12.5}] },
-  { week:3, day:"Upper Push", date:"2025-01-21", exercise:"Tricep Pushdowns", sets:[{reps:12,weight:25.5},{reps:12,weight:25.5},{reps:11,weight:25.5}] },
-  { week:3, day:"Upper Push", date:"2025-01-21", exercise:"Face Pulls", sets:[{reps:20,weight:25},{reps:20,weight:25}] },
-  { week:3, day:"Lower A", date:"2025-01-22", exercise:"Barbell Back Squat", sets:[{reps:8,weight:125},{reps:8,weight:125},{reps:8,weight:125},{reps:8,weight:125}] },
-  { week:3, day:"Lower A", date:"2025-01-22", exercise:"Leg Press", sets:[{reps:12,weight:200},{reps:12,weight:200},{reps:12,weight:200}] },
-  { week:3, day:"Lower A", date:"2025-01-22", exercise:"Romanian Deadlifts", sets:[{reps:8,weight:120},{reps:8,weight:120},{reps:8,weight:120}], notes:"Modified grip - hand injury" },
-  { week:3, day:"Lower A", date:"2025-01-22", exercise:"Leg Curls", sets:[{reps:12,weight:70},{reps:12,weight:70},{reps:12,weight:70}] },
-  { week:3, day:"Lower A", date:"2025-01-22", exercise:"Leg Extensions", sets:[{reps:15,weight:60},{reps:15,weight:60},{reps:15,weight:60}] },
-  { week:3, day:"Upper Pull", date:"2025-01-24", exercise:"Lat Pulldowns", sets:[{reps:8,weight:75},{reps:8,weight:75},{reps:8,weight:75},{reps:8,weight:75}] },
-  { week:3, day:"Upper Pull", date:"2025-01-24", exercise:"DB Rows", sets:[{reps:8,weight:45},{reps:8,weight:45},{reps:8,weight:45}] },
-  { week:3, day:"Upper Pull", date:"2025-01-24", exercise:"Incline DB Press (Pull)", sets:[{reps:12,weight:35},{reps:12,weight:35},{reps:12,weight:35}] },
-  { week:3, day:"Upper Pull", date:"2025-01-24", exercise:"Cable Rows Close", sets:[{reps:12,weight:80},{reps:12,weight:80},{reps:12,weight:80}] },
-  { week:3, day:"Upper Pull", date:"2025-01-24", exercise:"Barbell Curls", sets:[{reps:10,weight:40},{reps:10,weight:40},{reps:9,weight:40}] },
-  { week:3, day:"Upper Pull", date:"2025-01-24", exercise:"OH Tricep Extension", sets:[{reps:12,weight:30},{reps:12,weight:30},{reps:12,weight:30}] },
-  { week:3, day:"Upper Pull", date:"2025-01-24", exercise:"Hammer Curls", sets:[{reps:10,weight:20},{reps:10,weight:20},{reps:8,weight:20}] },
-  { week:3, day:"Upper Pull", date:"2025-01-24", exercise:"Face Pulls", sets:[{reps:20,weight:30},{reps:20,weight:27.5}] },
-  { week:3, day:"Lower B", date:"2025-01-25", exercise:"Trap Bar Deadlift", sets:[{reps:6,weight:145},{reps:6,weight:145},{reps:7,weight:145},{reps:6,weight:145}] },
-  { week:3, day:"Lower B", date:"2025-01-25", exercise:"Bulgarian Split Squats", sets:[{reps:10,weight:17.5},{reps:10,weight:17.5},{reps:10,weight:17.5}] },
-  { week:3, day:"Lower B", date:"2025-01-25", exercise:"Leg Press", sets:[{reps:15,weight:200},{reps:15,weight:200},{reps:15,weight:200}] },
-  { week:3, day:"Lower B", date:"2025-01-25", exercise:"Leg Curls", sets:[{reps:12,weight:70},{reps:12,weight:70},{reps:12,weight:70}] },
-  { week:3, day:"Lower B", date:"2025-01-25", exercise:"Hip Thrusts", sets:[{reps:15,weight:70},{reps:15,weight:70},{reps:15,weight:70}] },
-  { week:3, day:"Lower B", date:"2025-01-25", exercise:"Plank", sets:[{reps:60,weight:0},{reps:60,weight:0},{reps:60,weight:0}] },
-  { week:4, day:"Upper Push", date:"2025-01-28", exercise:"Barbell Bench Press", sets:[{reps:8,weight:105},{reps:8,weight:105},{reps:7,weight:105},{reps:8,weight:105}] },
-  { week:4, day:"Upper Push", date:"2025-01-28", exercise:"Seated DB OHP", sets:[{reps:10,weight:30},{reps:9,weight:30},{reps:8,weight:30}] },
-  { week:4, day:"Upper Push", date:"2025-01-28", exercise:"Cable Rows Wide", sets:[{reps:10,weight:95},{reps:10,weight:95},{reps:9,weight:95}] },
-  { week:4, day:"Upper Push", date:"2025-01-28", exercise:"Incline DB Press (Push)", sets:[{reps:10,weight:35},{reps:12,weight:35},{reps:10,weight:35}] },
-  { week:4, day:"Upper Push", date:"2025-01-28", exercise:"Lateral Raises", sets:[{reps:15,weight:12.5},{reps:15,weight:12.5},{reps:13,weight:12.5}] },
-  { week:4, day:"Upper Push", date:"2025-01-28", exercise:"Cable Flyes", sets:[{reps:15,weight:50},{reps:15,weight:50},{reps:13,weight:50}] },
-  { week:4, day:"Upper Push", date:"2025-01-28", exercise:"Face Pulls", sets:[{reps:20,weight:32.5},{reps:20,weight:27.5}] },
-  { week:4, day:"Upper Push", date:"2025-01-28", exercise:"Tricep Pushdowns", sets:[{reps:13,weight:27.5},{reps:12,weight:30.5},{reps:11,weight:30.5}] },
+  { week:1, day:"Upper Push", date:"2026-02-11", exercise:"Barbell Bench Press", sets:[{reps:6,weight:105},{reps:5,weight:105},{reps:8,weight:95},{reps:8,weight:95}] },
+  { week:1, day:"Upper Push", date:"2026-02-11", exercise:"Seated DB OHP", sets:[{reps:10,weight:22.5},{reps:10,weight:22.5},{reps:9,weight:25},{reps:8,weight:25}] },
+  { week:1, day:"Upper Push", date:"2026-02-11", exercise:"Cable Rows Wide", sets:[{reps:8,weight:85},{reps:10,weight:85},{reps:10,weight:85},{reps:9,weight:85}] },
+  { week:1, day:"Upper Push", date:"2026-02-11", exercise:"Incline DB Press (Push)", sets:[{reps:12,weight:35},{reps:10,weight:35},{reps:8,weight:35}] },
+  { week:1, day:"Upper Push", date:"2026-02-11", exercise:"Cable Flyes", sets:[{reps:15,weight:40},{reps:15,weight:45},{reps:15,weight:50}] },
+  { week:1, day:"Upper Push", date:"2026-02-11", exercise:"Lateral Raises", sets:[{reps:15,weight:7.5},{reps:15,weight:7.5},{reps:15,weight:7.5}] },
+  { week:1, day:"Upper Push", date:"2026-02-11", exercise:"Tricep Pushdowns", sets:[{reps:14,weight:27.5},{reps:10,weight:22.5},{reps:10,weight:22.5}] },
+  { week:1, day:"Upper Push", date:"2026-02-11", exercise:"Face Pulls", sets:[{reps:18,weight:22.5},{reps:19,weight:25}] },
+  { week:1, day:"Lower A", date:"2026-02-12", exercise:"Barbell Back Squat", sets:[{reps:8,weight:115},{reps:8,weight:115},{reps:8,weight:115},{reps:8,weight:115}] },
+  { week:1, day:"Lower A", date:"2026-02-12", exercise:"Leg Press", sets:[{reps:12,weight:180},{reps:12,weight:180},{reps:12,weight:180}] },
+  { week:1, day:"Lower A", date:"2026-02-12", exercise:"Romanian Deadlifts", sets:[{reps:10,weight:80},{reps:10,weight:80},{reps:10,weight:80}] },
+  { week:1, day:"Lower A", date:"2026-02-12", exercise:"Leg Curls", sets:[{reps:12,weight:60},{reps:12,weight:60},{reps:11,weight:60}] },
+  { week:1, day:"Lower A", date:"2026-02-12", exercise:"Leg Extensions", sets:[{reps:15,weight:60},{reps:15,weight:55},{reps:15,weight:50}] },
+  { week:1, day:"Lower A", date:"2026-02-12", exercise:"Hanging Leg Raises", sets:[{reps:10,weight:0},{reps:10,weight:0},{reps:10,weight:0}] },
+  { week:1, day:"Upper Pull", date:"2026-02-13", exercise:"Lat Pulldowns", sets:[{reps:7,weight:75},{reps:8,weight:70},{reps:8,weight:70},{reps:8,weight:70}] },
+  { week:1, day:"Upper Pull", date:"2026-02-13", exercise:"DB Rows", sets:[{reps:10,weight:35},{reps:10,weight:35},{reps:10,weight:35}] },
+  { week:1, day:"Upper Pull", date:"2026-02-13", exercise:"Cable Rows Close", sets:[{reps:12,weight:75},{reps:12,weight:75},{reps:10,weight:75}] },
+  { week:1, day:"Upper Pull", date:"2026-02-13", exercise:"Barbell Curls", sets:[{reps:10,weight:40},{reps:10,weight:40},{reps:7,weight:40}] },
+  { week:1, day:"Upper Pull", date:"2026-02-13", exercise:"OH Tricep Extension", sets:[{reps:14,weight:25},{reps:14,weight:25},{reps:14,weight:25}] },
+  { week:1, day:"Upper Pull", date:"2026-02-13", exercise:"Hammer Curls", sets:[{reps:9,weight:20},{reps:9,weight:20},{reps:8,weight:20}] },
+  { week:1, day:"Upper Pull", date:"2026-02-13", exercise:"Face Pulls", sets:[{reps:20,weight:25},{reps:20,weight:25}] },
+  { week:1, day:"Lower B", date:"2026-02-14", exercise:"Trap Bar Deadlift", sets:[{reps:8,weight:135},{reps:8,weight:135},{reps:8,weight:135},{reps:7,weight:135}] },
+  { week:1, day:"Lower B", date:"2026-02-14", exercise:"Goblet Squats", sets:[{reps:12,weight:40},{reps:12,weight:40},{reps:12,weight:40}] },
+  { week:1, day:"Lower B", date:"2026-02-14", exercise:"Leg Press", sets:[{reps:15,weight:160},{reps:15,weight:160},{reps:15,weight:160}] },
+  { week:1, day:"Lower B", date:"2026-02-14", exercise:"Leg Curls", sets:[{reps:12,weight:65},{reps:12,weight:65},{reps:11,weight:65}] },
+  { week:1, day:"Lower B", date:"2026-02-14", exercise:"Hip Thrusts", sets:[{reps:15,weight:50},{reps:15,weight:50},{reps:15,weight:50}] },
+  { week:2, day:"Upper Push", date:"2026-02-18", exercise:"Barbell Bench Press", sets:[{reps:8,weight:100},{reps:8,weight:100},{reps:8,weight:100},{reps:7,weight:100}] },
+  { week:2, day:"Upper Push", date:"2026-02-18", exercise:"Seated DB OHP", sets:[{reps:10,weight:25},{reps:10,weight:25},{reps:10,weight:25}] },
+  { week:2, day:"Upper Push", date:"2026-02-18", exercise:"Cable Rows Wide", sets:[{reps:10,weight:85},{reps:10,weight:85},{reps:10,weight:85}] },
+  { week:2, day:"Upper Push", date:"2026-02-18", exercise:"Incline DB Press (Push)", sets:[{reps:12,weight:35},{reps:12,weight:35},{reps:10,weight:35}] },
+  { week:2, day:"Upper Push", date:"2026-02-18", exercise:"Cable Flyes", sets:[{reps:15,weight:50},{reps:12,weight:50},{reps:10,weight:50}] },
+  { week:2, day:"Upper Push", date:"2026-02-18", exercise:"Lateral Raises", sets:[{reps:15,weight:10},{reps:15,weight:10},{reps:15,weight:10}] },
+  { week:2, day:"Upper Push", date:"2026-02-18", exercise:"Tricep Pushdowns", sets:[{reps:12,weight:25},{reps:12,weight:25}] },
+  { week:2, day:"Upper Push", date:"2026-02-18", exercise:"Face Pulls", sets:[{reps:20,weight:25},{reps:20,weight:25}] },
+  { week:2, day:"Lower A", date:"2026-02-19", exercise:"Barbell Back Squat", sets:[{reps:8,weight:115},{reps:8,weight:115},{reps:8,weight:115},{reps:8,weight:115}] },
+  { week:2, day:"Lower A", date:"2026-02-19", exercise:"Leg Press", sets:[{reps:12,weight:180},{reps:12,weight:180},{reps:12,weight:180}] },
+  { week:2, day:"Lower A", date:"2026-02-19", exercise:"Romanian Deadlifts", sets:[{reps:10,weight:115},{reps:10,weight:115},{reps:10,weight:115}] },
+  { week:2, day:"Lower A", date:"2026-02-19", exercise:"Leg Curls", sets:[{reps:12,weight:65},{reps:12,weight:65},{reps:12,weight:65}] },
+  { week:2, day:"Lower A", date:"2026-02-19", exercise:"Leg Extensions", sets:[{reps:15,weight:55},{reps:15,weight:55},{reps:15,weight:55}] },
+  { week:2, day:"Lower A", date:"2026-02-19", exercise:"Hanging Leg Raises", sets:[{reps:15,weight:0},{reps:15,weight:0},{reps:15,weight:0}] },
+  { week:2, day:"Upper Pull", date:"2026-02-20", exercise:"Lat Pulldowns", sets:[{reps:8,weight:75},{reps:8,weight:75},{reps:6,weight:75},{reps:6,weight:75}] },
+  { week:2, day:"Upper Pull", date:"2026-02-20", exercise:"DB Rows", sets:[{reps:12,weight:40},{reps:12,weight:40},{reps:12,weight:40}] },
+  { week:2, day:"Upper Pull", date:"2026-02-20", exercise:"Cable Rows Close", sets:[{reps:12,weight:80},{reps:12,weight:80},{reps:10,weight:80}] },
+  { week:2, day:"Upper Pull", date:"2026-02-20", exercise:"Barbell Curls", sets:[{reps:10,weight:40},{reps:10,weight:40},{reps:7,weight:40}] },
+  { week:2, day:"Upper Pull", date:"2026-02-20", exercise:"OH Tricep Extension", sets:[{reps:12,weight:30},{reps:12,weight:30},{reps:12,weight:30}] },
+  { week:2, day:"Upper Pull", date:"2026-02-20", exercise:"Hammer Curls", sets:[{reps:10,weight:20},{reps:10,weight:20},{reps:8,weight:20}] },
+  { week:2, day:"Upper Pull", date:"2026-02-20", exercise:"Face Pulls", sets:[{reps:20,weight:25},{reps:20,weight:25}] },
+  { week:2, day:"Lower B", date:"2026-02-21", exercise:"Trap Bar Deadlift", sets:[{reps:8,weight:135},{reps:8,weight:135},{reps:8,weight:135},{reps:8,weight:135}] },
+  { week:2, day:"Lower B", date:"2026-02-21", exercise:"Bulgarian Split Squats", sets:[{reps:10,weight:15},{reps:10,weight:15},{reps:10,weight:15}], notes:"Possibly one DB only" },
+  { week:2, day:"Lower B", date:"2026-02-21", exercise:"Leg Press", sets:[{reps:15,weight:180},{reps:15,weight:180},{reps:15,weight:180}] },
+  { week:2, day:"Lower B", date:"2026-02-21", exercise:"Leg Curls", sets:[{reps:12,weight:65},{reps:12,weight:65},{reps:12,weight:65}] },
+  { week:2, day:"Lower B", date:"2026-02-21", exercise:"Hip Thrusts", sets:[{reps:15,weight:60},{reps:15,weight:60},{reps:15,weight:60}] },
+  { week:3, day:"Upper Push", date:"2026-02-25", exercise:"Barbell Bench Press", sets:[{reps:8,weight:100},{reps:8,weight:100},{reps:8,weight:100},{reps:8,weight:100}] },
+  { week:3, day:"Upper Push", date:"2026-02-25", exercise:"Seated DB OHP", sets:[{reps:9,weight:30},{reps:9,weight:30},{reps:7,weight:30}] },
+  { week:3, day:"Upper Push", date:"2026-02-25", exercise:"Cable Rows Wide", sets:[{reps:10,weight:95},{reps:10,weight:95},{reps:9,weight:95}], notes:"Accidentally heavy" },
+  { week:3, day:"Upper Push", date:"2026-02-25", exercise:"Incline DB Press (Push)", sets:[{reps:9,weight:40},{reps:9,weight:35},{reps:8,weight:35}] },
+  { week:3, day:"Upper Push", date:"2026-02-25", exercise:"Cable Flyes", sets:[{reps:12,weight:25},{reps:12,weight:25},{reps:9,weight:25}] },
+  { week:3, day:"Upper Push", date:"2026-02-25", exercise:"Lateral Raises", sets:[{reps:15,weight:12.5},{reps:15,weight:12.5},{reps:10,weight:12.5}] },
+  { week:3, day:"Upper Push", date:"2026-02-25", exercise:"Tricep Pushdowns", sets:[{reps:12,weight:25.5},{reps:12,weight:25.5},{reps:11,weight:25.5}] },
+  { week:3, day:"Upper Push", date:"2026-02-25", exercise:"Face Pulls", sets:[{reps:20,weight:25},{reps:20,weight:25}] },
+  { week:3, day:"Lower A", date:"2026-02-26", exercise:"Barbell Back Squat", sets:[{reps:8,weight:125},{reps:8,weight:125},{reps:8,weight:125},{reps:8,weight:125}] },
+  { week:3, day:"Lower A", date:"2026-02-26", exercise:"Leg Press", sets:[{reps:12,weight:200},{reps:12,weight:200},{reps:12,weight:200}] },
+  { week:3, day:"Lower A", date:"2026-02-26", exercise:"Romanian Deadlifts", sets:[{reps:8,weight:120},{reps:8,weight:120},{reps:8,weight:120}], notes:"Modified grip - hand injury" },
+  { week:3, day:"Lower A", date:"2026-02-26", exercise:"Leg Curls", sets:[{reps:12,weight:70},{reps:12,weight:70},{reps:12,weight:70}] },
+  { week:3, day:"Lower A", date:"2026-02-26", exercise:"Leg Extensions", sets:[{reps:15,weight:60},{reps:15,weight:60},{reps:15,weight:60}] },
+  { week:3, day:"Upper Pull", date:"2026-02-27", exercise:"Lat Pulldowns", sets:[{reps:8,weight:75},{reps:8,weight:75},{reps:8,weight:75},{reps:8,weight:75}] },
+  { week:3, day:"Upper Pull", date:"2026-02-27", exercise:"DB Rows", sets:[{reps:8,weight:45},{reps:8,weight:45},{reps:8,weight:45}] },
+  { week:3, day:"Upper Pull", date:"2026-02-27", exercise:"Incline DB Press (Pull)", sets:[{reps:12,weight:35},{reps:12,weight:35},{reps:12,weight:35}] },
+  { week:3, day:"Upper Pull", date:"2026-02-27", exercise:"Cable Rows Close", sets:[{reps:12,weight:80},{reps:12,weight:80},{reps:12,weight:80}] },
+  { week:3, day:"Upper Pull", date:"2026-02-27", exercise:"Barbell Curls", sets:[{reps:10,weight:40},{reps:10,weight:40},{reps:9,weight:40}] },
+  { week:3, day:"Upper Pull", date:"2026-02-27", exercise:"OH Tricep Extension", sets:[{reps:12,weight:30},{reps:12,weight:30},{reps:12,weight:30}] },
+  { week:3, day:"Upper Pull", date:"2026-02-27", exercise:"Hammer Curls", sets:[{reps:10,weight:20},{reps:10,weight:20},{reps:8,weight:20}] },
+  { week:3, day:"Upper Pull", date:"2026-02-27", exercise:"Face Pulls", sets:[{reps:20,weight:30},{reps:20,weight:27.5}] },
+  { week:3, day:"Lower B", date:"2026-02-28", exercise:"Trap Bar Deadlift", sets:[{reps:6,weight:145},{reps:6,weight:145},{reps:7,weight:145},{reps:6,weight:145}] },
+  { week:3, day:"Lower B", date:"2026-02-28", exercise:"Bulgarian Split Squats", sets:[{reps:10,weight:17.5},{reps:10,weight:17.5},{reps:10,weight:17.5}] },
+  { week:3, day:"Lower B", date:"2026-02-28", exercise:"Leg Press", sets:[{reps:15,weight:200},{reps:15,weight:200},{reps:15,weight:200}] },
+  { week:3, day:"Lower B", date:"2026-02-28", exercise:"Leg Curls", sets:[{reps:12,weight:70},{reps:12,weight:70},{reps:12,weight:70}] },
+  { week:3, day:"Lower B", date:"2026-02-28", exercise:"Hip Thrusts", sets:[{reps:15,weight:70},{reps:15,weight:70},{reps:15,weight:70}] },
+  { week:3, day:"Lower B", date:"2026-02-28", exercise:"Plank", sets:[{reps:60,weight:0},{reps:60,weight:0},{reps:60,weight:0}] },
+  { week:4, day:"Upper Push", date:"2026-03-04", exercise:"Barbell Bench Press", sets:[{reps:8,weight:105},{reps:8,weight:105},{reps:7,weight:105},{reps:8,weight:105}] },
+  { week:4, day:"Upper Push", date:"2026-03-04", exercise:"Seated DB OHP", sets:[{reps:10,weight:30},{reps:9,weight:30},{reps:8,weight:30}] },
+  { week:4, day:"Upper Push", date:"2026-03-04", exercise:"Cable Rows Wide", sets:[{reps:10,weight:95},{reps:10,weight:95},{reps:9,weight:95}] },
+  { week:4, day:"Upper Push", date:"2026-03-04", exercise:"Incline DB Press (Push)", sets:[{reps:10,weight:35},{reps:12,weight:35},{reps:10,weight:35}] },
+  { week:4, day:"Upper Push", date:"2026-03-04", exercise:"Lateral Raises", sets:[{reps:15,weight:12.5},{reps:15,weight:12.5},{reps:13,weight:12.5}] },
+  { week:4, day:"Upper Push", date:"2026-03-04", exercise:"Cable Flyes", sets:[{reps:15,weight:50},{reps:15,weight:50},{reps:13,weight:50}] },
+  { week:4, day:"Upper Push", date:"2026-03-04", exercise:"Face Pulls", sets:[{reps:20,weight:32.5},{reps:20,weight:27.5}] },
+  { week:4, day:"Upper Push", date:"2026-03-04", exercise:"Tricep Pushdowns", sets:[{reps:13,weight:27.5},{reps:12,weight:30.5},{reps:11,weight:30.5}] },
 ];
 
 const SEED_METRICS = [
-  { date:"2024-12-21", weight:206, bodyFat:null },
-  { date:"2025-01-04", weight:208, bodyFat:null },
-  { date:"2025-01-11", weight:207, bodyFat:null },
+  { date:"2024-12-21", weight:207.7, bodyFat:44.3, leanMass:109.8, fatMass:92, visceralFat:2.8, agRatio:null, boneTScore:null, boneZScore:null, skeletalMass:null },
+  { date:"2025-01-04",  weight:208,   bodyFat:null,  leanMass:null,  fatMass:null, visceralFat:null, agRatio:null, boneTScore:null, boneZScore:null, skeletalMass:null },
+  { date:"2025-01-11",  weight:207,   bodyFat:null,  leanMass:null,  fatMass:null, visceralFat:null, agRatio:null, boneTScore:null, boneZScore:null, skeletalMass:null },
+  { date:"2026-02-18",  weight:208.2, bodyFat:43.7,  leanMass:111.4, fatMass:null, visceralFat:2.53, agRatio:1.6, boneTScore:3.0, boneZScore:1.7, skeletalMass:5.9 },
+];
+
+const SEED_RMR = [
+  { date:"2026-02-11", rmr:1536, rhr:72, rer:0.78, tdee:2381 },
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -306,8 +327,20 @@ const Storage = {
           // Seed Chessie's full history
           const workouts = SEED_WORKOUTS.map(w => ({ ...w, user_id: uid, sets: w.sets }));
           await sb.from("workouts").insert(workouts);
-          const metrics = SEED_METRICS.map(m => ({ ...m, user_id: uid }));
+          const metrics = SEED_METRICS.map(m => ({
+            user_id: uid, date: m.date,
+            weight: m.weight ?? null,
+            body_fat: m.bodyFat ?? null,
+            lean_mass: m.leanMass ?? null,
+            fat_mass: m.fatMass ?? null,
+            visceral_fat: m.visceralFat ?? null,
+            ag_ratio: m.agRatio ?? null,
+            bone_t_score: m.boneTScore ?? null,
+            bone_z_score: m.boneZScore ?? null,
+            skeletal_mass: m.skeletalMass ?? null,
+          }));
           await sb.from("metrics").insert(metrics);
+          await Storage.saveRmr(uid, SEED_RMR);
         }
         // Save default program config for all new users
         await Storage.saveProgram(uid, DEFAULT_PROGRAM);
@@ -380,11 +413,32 @@ const Storage = {
     try {
       const to = new Promise((_, r) => setTimeout(() => r(new Error("timeout")), 8000));
       const { data } = await Promise.race([sb.from("metrics").select("*").eq("user_id", uid).order("date"), to]);
-      return (data || []).map(m => ({ ...m, bodyFat: m.body_fat }));
+      return (data || []).map(m => ({
+        ...m,
+        bodyFat: m.body_fat,
+        leanMass: m.lean_mass,
+        fatMass: m.fat_mass,
+        visceralFat: m.visceral_fat,
+        agRatio: m.ag_ratio,
+        boneTScore: m.bone_t_score,
+        boneZScore: m.bone_z_score,
+        skeletalMass: m.skeletal_mass,
+      }));
     } catch(e) { console.warn("getMetrics:", e.message); return []; }
   },
   async upsertMetric(uid, m) {
-    const { error } = await sb.from("metrics").upsert({ user_id: uid, date: m.date, weight: m.weight ?? null, body_fat: m.bodyFat ?? null }, { onConflict: "user_id,date" });
+    const { error } = await sb.from("metrics").upsert({
+      user_id: uid, date: m.date,
+      weight: m.weight ?? null,
+      body_fat: m.bodyFat ?? null,
+      lean_mass: m.leanMass ?? null,
+      fat_mass: m.fatMass ?? null,
+      visceral_fat: m.visceralFat ?? null,
+      ag_ratio: m.agRatio ?? null,
+      bone_t_score: m.boneTScore ?? null,
+      bone_z_score: m.boneZScore ?? null,
+      skeletal_mass: m.skeletalMass ?? null,
+    }, { onConflict: "user_id,date" });
     if (error) { console.error("upsertMetric error:", error); throw error; }
   },
   async deleteMetric(uid, date) {
@@ -403,8 +457,19 @@ const Storage = {
       return data || [];
     } catch(e) { console.warn("getCardio:", e.message); return []; }
   },
-  async deleteCardio(uid, id) {
-    await sb.from("cardio").delete().eq("id", id).eq("user_id", uid);
+  async getRmr(uid) {
+    try {
+      const { data } = await Promise.race([
+        sb.from("user_settings").select("value").eq("user_id", uid).eq("key", "rmr_log").single(),
+        new Promise((_,r)=>setTimeout(()=>r(new Error("timeout")),5000))
+      ]);
+      return data ? JSON.parse(data.value) : [];
+    } catch(e) { return []; }
+  },
+  async saveRmr(uid, entries) {
+    try {
+      await sb.from("user_settings").upsert({ user_id: uid, key: "rmr_log", value: JSON.stringify(entries) }, { onConflict: "user_id,key" });
+    } catch(e) { console.warn("saveRmr:", e.message); }
   },
   async getNutrition(uid) {
     try {
@@ -443,6 +508,37 @@ const Auth = {
 // ─────────────────────────────────────────────────────────────────────────────
 // FITNESS HELPERS
 // ─────────────────────────────────────────────────────────────────────────────
+function calcBMI(weightLbs, heightIn) {
+  if (!weightLbs || !heightIn) return null;
+  return ((weightLbs / (heightIn * heightIn)) * 703).toFixed(1);
+}
+function calcRMR_KatchMcArdle(leanMassLbs) {
+  if (!leanMassLbs) return null;
+  const leanKg = leanMassLbs * 0.453592;
+  return Math.round(370 + 21.6 * leanKg);
+}
+function calcRMR_MifflinStJeor(weightLbs, heightIn, age, sex) {
+  if (!weightLbs || !heightIn) return null;
+  const weightKg = weightLbs * 0.453592;
+  const heightCm = heightIn * 2.54;
+  const base = (10 * weightKg) + (6.25 * heightCm) - (5 * (age||30));
+  return Math.round(sex === "female" ? base - 161 : base + 5);
+}
+function bmiCategory(bmi) {
+  const b = parseFloat(bmi);
+  if (b < 18.5) return { label:"Underweight", color:"#60a5fa" };
+  if (b < 25)   return { label:"Normal", color:"#22c55e" };
+  if (b < 30)   return { label:"Overweight", color:"#f59e0b" };
+  return { label:"Obese", color:"#ef4444" };
+}
+function bfCategory(bf) {
+  const b = parseFloat(bf);
+  if (b >= 40)  return { label:"🥩 Wagyu",  color:"#ef4444" };
+  if (b >= 35)  return { label:"🥩 Prime",  color:"#f97316" };
+  if (b >= 30)  return { label:"🥩 Choice", color:"#f59e0b" };
+  if (b >= 25)  return { label:"🥩 Select", color:"#84cc16" };
+  return null;
+}
 function e1rm(w,r) { return r===1 ? w : w*(1+r/30); }
 function avgE1rm(sets) { const v=sets.map(s=>e1rm(s.weight,s.reps)); return v.reduce((a,b)=>a+b,0)/v.length; }
 function isDeloadWeek(w) { return w%6===0; }
@@ -538,7 +634,7 @@ function getStyles(T) { return {
   divider: { borderTop:`1px solid ${T.border}`, margin:"14px 0" },
   big: { fontSize:32, fontWeight:700, color:T.text, lineHeight:1 },
   tag: c => ({ background:c+"22", color:c, border:`1px solid ${c}44`, borderRadius:4, padding:"2px 8px", fontSize:10, fontWeight:700, display:"inline-block" }),
-  grid2: { display:"grid", gridTemplateColumns:"1fr 1fr", gap:16, marginBottom:16 },
+  grid2: { display:"grid", gridTemplateColumns:"1fr 1fr", gap:16 },
   grid3: { display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:16, marginBottom:16 },
 }; }
 let S = getStyles(T);
@@ -580,33 +676,35 @@ function ProgressBar({ value, max, color }) {
 
 function MiniChart({ data, color }) {
   if (data.length < 2) return <span style={{ color:T.dim, fontSize:11 }}>Not enough data</span>;
-  const H=60, pad=12, VW=280, labelPad=10;
+  const AX=32, H=70, pad=10, VW=280;
+  const TW = VW + AX;
   const vals = data.map(d=>d.y);
   const minV=Math.min(...vals), maxV=Math.max(...vals);
   const range = maxV-minV || 1;
-  const coords = data.map((d,i) => ({
-    x: pad + (i/(data.length-1))*(VW-pad*2),
-    y: H-pad - ((d.y-minV)/range)*(H-pad*2),
-  }));
-  const pts = coords.map(c=>`${c.x},${c.y}`).join(" ");
-  const midY = (H-pad*2)/2 + pad;
+  const mid = Math.round((minV+maxV)/2);
+  const xOf = (i) => AX + pad + (i/(data.length-1))*(VW-pad*2);
+  const yOf = (v) => H-pad - ((v-minV)/range)*(H-pad*2);
+  const pts = data.map((d,i) => xOf(i)+","+yOf(d.y)).join(" ");
+  const first = data[0]; const last = data[data.length-1];
+  const fmtDate = (s) => { if(!s) return ""; const d=new Date(s+"T12:00:00"); return (d.getMonth()+1)+"/"+(d.getDate()); };
   return (
-    <svg viewBox={`0 0 ${VW} ${H+20}`} width="100%" height={H+20} style={{ display:"block" }}>
-      <polyline fill="none" stroke={color||T.accent} strokeWidth={2} points={pts} />
-      {coords.map((c,i) => {
-        if (i !== 0 && i !== coords.length-1) return <circle key={i} cx={c.x} cy={c.y} r={3} fill={color||T.accent} />;
-        const above = c.y > midY; // point is in lower half → label goes above
-        const labelY = above ? c.y - labelPad : c.y + labelPad + 8;
-        const anchor = i === 0 ? "start" : "end";
-        return (
-          <g key={i}>
-            <circle cx={c.x} cy={c.y} r={3} fill={color||T.accent} />
-            <text x={c.x} y={labelY} textAnchor={anchor} fontSize="8" fill={color||T.accent} fontFamily="Inter,sans-serif">
-              {data[i].y}
-            </text>
-          </g>
-        );
-      })}
+    <svg viewBox={"0 0 "+TW+" "+(H+18)} width="100%" style={{ display:"block" }}>
+      {/* Y axis */}
+      <line x1={AX} y1={pad} x2={AX} y2={H-pad} stroke={T.border} strokeWidth="1" />
+      <text x={AX-4} y={yOf(maxV)+4} textAnchor="end" fontSize="9" fill={T.dim} fontFamily="Inter,sans-serif">{maxV}</text>
+      <text x={AX-4} y={yOf(mid)+4}  textAnchor="end" fontSize="9" fill={T.dim} fontFamily="Inter,sans-serif">{mid}</text>
+      <text x={AX-4} y={yOf(minV)+4} textAnchor="end" fontSize="9" fill={T.dim} fontFamily="Inter,sans-serif">{minV}</text>
+      <line x1={AX-3} y1={yOf(maxV)} x2={AX} y2={yOf(maxV)} stroke={T.dim} strokeWidth="1" />
+      <line x1={AX-3} y1={yOf(mid)}  x2={AX} y2={yOf(mid)}  stroke={T.dim} strokeWidth="1" />
+      <line x1={AX-3} y1={yOf(minV)} x2={AX} y2={yOf(minV)} stroke={T.dim} strokeWidth="1" />
+      {/* X axis date labels */}
+      <text x={xOf(0)}            y={H+14} textAnchor="start" fontSize="9" fill={T.dim} fontFamily="Inter,sans-serif">{fmtDate(first.x)}</text>
+      <text x={xOf(data.length-1)} y={H+14} textAnchor="end"   fontSize="9" fill={T.dim} fontFamily="Inter,sans-serif">{fmtDate(last.x)}</text>
+      {/* Line + dots */}
+      <polyline fill="none" stroke={color||T.accent} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" points={pts} />
+      {data.map((d,i) => (
+        <circle key={i} cx={xOf(i)} cy={yOf(d.y)} r="3" fill={color||T.accent} />
+      ))}
     </svg>
   );
 }
@@ -711,8 +809,57 @@ function AuthScreen({ onAuth }) {
 // ─────────────────────────────────────────────────────────────────────────────
 // OVERVIEW TAB
 // ─────────────────────────────────────────────────────────────────────────────
-function OverviewTab({ workouts, metrics, nutrition, currentWeek, cardio }) {
-  const latestMetric = metrics.slice(-1)[0];
+function MiniLineChart({ data, color, unit }) {
+    const [hovered, setHovered] = React.useState(null);
+    if (!data.length) return <div style={{ fontSize:11, color:T.dim, marginTop:8 }}>No data yet — log in Body tab.</div>;
+    const vals = data.map(d=>d.value);
+    const min = Math.min(...vals); const max = Math.max(...vals);
+    const range = max - min || 1;
+    const AX = 36; const W = 260; const H = 80; const pad = 8;
+    const xOf = (i) => AX + pad + (i/(Math.max(data.length-1,1)))*(W-pad*2);
+    const yOf = (v) => H - pad - ((v-min)/range)*(H-pad*2);
+    const pts = data.map((d,i) => xOf(i)+","+yOf(d.value)).join(" ");
+    const first = data[0]; const last = data[data.length-1];
+    const change = last.value - first.value;
+    const mid = Math.round((min+max)/2);
+    const TOTAL_W = W + AX;
+    return (
+      <div>
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"baseline", marginBottom:6 }}>
+          <span style={{ fontSize:22, fontWeight:700, color:T.text }}>{last.value}<span style={{ fontSize:12, color:T.muted }}> {unit}</span></span>
+          <span style={{ fontSize:11, color: change<=0?T.green:T.red }}>{change>0?"+":""}{change.toFixed(1)} {unit} total</span>
+        </div>
+        {hovered !== null && (
+          <div style={{ fontSize:10, color:T.accent, marginBottom:4, minHeight:14 }}>
+            {data[hovered].value}{unit} · {data[hovered].date}
+          </div>
+        )}
+        {hovered === null && <div style={{ minHeight:14, marginBottom:4 }} />}
+        <svg width="100%" viewBox={"0 0 "+TOTAL_W+" "+H} style={{ overflow:"visible", display:"block" }}
+          onMouseLeave={()=>setHovered(null)}>
+          <line x1={AX} y1={pad} x2={AX} y2={H-pad} stroke={T.border} strokeWidth="1" />
+          <text x={AX-4} y={yOf(max)+4} textAnchor="end" fontSize="9" fill={T.dim} fontFamily="Inter,sans-serif">{max}</text>
+          <text x={AX-4} y={yOf(mid)+4} textAnchor="end" fontSize="9" fill={T.dim} fontFamily="Inter,sans-serif">{mid}</text>
+          <text x={AX-4} y={yOf(min)+4} textAnchor="end" fontSize="9" fill={T.dim} fontFamily="Inter,sans-serif">{min}</text>
+          <line x1={AX-3} y1={yOf(max)} x2={AX} y2={yOf(max)} stroke={T.dim} strokeWidth="1" />
+          <line x1={AX-3} y1={yOf(mid)} x2={AX} y2={yOf(mid)} stroke={T.dim} strokeWidth="1" />
+          <line x1={AX-3} y1={yOf(min)} x2={AX} y2={yOf(min)} stroke={T.dim} strokeWidth="1" />
+          <polyline fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" points={pts} />
+          {data.map((d,i) => (
+            <g key={i} onMouseEnter={()=>setHovered(i)}>
+              <circle cx={xOf(i)} cy={yOf(d.value)} r="8" fill="transparent" />
+              <circle cx={xOf(i)} cy={yOf(d.value)} r={hovered===i?5:3} fill={color} />
+            </g>
+          ))}
+        </svg>
+        <div style={{ fontSize:10, color:T.dim, marginTop:4, paddingLeft:AX }}>{data.length} entries · {first.date} → {last.date}</div>
+      </div>
+    );
+  }
+
+function OverviewTab({ workouts, metrics, nutrition, currentWeek, cardio, rmr, userProfile, calTarget=CAL_TARGET, proteinTarget=PROTEIN_TARGET }) {
+  const latestMetric = [...metrics].sort((a,b)=>a.date.localeCompare(b.date)).slice(-1)[0];
+  const latestMetricWithBf = [...metrics].filter(m=>m.bodyFat!=null).sort((a,b)=>a.date.localeCompare(b.date)).slice(-1)[0];
   const avgCal = sevenDayAvg(nutrition, "calories");
   const avgPro = sevenDayAvg(nutrition, "protein");
   const weeksUntilDeload = 6 - (currentWeek % 6);
@@ -721,11 +868,10 @@ function OverviewTab({ workouts, metrics, nutrition, currentWeek, cardio }) {
     return { day, logged: logged.length > 0 };
   });
   const weekWorkouts = workouts.filter(w=>w.week===currentWeek);
-
-  // Cardio this week (last 7 days)
   const sevenDaysAgo = new Date(); sevenDaysAgo.setDate(sevenDaysAgo.getDate()-7);
   const weekCardio = (cardio||[]).filter(c=>new Date(c.date)>=sevenDaysAgo);
-  const CARDIO_TARGET = 4; // TODO: make customizable via settings
+  const CARDIO_TARGET = 4;
+
   const allExercises = [...new Set(workouts.map(w=>w.exercise))];
   const e1rmData = allExercises.filter(ex=>REP_SCHEMES[ex]&&REP_SCHEMES[ex][1]<=10).map(ex => {
     const hist = getExHistory(workouts, ex);
@@ -737,20 +883,35 @@ function OverviewTab({ workouts, metrics, nutrition, currentWeek, cardio }) {
     return { ex, rm, gain };
   }).filter(Boolean).sort((a,b)=>b.rm-a.rm).slice(0,4);
 
+  const weightData = metrics.filter(m=>m.weight).map(m=>({ date:m.date, value:m.weight })).sort((a,b)=>a.date.localeCompare(b.date));
+  const bfData = metrics.filter(m=>m.bodyFat!=null).map(m=>({ date:m.date, value:m.bodyFat })).sort((a,b)=>a.date.localeCompare(b.date));
+
+  // BMI
+  const heightIn = userProfile?.heightIn;
+  const bmi = latestMetric?.weight && heightIn ? calcBMI(latestMetric.weight, heightIn) : null;
+  const bmiCat = bmi ? bmiCategory(bmi) : null;
+
+  // RMR — measured or estimated
+  const latestRmrEntry = (rmr||[]).slice(-1)[0];
+  const latestDexa = [...metrics].filter(m=>m.leanMass).sort((a,b)=>a.date.localeCompare(b.date)).slice(-1)[0];
+  const estimatedRmr = latestDexa
+    ? calcRMR_KatchMcArdle(latestDexa.leanMass)
+    : (userProfile ? calcRMR_MifflinStJeor(latestMetric?.weight, userProfile.heightIn, calcAge(userProfile.birthday) ?? userProfile.age, userProfile.sex) : null);
+  const displayRmr = latestRmrEntry?.rmr || estimatedRmr;
+  const rmrSource = latestRmrEntry ? `Measured ${latestRmrEntry.date}` : latestDexa ? "Est. · Katch-McArdle" : "Est. · Mifflin-St Jeor";
+  const tdee = latestRmrEntry?.tdee || (displayRmr ? Math.round(displayRmr * 1.6) : null);
+  const deficit = tdee && avgCal ? tdee - avgCal : null;
+
   return (
     <div>
-      <div style={S.grid3}>
+      {/* Row 1: Week + This Week */}
+      <div style={{ ...S.grid2, marginBottom:16 }}>
         <div style={S.card}>
           <div style={{ fontSize:10, color:T.muted, textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:8 }}>Current Week</div>
           <div style={S.big}>{currentWeek}</div>
           <div style={{ fontSize:11, color:isDeloadWeek(currentWeek)?T.green:T.muted, marginTop:4 }}>
             {isDeloadWeek(currentWeek) ? "🔄 Deload week" : `${weeksUntilDeload}w until deload`}
           </div>
-        </div>
-        <div style={S.card}>
-          <div style={{ fontSize:10, color:T.muted, textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:8 }}>Body Weight</div>
-          <div style={S.big}>{latestMetric?.weight ?? "—"}<span style={{ fontSize:14, color:T.muted }}> lbs</span></div>
-          <div style={{ fontSize:11, color:T.muted, marginTop:4 }}>{latestMetric?.date ?? "No data"}</div>
         </div>
         <div style={S.card}>
           <div style={{ fontSize:10, color:T.muted, textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:8 }}>This Week</div>
@@ -764,44 +925,123 @@ function OverviewTab({ workouts, metrics, nutrition, currentWeek, cardio }) {
             ))}
           </div>
           <div style={{ fontSize:10, color:T.dim, marginBottom:4 }}>Cardio <span style={{ color:weekCardio.length>=CARDIO_TARGET?T.green:T.accent }}>{weekCardio.length}/{CARDIO_TARGET}</span></div>
-          <div style={{ display:"flex", gap:6 }}>
-            {Array(CARDIO_TARGET).fill(null).map((_,i) => {
+          <div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>
+            {Array(Math.max(CARDIO_TARGET, weekCardio.length)).fill(null).map((_,i) => {
               const session = weekCardio[i];
+              const isExtra = i >= CARDIO_TARGET;
               return (
-                <div key={i} title={session ? `${session.type} · ${session.duration}min` : "Not done"}
-                  style={{ width:10, height:10, borderRadius:"50%", background:session?T.accent:T.border }} />
+                <div key={i} title={session?`${session.type} · ${session.duration}min`:"Not done"}
+                  style={{ width:10, height:10, borderRadius:"50%",
+                    background: session ? (isExtra ? T.green : T.accent) : T.border,
+                    outline: isExtra ? `2px solid ${T.green}44` : "none" }} />
               );
             })}
           </div>
-          <div style={{ fontSize:11, color:T.muted, marginTop:8 }}>{weekWorkouts.length} exercises · {weekCardio.length} cardio sessions</div>
+          <div style={{ fontSize:11, color:T.muted, marginTop:8 }}>{weekWorkouts.length} workouts · {weekCardio.length} cardio sessions</div>
         </div>
       </div>
-      <div style={S.grid2}>
+
+      {/* Row 2: Body Weight + Body Fat charts */}
+      <div style={{ ...S.grid2, marginBottom:16 }}>
         <div style={S.card}>
-          <div style={{ fontSize:10, color:T.muted, textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:12 }}>7-Day Avg Calories</div>
+          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"baseline", marginBottom:4 }}>
+            <div style={{ fontSize:10, color:T.muted, textTransform:"uppercase", letterSpacing:"0.1em" }}>Body Weight</div>
+            {weightData.length>=2 && <div style={{ fontSize:10, color:T.dim }}>{weightData[0].date} → {weightData[weightData.length-1].date}</div>}
+          </div>
+          <MiniLineChart data={weightData} color={T.accent} unit="lbs" />
+        </div>
+        <div style={S.card}>
+          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"baseline", marginBottom:4 }}>
+            <div style={{ fontSize:10, color:T.muted, textTransform:"uppercase", letterSpacing:"0.1em" }}>Body Fat %</div>
+            {bfData.length>=2 && <div style={{ fontSize:10, color:T.dim }}>{bfData[0].date} → {bfData[bfData.length-1].date}</div>}
+          </div>
+          <MiniLineChart data={bfData} color={T.amber} unit="%" />
+          {(() => {
+            const latestBf = bfData.length ? bfData[bfData.length-1].value : null;
+            const bfCat = latestBf != null ? bfCategory(latestBf) : null;
+            return bfCat ? (
+              <div style={{ marginTop:8 }}>
+                <span style={{ fontSize:12, padding:"4px 12px", borderRadius:6, background:bfCat.color+"33", color:bfCat.color, fontWeight:700, border:`1px solid ${bfCat.color}88` }}>{bfCat.label}</span>
+              </div>
+            ) : <div style={{fontSize:10,color:"red"}}>bf:{latestBf} cat:{JSON.stringify(bfCat)}</div>;
+          })()}
+        </div>
+      </div>
+
+      {/* Row 3: BMI + RMR */}
+      <div style={{ ...S.grid2, marginBottom:16 }}>
+        <div style={S.card}>
+          <div style={{ fontSize:10, color:T.muted, textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:8 }}>BMI</div>
+          {bmi ? (
+            <>
+              <div style={{ display:"flex", alignItems:"baseline", gap:8 }}>
+                <span style={{ fontSize:28, fontWeight:700, color:bmiCat.color }}>{bmi}</span>
+                <span style={{ fontSize:12, padding:"2px 8px", borderRadius:6, background:bmiCat.color+"22", color:bmiCat.color, fontWeight:600 }}>{bmiCat.label}</span>
+              </div>
+              <div style={{ fontSize:11, color:T.muted, marginTop:6 }}>{latestMetric.weight} lbs · {Math.floor(heightIn/12)}'{heightIn%12}"</div>
+            </>
+          ) : <div style={{ fontSize:11, color:T.dim, marginTop:8 }}>Set height in Settings to calculate.</div>}
+        </div>
+        <div style={S.card}>
+          <div style={{ fontSize:10, color:T.muted, textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:8 }}>RMR / TDEE</div>
+          {displayRmr ? (
+            <>
+              <div style={{ display:"flex", alignItems:"baseline", gap:6, marginBottom:2 }}>
+                <span style={{ fontSize:22, fontWeight:700, color:T.text }}>{displayRmr}</span>
+                <span style={{ fontSize:12, color:T.muted }}>kcal RMR</span>
+              </div>
+              {tdee && <div style={{ fontSize:13, color:T.accent, fontWeight:600, marginBottom:4 }}>TDEE ~{tdee} kcal</div>}
+              {deficit!=null && (
+                <div style={{ fontSize:11, color:deficit>=0?T.green:T.red }}>
+                  {deficit>=0 ? `${deficit} kcal deficit` : `${Math.abs(deficit)} kcal surplus`}
+                </div>
+              )}
+              <div style={{ fontSize:10, color:T.dim, marginTop:6 }}>{rmrSource}</div>
+            </>
+          ) : <div style={{ fontSize:11, color:T.dim, marginTop:8 }}>Log an RMR test or complete onboarding.</div>}
+        </div>
+      </div>
+
+      {/* Row 4: Calories + Protein */}
+      {(() => {
+        const sevenDaysAgo = new Date(); sevenDaysAgo.setDate(sevenDaysAgo.getDate()-7);
+        const recentN = (nutrition||[]).filter(n=>new Date(n.date)>=sevenDaysAgo);
+        const ndates = recentN.map(n=>n.date).sort();
+        const nRange = ndates.length>=2 ? ndates[0]+" → "+ndates[ndates.length-1] : ndates[0]||null;
+        return (
+      <div style={{ ...S.grid2, marginBottom:16 }}>
+        <div style={S.card}>
+          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"baseline", marginBottom:12 }}>
+            <div style={{ fontSize:10, color:T.muted, textTransform:"uppercase", letterSpacing:"0.1em" }}>7-Day Avg Calories</div>
+            {nRange && <div style={{ fontSize:10, color:T.dim }}>{nRange}</div>}
+          </div>
           {avgCal!=null ? (
             <>
               <div style={S.big}>{avgCal}<span style={{ fontSize:14, color:T.muted }}> kcal</span></div>
-              <div style={{ fontSize:11, color:avgCal<=CAL_TARGET?T.green:T.red, marginTop:4 }}>
-                Target: {CAL_TARGET} · {avgCal<=CAL_TARGET?`✓ ${CAL_TARGET-avgCal} under`:`+${avgCal-CAL_TARGET} over`}
+              <div style={{ fontSize:11, color:avgCal<=calTarget?T.green:T.red, marginTop:4 }}>
+                Target: {calTarget} · {avgCal<=calTarget?`✓ ${calTarget-avgCal} under`:`+${avgCal-calTarget} over`}
               </div>
-              <div style={{ marginTop:10 }}><ProgressBar value={avgCal} max={CAL_TARGET*1.3} color={avgCal<=CAL_TARGET?T.green:T.red} /></div>
+              <div style={{ marginTop:10 }}><ProgressBar value={avgCal} max={calTarget*1.3} color={avgCal<=calTarget?T.green:T.red} /></div>
             </>
-          ) : <div style={{ fontSize:12, color:T.dim, marginTop:8 }}>No data — log nutrition in the Log tab.</div>}
+          ) : <div style={{ fontSize:12, color:T.dim, marginTop:8 }}>No nutrition logged yet — add entries in the Log tab.</div>}
         </div>
         <div style={S.card}>
-          <div style={{ fontSize:10, color:T.muted, textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:12 }}>7-Day Avg Protein</div>
+          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"baseline", marginBottom:12 }}><div style={{ fontSize:10, color:T.muted, textTransform:"uppercase", letterSpacing:"0.1em" }}>7-Day Avg Protein</div>{nRange && <div style={{ fontSize:10, color:T.dim }}>{nRange}</div>}</div>
           {avgPro!=null ? (
             <>
               <div style={S.big}>{avgPro}<span style={{ fontSize:14, color:T.muted }}> g</span></div>
-              <div style={{ fontSize:11, color:avgPro>=PROTEIN_TARGET?T.green:T.amber, marginTop:4 }}>
-                Target: {PROTEIN_TARGET}g · {avgPro>=PROTEIN_TARGET?`✓ hitting target`:`${PROTEIN_TARGET-avgPro}g short`}
+              <div style={{ fontSize:11, color:avgPro>=proteinTarget?T.green:T.amber, marginTop:4 }}>
+                Target: {proteinTarget}g · {avgPro>=proteinTarget?`✓ hitting target`:`${proteinTarget-avgPro}g short`}
               </div>
-              <div style={{ marginTop:10 }}><ProgressBar value={avgPro} max={220} color={avgPro>=PROTEIN_TARGET?T.green:T.amber} /></div>
+              <div style={{ marginTop:10 }}><ProgressBar value={avgPro} max={220} color={avgPro>=proteinTarget?T.green:T.amber} /></div>
             </>
-          ) : <div style={{ fontSize:12, color:T.dim, marginTop:8 }}>No data — log nutrition in the Log tab.</div>}
+          ) : <div style={{ fontSize:12, color:T.dim, marginTop:8 }}>No nutrition logged yet — add entries in the Log tab.</div>}
         </div>
       </div>
+        );
+      })()}
+
+      {/* Row 5: Top Lifts */}
       {e1rmData.length > 0 && (
         <div style={S.card}>
           <div style={{ fontSize:10, color:T.muted, textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:12 }}>Top Lifts — Estimated 1RM</div>
@@ -1054,7 +1294,7 @@ function WorkoutLogger({ exercise, numSets, repMin, repMax, restSeconds, suggWei
   );
 }
 
-function NextWorkoutTab({ workouts, currentWeek, userId, onWorkoutAdded, program, readOnly=false }) {
+function NextWorkoutTab({ workouts, currentWeek, userId, onWorkoutAdded, program, readOnly=false, manualWeek, setManualWeek, autoWeek, demoMode=false, weekStartDate: nwsd=weekStartDate }) {
   const programDays = program?.days || DEFAULT_PROGRAM.days;
   const dayNames = programDays.map(d => d.name);
   const [selectedDay, setSelectedDay] = useState(dayNames[0]);
@@ -1106,8 +1346,9 @@ function NextWorkoutTab({ workouts, currentWeek, userId, onWorkoutAdded, program
     if (!sets.length) return;
     setSaving(true);
     const today = new Date().toISOString().split("T")[0];
-    await Storage.addWorkout(userId, { week:currentWeek, day:selectedDay, date:today, exercise, sets, notes:logNotes, intensity:logIntensity });
-    onWorkoutAdded();
+    const entry = { week:currentWeek, day:selectedDay, date:today, exercise, sets, notes:logNotes, intensity:logIntensity };
+    if (!demoMode) await Storage.addWorkout(userId, entry);
+    onWorkoutAdded(entry);
     setSaving(false);
     setExpandedEx(null);
   }
@@ -1125,9 +1366,10 @@ function NextWorkoutTab({ workouts, currentWeek, userId, onWorkoutAdded, program
       if (!w) continue;
       const [rMin] = REP_SCHEMES[ex] || [8,12];
       const sets = Array(numSets).fill(null).map(()=>({ reps:rMin, weight:w }));
-      await Storage.addWorkout(userId, { week:1, day:selectedDay, date:today, exercise:ex, sets, notes:"Starting weight", intensity:"medium" });
+      const entry = { week:1, day:selectedDay, date:today, exercise:ex, sets, notes:"Starting weight", intensity:"medium" };
+      if (!demoMode) await Storage.addWorkout(userId, entry);
+      onWorkoutAdded(entry);
     }
-    onWorkoutAdded();
     setSavingWeek1(false);
   }
 
@@ -1145,8 +1387,9 @@ function NextWorkoutTab({ workouts, currentWeek, userId, onWorkoutAdded, program
     if (!sets.length) return;
     setSavingOneOff(true);
     const today = new Date().toISOString().split("T")[0];
-    await Storage.addWorkout(userId, { week:currentWeek, day:selectedDay, date:today, exercise:oneOffEx.trim(), sets, notes:oneOffNotes, intensity:oneOffIntensity });
-    onWorkoutAdded();
+    const entry = { week:currentWeek, day:selectedDay, date:today, exercise:oneOffEx.trim(), sets, notes:oneOffNotes, intensity:oneOffIntensity };
+    if (!demoMode) await Storage.addWorkout(userId, entry);
+    onWorkoutAdded(entry);
     setSavingOneOff(false);
     setAddingOneOff(false);
     setOneOffEx(""); setOneOffSets([{reps:"",weight:""}]); setOneOffNotes(""); setOneOffIntensity("medium");
@@ -1154,6 +1397,24 @@ function NextWorkoutTab({ workouts, currentWeek, userId, onWorkoutAdded, program
 
   return (
     <div>
+      {/* Week selector */}
+      {(
+        <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:8 }}>
+          <button style={S.btnSm} onClick={()=>!readOnly && setManualWeek(w => Math.max(1, (w ?? autoWeek) - 1))} disabled={readOnly}>−</button>
+          <span style={{ fontSize:15, fontWeight:700, color:T.accent, minWidth:60, textAlign:"center" }}>Week {currentWeek}</span>
+          <button style={S.btnSm} onClick={()=>!readOnly && setManualWeek(w => (w ?? autoWeek) + 1)} disabled={readOnly}>+</button>
+          {!readOnly && manualWeek !== null && manualWeek !== autoWeek && (
+            <button style={{ ...S.btnSm, fontSize:10 }} onClick={()=>setManualWeek(null)}>↩ Current</button>
+          )}
+          {(() => {
+            const d = new Date(nwsd(currentWeek) + "T12:00:00");
+            const label = d.toLocaleDateString("en-US", { month:"short", day:"numeric" });
+            return <span style={{ fontSize:11, color:T.dim }}>· {label}</span>;
+          })()}
+        </div>
+      )}
+
+      {/* Day selector */}
       <div style={{ display:"flex", gap:8, marginBottom:20, flexWrap:"wrap" }}>
         {dayNames.map(d => (
           <button key={d} onClick={()=>{ setSelectedDay(d); setExpandedEx(null); }}
@@ -1165,8 +1426,6 @@ function NextWorkoutTab({ workouts, currentWeek, userId, onWorkoutAdded, program
           {isDeloadWeek(currentWeek+1)?`🔄 Week ${currentWeek+1} is deload`:`Next: Week ${currentWeek+1}`}
         </span>
       </div>
-
-      {/* Week 1 setup mode */}
       {currentWeek === 1 && !dayExercises.some(e=>e.currentEntry) && (
         <div style={{ ...S.card, marginBottom:16, border:`1px solid ${T.accent}44`, background:T.accent+"11" }}>
           <div style={{ fontSize:12, fontWeight:700, color:T.accent, marginBottom:4 }}>👋 Week 1 Setup</div>
@@ -1292,8 +1551,9 @@ function NextWorkoutTab({ workouts, currentWeek, userId, onWorkoutAdded, program
                 savedWarmups={warmups}
                 onSave={async (sets, intensity) => {
                   const today = new Date().toISOString().split("T")[0];
-                  await Storage.addWorkout(userId, { week:currentWeek, day:selectedDay, date:today, exercise, sets, notes:"", intensity });
-                  onWorkoutAdded();
+                  const entry = { week:currentWeek, day:selectedDay, date:today, exercise, sets, notes:"", intensity };
+                  if (!demoMode) await Storage.addWorkout(userId, entry);
+                  onWorkoutAdded(entry);
                   closeLog();
                   const allEx = dayExercises.map(e=>e.exercise);
                   const nextIdx = allEx.indexOf(exercise) + 1;
@@ -1378,7 +1638,7 @@ function ExerciseTab({ workouts, currentWeek }) {
           {allExercises.map(ex=><option key={ex}>{ex}</option>)}
         </select>
       </div>
-      <div style={S.grid2}>
+      <div style={{ ...S.grid2, marginBottom:16 }}>
         <div style={S.card}>
           <div style={{ fontSize:10, color:T.muted, textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:10 }}>Weight Trend</div>
           <MiniChart data={chartData} color={T.accent} />
@@ -1430,11 +1690,11 @@ function ExerciseTab({ workouts, currentWeek }) {
 // ─────────────────────────────────────────────────────────────────────────────
 // LOG TAB
 // ─────────────────────────────────────────────────────────────────────────────
-function LogTab({ workouts, nutrition, metrics, cardio, currentWeek, userId, onWorkoutAdded, onNutritionUpsert, onMetricUpsert, onCardioAdded }) {
+function LogTab({ workouts, nutrition, metrics, cardio, currentWeek, userId, onWorkoutAdded, onNutritionUpsert, onMetricUpsert, onCardioAdded, demoMode=false, calTarget=calTarget, proteinTarget=proteinTarget, weekStartDate: wsd=weekStartDate }) {
   const today = new Date().toISOString().slice(0,10);
   const allExercises = [...new Set(workouts.map(w=>w.exercise))].sort();
 
-  const [wForm, setWForm] = useState({ week:currentWeek, day:DAYS[0], date:today, exercise:allExercises[0]||"", sets:[{reps:"",weight:""}], notes:"", intensity:"medium" });
+  const [wForm, setWForm] = useState({ week:currentWeek, day:DAYS[0], date:wsd(currentWeek), exercise:allExercises[0]||"", sets:[{reps:"",weight:""}], notes:"", intensity:"medium" });
   const [nForm, setNForm] = useState({ date:today, calories:"", protein:"" });
   const [mForm, setMForm] = useState({ date:today, weight:"", bodyFat:"" });
   const [cForm, setCForm] = useState({ date:today, type:"steady", duration:"", distance:"", speed:"", incline:"", heartRate:"", intervals:"" });
@@ -1447,14 +1707,14 @@ function LogTab({ workouts, nutrition, metrics, cardio, currentWeek, userId, onW
   async function submitWorkout() {
     const entry = { ...wForm, week:Number(wForm.week), sets:wForm.sets.filter(s=>s.reps!==""&&s.weight!=="").map(s=>({reps:Number(s.reps),weight:Number(s.weight)})) };
     if (!entry.sets.length) return;
-    await Storage.addWorkout(userId, entry);
-    onWorkoutAdded();
+    if (!demoMode) await Storage.addWorkout(userId, entry);
+    onWorkoutAdded(entry);
     setWForm(f=>({...f,sets:[{reps:"",weight:""}],notes:"",intensity:"medium"}));
   }
 
   async function deleteWorkout(id) {
     if (!window.confirm("Delete this entry?")) return;
-    await Storage.deleteWorkout(userId, id);
+    if (!demoMode) await Storage.deleteWorkout(userId, id);
     onWorkoutAdded();
   }
   function startEditWorkout(w) {
@@ -1464,38 +1724,38 @@ function LogTab({ workouts, nutrition, metrics, cardio, currentWeek, userId, onW
   async function saveEditWorkout(id) {
     const sets = editWValues.sets.filter(s=>s.reps!==""&&s.weight!=="").map(s=>({reps:Number(s.reps),weight:Number(s.weight)}));
     if (!sets.length) return;
-    await Storage.updateWorkout(userId, id, { sets, notes:editWValues.notes, intensity:editWValues.intensity });
+    if (!demoMode) await Storage.updateWorkout(userId, id, { sets, notes:editWValues.notes, intensity:editWValues.intensity });
     setEditingWorkout(null);
     onWorkoutAdded();
   }
 
   async function submitNutrition() {
     if (!nForm.calories && !nForm.protein) return;
-    await Storage.upsertNutrition(userId, { date:nForm.date, calories:nForm.calories?Number(nForm.calories):null, protein:nForm.protein?Number(nForm.protein):null });
-    onNutritionUpsert();
+    const entry = { date:nForm.date, calories:nForm.calories?Number(nForm.calories):null, protein:nForm.protein?Number(nForm.protein):null };
+    if (!demoMode) await Storage.upsertNutrition(userId, entry);
+    onNutritionUpsert(entry);
     setNForm(f=>({...f,calories:"",protein:""}));
   }
 
   async function submitCardio() {
     if (!cForm.duration) return;
-    await Storage.addCardio(userId, {
-      date: cForm.date,
-      type: cForm.type,
-      duration: Number(cForm.duration),
+    const entry = {
+      date: cForm.date, type: cForm.type, duration: Number(cForm.duration),
       distance: cForm.distance ? Number(cForm.distance) : null,
       speed: cForm.speed ? Number(cForm.speed) : null,
       incline: cForm.incline ? Number(cForm.incline) : null,
       heart_rate: cForm.heartRate ? Number(cForm.heartRate) : null,
       intervals: cForm.intervals || null,
-    });
-    onCardioAdded();
+    };
+    if (!demoMode) await Storage.addCardio(userId, entry);
+    onCardioAdded(entry);
     setCForm(f=>({...f,duration:"",distance:"",speed:"",incline:"",heartRate:"",intervals:""}));
     setCSuccess("Saved!"); setTimeout(()=>setCSuccess(""),2000);
   }
 
   async function deleteCardio(id) {
     if (!window.confirm("Delete this cardio entry?")) return;
-    await Storage.deleteCardio(userId, id);
+    if (!demoMode) await Storage.deleteCardio(userId, id);
     onCardioAdded();
   }
 
@@ -1506,10 +1766,11 @@ function LogTab({ workouts, nutrition, metrics, cardio, currentWeek, userId, onW
     if (!mForm.weight) { setMError("Weight is required."); return; }
     setMError(""); setMSuccess("");
     try {
-      await Storage.upsertMetric(userId, { date:mForm.date, weight:Number(mForm.weight), bodyFat:mForm.bodyFat?Number(mForm.bodyFat):null });
+      const entry = { date:mForm.date, weight:Number(mForm.weight), bodyFat:mForm.bodyFat?Number(mForm.bodyFat):null };
+      if (!demoMode) await Storage.upsertMetric(userId, entry);
+      onMetricUpsert(entry);
       setMSuccess("Saved!");
       setTimeout(() => setMSuccess(""), 2000);
-      onMetricUpsert();
       setMForm(f=>({...f,weight:"",bodyFat:""}));
     } catch(e) {
       setMError("Failed to save: " + (e.message || "unknown error"));
@@ -1528,9 +1789,10 @@ function LogTab({ workouts, nutrition, metrics, cardio, currentWeek, userId, onW
     setEditNValues({ calories: n.calories ?? "", protein: n.protein ?? "" });
   }
   async function saveEditNutrition(date) {
-    await Storage.upsertNutrition(userId, { date, calories: editNValues.calories !== "" ? Number(editNValues.calories) : null, protein: editNValues.protein !== "" ? Number(editNValues.protein) : null });
+    const entry = { date, calories: editNValues.calories !== "" ? Number(editNValues.calories) : null, protein: editNValues.protein !== "" ? Number(editNValues.protein) : null };
+    if (!demoMode) await Storage.upsertNutrition(userId, entry);
+    onNutritionUpsert(entry);
     setEditingNutrition(null);
-    onNutritionUpsert();
   }
 
   function startEditMetric(m) {
@@ -1538,9 +1800,10 @@ function LogTab({ workouts, nutrition, metrics, cardio, currentWeek, userId, onW
     setEditMValues({ weight: m.weight ?? "", bodyFat: m.bodyFat ?? "" });
   }
   async function saveEditMetric(date) {
-    await Storage.upsertMetric(userId, { date, weight: editMValues.weight !== "" ? Number(editMValues.weight) : null, bodyFat: editMValues.bodyFat !== "" ? Number(editMValues.bodyFat) : null });
+    const entry = { date, weight: editMValues.weight !== "" ? Number(editMValues.weight) : null, bodyFat: editMValues.bodyFat !== "" ? Number(editMValues.bodyFat) : null };
+    if (!demoMode) await Storage.upsertMetric(userId, entry);
+    onMetricUpsert(entry);
     setEditingMetric(null);
-    onMetricUpsert();
   }
 
   const recentNutrition = [...nutrition].reverse().slice(0,14);
@@ -1548,12 +1811,12 @@ function LogTab({ workouts, nutrition, metrics, cardio, currentWeek, userId, onW
 
   return (
     <div>
-      <div style={S.grid2}>
+      <div style={{ ...S.grid2, marginBottom:16 }}>
         {/* Workout log */}
         <div style={S.card}>
           <div style={{ fontSize:11, fontWeight:700, color:T.muted, textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:14 }}>Log Workout</div>
           <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, marginBottom:10 }}>
-            <div><label style={S.label}>Week</label><input style={S.input} type="number" value={wForm.week} onChange={e=>setWForm(f=>({...f,week:e.target.value}))} /></div>
+            <div><label style={S.label}>Week</label><input style={S.input} type="number" value={wForm.week} onChange={e=>setWForm(f=>({...f,week:e.target.value,date:wsd(Number(e.target.value)||1)}))} /></div>
             <div><label style={S.label}>Date</label><input style={S.input} type="date" value={wForm.date} onChange={e=>setWForm(f=>({...f,date:e.target.value}))} /></div>
           </div>
           <div style={{ marginBottom:10 }}>
@@ -1600,63 +1863,63 @@ function LogTab({ workouts, nutrition, metrics, cardio, currentWeek, userId, onW
           <button style={S.btn} onClick={submitWorkout}>Save Workout</button>
         </div>
 
-        {/* Nutrition + metrics */}
+        {/* Right column */}
         <div>
           <div style={{ ...S.card, marginBottom:14 }}>
-            <div style={{ fontSize:11, fontWeight:700, color:T.muted, textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:14 }}>Log Nutrition</div>
-            <div style={{ marginBottom:10 }}><label style={S.label}>Date</label><input style={S.input} type="date" value={nForm.date} onChange={e=>setNForm(f=>({...f,date:e.target.value}))} /></div>
-            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, marginBottom:14 }}>
-              <div><label style={S.label}>Calories</label><input style={S.input} type="number" value={nForm.calories} onChange={e=>setNForm(f=>({...f,calories:e.target.value}))} placeholder={String(CAL_TARGET)} /></div>
-              <div><label style={S.label}>Protein (g)</label><input style={S.input} type="number" value={nForm.protein} onChange={e=>setNForm(f=>({...f,protein:e.target.value}))} placeholder={String(PROTEIN_TARGET)} /></div>
-            </div>
-            <button style={S.btn} onClick={submitNutrition}>Save</button>
+          <div style={{ fontSize:11, fontWeight:700, color:T.muted, textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:14 }}>Log Nutrition</div>
+          <div style={{ marginBottom:10 }}><label style={S.label}>Date</label><input style={S.input} type="date" value={nForm.date} onChange={e=>setNForm(f=>({...f,date:e.target.value}))} /></div>
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, marginBottom:14 }}>
+            <div><label style={S.label}>Calories</label><input style={S.input} type="number" value={nForm.calories} onChange={e=>setNForm(f=>({...f,calories:e.target.value}))} placeholder={String(calTarget)} /></div>
+            <div><label style={S.label}>Protein (g)</label><input style={S.input} type="number" value={nForm.protein} onChange={e=>setNForm(f=>({...f,protein:e.target.value}))} placeholder={String(proteinTarget)} /></div>
+          </div>
+          <button style={S.btn} onClick={submitNutrition}>Save</button>
           </div>
           <div style={{ ...S.card, marginBottom:14 }}>
-            <div style={{ fontSize:11, fontWeight:700, color:T.muted, textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:14 }}>Log Body Metrics</div>
-            <div style={{ marginBottom:10 }}><label style={S.label}>Date</label><input style={S.input} type="date" value={mForm.date} onChange={e=>setMForm(f=>({...f,date:e.target.value}))} /></div>
-            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, marginBottom:14 }}>
-              <div><label style={S.label}>Weight (lbs)</label><input style={S.input} type="number" value={mForm.weight} onChange={e=>setMForm(f=>({...f,weight:e.target.value}))} /></div>
-              <div><label style={S.label}>Body Fat %</label><input style={S.input} type="number" value={mForm.bodyFat} onChange={e=>setMForm(f=>({...f,bodyFat:e.target.value}))} /></div>
-            </div>
-            {mError && <div style={{ color:T.red, fontSize:11, marginBottom:8 }}>{mError}</div>}
-            {mSuccess && <div style={{ color:T.green, fontSize:11, marginBottom:8 }}>{mSuccess}</div>}
-            <button style={S.btn} onClick={submitMetric}>Save</button>
+          <div style={{ fontSize:11, fontWeight:700, color:T.muted, textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:14 }}>Log Body Metrics</div>
+          <div style={{ marginBottom:10 }}><label style={S.label}>Date</label><input style={S.input} type="date" value={mForm.date} onChange={e=>setMForm(f=>({...f,date:e.target.value}))} /></div>
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, marginBottom:14 }}>
+            <div><label style={S.label}>Weight (lbs)</label><input style={S.input} type="number" value={mForm.weight} onChange={e=>setMForm(f=>({...f,weight:e.target.value}))} /></div>
+            <div><label style={S.label}>Body Fat %</label><input style={S.input} type="number" value={mForm.bodyFat} onChange={e=>setMForm(f=>({...f,bodyFat:e.target.value}))} /></div>
+          </div>
+          {mError && <div style={{ color:T.red, fontSize:11, marginBottom:8 }}>{mError}</div>}
+          {mSuccess && <div style={{ color:T.green, fontSize:11, marginBottom:8 }}>{mSuccess}</div>}
+          <button style={S.btn} onClick={submitMetric}>Save</button>
           </div>
           <div style={S.card}>
-            <div style={{ fontSize:11, fontWeight:700, color:T.muted, textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:14 }}>Log Cardio</div>
-            <div style={{ marginBottom:10 }}><label style={S.label}>Date</label><input style={S.input} type="date" value={cForm.date} onChange={e=>setCForm(f=>({...f,date:e.target.value}))} /></div>
-            <div style={{ marginBottom:10 }}>
-              <label style={S.label}>Type</label>
-              <div style={{ display:"flex", gap:6 }}>
-                {["steady","hiit"].map(t=>(
-                  <button key={t} onClick={()=>setCForm(f=>({...f,type:t}))}
-                    style={{ ...S.btnSm, flex:1, textTransform:"capitalize",
-                      background: cForm.type===t ? T.accent+"33" : T.border,
-                      color: cForm.type===t ? T.accent : T.muted,
-                      border: `1px solid ${cForm.type===t ? T.accent+"66" : T.border}` }}>
-                    {t === "steady" ? "Steady State" : "HIIT"}
-                  </button>
-                ))}
-              </div>
+          <div style={{ fontSize:11, fontWeight:700, color:T.muted, textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:14 }}>Log Cardio</div>
+          <div style={{ marginBottom:10 }}><label style={S.label}>Date</label><input style={S.input} type="date" value={cForm.date} onChange={e=>setCForm(f=>({...f,date:e.target.value}))} /></div>
+          <div style={{ marginBottom:10 }}>
+            <label style={S.label}>Type</label>
+            <div style={{ display:"flex", gap:6 }}>
+              {["steady","hiit"].map(t=>(
+                <button key={t} onClick={()=>setCForm(f=>({...f,type:t}))}
+                  style={{ ...S.btnSm, flex:1, textTransform:"capitalize",
+                    background: cForm.type===t ? T.accent+"33" : T.border,
+                    color: cForm.type===t ? T.accent : T.muted,
+                    border: `1px solid ${cForm.type===t ? T.accent+"66" : T.border}` }}>
+                  {t === "steady" ? "Steady State" : "HIIT"}
+                </button>
+              ))}
             </div>
-            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, marginBottom:10 }}>
-              <div><label style={S.label}>Duration (min)</label><input style={S.input} type="number" value={cForm.duration} onChange={e=>setCForm(f=>({...f,duration:e.target.value}))} /></div>
-              <div><label style={S.label}>Avg Heart Rate</label><input style={S.input} type="number" value={cForm.heartRate} onChange={e=>setCForm(f=>({...f,heartRate:e.target.value}))} placeholder="bpm" /></div>
+          </div>
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, marginBottom:10 }}>
+            <div><label style={S.label}>Duration (min)</label><input style={S.input} type="number" value={cForm.duration} onChange={e=>setCForm(f=>({...f,duration:e.target.value}))} /></div>
+            <div><label style={S.label}>Avg Heart Rate</label><input style={S.input} type="number" value={cForm.heartRate} onChange={e=>setCForm(f=>({...f,heartRate:e.target.value}))} placeholder="bpm" /></div>
+          </div>
+          {cForm.type === "steady" ? (
+            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:8, marginBottom:14 }}>
+              <div><label style={S.label}>Distance (mi)</label><input style={S.input} type="number" step="0.1" value={cForm.distance} onChange={e=>setCForm(f=>({...f,distance:e.target.value}))} /></div>
+              <div><label style={S.label}>Speed (mph)</label><input style={S.input} type="number" step="0.1" value={cForm.speed} onChange={e=>setCForm(f=>({...f,speed:e.target.value}))} /></div>
+              <div><label style={S.label}>Incline (%)</label><input style={S.input} type="number" step="0.5" value={cForm.incline} onChange={e=>setCForm(f=>({...f,incline:e.target.value}))} /></div>
             </div>
-            {cForm.type === "steady" ? (
-              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:8, marginBottom:14 }}>
-                <div><label style={S.label}>Distance (mi)</label><input style={S.input} type="number" step="0.1" value={cForm.distance} onChange={e=>setCForm(f=>({...f,distance:e.target.value}))} /></div>
-                <div><label style={S.label}>Speed (mph)</label><input style={S.input} type="number" step="0.1" value={cForm.speed} onChange={e=>setCForm(f=>({...f,speed:e.target.value}))} /></div>
-                <div><label style={S.label}>Incline (%)</label><input style={S.input} type="number" step="0.5" value={cForm.incline} onChange={e=>setCForm(f=>({...f,incline:e.target.value}))} /></div>
-              </div>
-            ) : (
-              <div style={{ marginBottom:14 }}>
-                <label style={S.label}>Intervals (e.g. 8×30s on/30s off)</label>
-                <input style={S.input} value={cForm.intervals} onChange={e=>setCForm(f=>({...f,intervals:e.target.value}))} placeholder="8×30s on/30s off" />
-              </div>
-            )}
-            {cSuccess && <div style={{ color:T.green, fontSize:11, marginBottom:8 }}>{cSuccess}</div>}
-            <button style={S.btn} onClick={submitCardio}>Save</button>
+          ) : (
+            <div style={{ marginBottom:14 }}>
+              <label style={S.label}>Intervals (e.g. 8×30s on/30s off)</label>
+              <input style={S.input} value={cForm.intervals} onChange={e=>setCForm(f=>({...f,intervals:e.target.value}))} placeholder="8×30s on/30s off" />
+            </div>
+          )}
+          {cSuccess && <div style={{ color:T.green, fontSize:11, marginBottom:8 }}>{cSuccess}</div>}
+          <button style={S.btn} onClick={submitCardio}>Save</button>
           </div>
         </div>
       </div>
@@ -1761,8 +2024,8 @@ function LogTab({ workouts, nutrition, metrics, cardio, currentWeek, userId, onW
           {recentNutrition.map(n => {
             const editing = editingNutrition === n.date;
             return (
-              <div key={n.date} style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr 80px", gap:8, padding:"7px 4px", borderTop:`1px solid ${T.border}`, fontSize:12, alignItems:"center" }}
-                onClick={()=>!editing&&startEditNutrition(n)} style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr 80px", gap:8, padding:"7px 4px", borderTop:`1px solid ${T.border}`, fontSize:12, alignItems:"center", cursor:editing?"default":"pointer" }}>
+              <div key={n.date} onClick={()=>!editing&&startEditNutrition(n)}
+                style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr 80px", gap:8, padding:"7px 4px", borderTop:`1px solid ${T.border}`, fontSize:12, alignItems:"center", cursor:editing?"default":"pointer" }}>
                 <span style={{ color:T.muted }}>{n.date}</span>
                 {editing ? (
                   <>
@@ -1775,8 +2038,8 @@ function LogTab({ workouts, nutrition, metrics, cardio, currentWeek, userId, onW
                   </>
                 ) : (
                   <>
-                    <span style={{ color:n.calories&&n.calories<=CAL_TARGET?T.green:n.calories>CAL_TARGET?T.red:T.muted }}>{n.calories??"—"}</span>
-                    <span style={{ color:n.protein&&n.protein>=PROTEIN_TARGET?T.green:n.protein?T.amber:T.muted }}>{n.protein??"—"}g</span>
+                    <span style={{ color:n.calories&&n.calories<=calTarget?T.green:n.calories>calTarget?T.red:T.muted }}>{n.calories??"—"}</span>
+                    <span style={{ color:n.protein&&n.protein>=proteinTarget?T.green:n.protein?T.amber:T.muted }}>{n.protein??"—"}g</span>
                     <span style={{ fontSize:10, color:T.dim }}>edit</span>
                   </>
                 )}
@@ -1814,7 +2077,7 @@ function LogTab({ workouts, nutrition, metrics, cardio, currentWeek, userId, onW
                   <>
                     <span>{m.weight??"—"} lbs {delta!=null&&<span style={{ fontSize:10, color:Number(delta)<=0?T.green:T.red }}>{Number(delta)>0?"+":""}{delta}</span>}</span>
                     <span style={{ color:T.muted }}>{m.bodyFat!=null?m.bodyFat+"%":"—"}</span>
-                    <button style={{ background:"transparent", border:"none", color:T.dim, cursor:"pointer", fontSize:14, padding:"2px 6px" }} onClick={e=>{e.stopPropagation();if(window.confirm("Delete this entry?"))Storage.deleteMetric(userId,m.date).then(onMetricUpsert);}} title="Delete">×</button>
+                    <button style={{ background:"transparent", border:"none", color:T.dim, cursor:"pointer", fontSize:14, padding:"2px 6px" }} onClick={e=>{e.stopPropagation();if(window.confirm("Delete this entry?")){if(!demoMode)Storage.deleteMetric(userId,m.date).then(()=>onMetricUpsert());else onMetricUpsert({date:m.date,_delete:true});}}} title="Delete">×</button>
                   </>
                 )}
               </div>
@@ -1829,44 +2092,287 @@ function LogTab({ workouts, nutrition, metrics, cardio, currentWeek, userId, onW
 // ─────────────────────────────────────────────────────────────────────────────
 // BODY TAB
 // ─────────────────────────────────────────────────────────────────────────────
-function BodyTab({ metrics, nutrition }) {
+function BodyTab({ metrics, nutrition, rmr, userId, onRmrSave, onMetricUpsert, userProfile, calTarget=calTarget, proteinTarget=proteinTarget }) {
+  const today = new Date().toISOString().slice(0,10);
+  const [bodySection, setBodySection] = useState("weight"); // "weight" | "dexa" | "rmr"
+
+  // Weight check-in form (simple)
+  const [wForm, setWForm] = useState({ date:today, weight:"", bodyFat:"" });
+  const [wSaving, setWSaving] = useState(false);
+
+  // DEXA form
+  const [dexaForm, setDexaForm] = useState({ date:today, weight:"", bodyFat:"", leanMass:"", fatMass:"", visceralFat:"", agRatio:"", boneTScore:"", boneZScore:"", skeletalMass:"" });
+  const [dexaSaving, setDexaSaving] = useState(false);
+
+  // RMR form
+  const [rmrForm, setRmrForm] = useState({ date:today, rmr:"", rhr:"", rer:"", tdee:"" });
+  const [rmrSaving, setRmrSaving] = useState(false);
+
   const weightData = metrics.filter(m=>m.weight).map(m=>({ x:m.date, y:m.weight }));
   const avgCal = sevenDayAvg(nutrition,"calories");
   const avgPro = sevenDayAvg(nutrition,"protein");
 
+  async function saveWeight() {
+    if (!wForm.weight) return;
+    setWSaving(true);
+    try {
+      await onMetricUpsert({ date:wForm.date, weight:Number(wForm.weight), bodyFat:wForm.bodyFat?Number(wForm.bodyFat):null });
+      setWForm({ date:today, weight:"", bodyFat:"" });
+    } finally { setWSaving(false); }
+  }
+
+  async function saveDEXA() {
+    if (!dexaForm.date) return;
+    setDexaSaving(true);
+    try {
+      await onMetricUpsert({
+        date: dexaForm.date,
+        weight: dexaForm.weight ? Number(dexaForm.weight) : null,
+        bodyFat: dexaForm.bodyFat ? Number(dexaForm.bodyFat) : null,
+        leanMass: dexaForm.leanMass ? Number(dexaForm.leanMass) : null,
+        fatMass: dexaForm.fatMass ? Number(dexaForm.fatMass) : null,
+        visceralFat: dexaForm.visceralFat ? Number(dexaForm.visceralFat) : null,
+        agRatio: dexaForm.agRatio ? Number(dexaForm.agRatio) : null,
+        boneTScore: dexaForm.boneTScore ? Number(dexaForm.boneTScore) : null,
+        boneZScore: dexaForm.boneZScore ? Number(dexaForm.boneZScore) : null,
+        skeletalMass: dexaForm.skeletalMass ? Number(dexaForm.skeletalMass) : null,
+      });
+      setDexaForm({ date:today, weight:"", bodyFat:"", leanMass:"", fatMass:"", visceralFat:"", agRatio:"", boneTScore:"", boneZScore:"", skeletalMass:"" });
+    } finally { setDexaSaving(false); }
+  }
+
+  async function saveRMR() {
+    if (!rmrForm.rmr) return;
+    setRmrSaving(true);
+    try {
+      const updated = [...(rmr||[]).filter(r=>r.date!==rmrForm.date), { date:rmrForm.date, rmr:Number(rmrForm.rmr), rhr:rmrForm.rhr?Number(rmrForm.rhr):null, rer:rmrForm.rer?Number(rmrForm.rer):null, tdee:rmrForm.tdee?Number(rmrForm.tdee):null }];
+      updated.sort((a,b)=>a.date.localeCompare(b.date));
+      await onRmrSave(updated);
+      setRmrForm({ date:today, rmr:"", rhr:"", rer:"", tdee:"" });
+    } finally { setRmrSaving(false); }
+  }
+
+  // DEXA history — only entries with leanMass
+  const dexaEntries = [...metrics].filter(m=>m.leanMass||m.boneTScore||m.visceralFat).sort((a,b)=>b.date.localeCompare(a.date));
+
+  const inp = (val, onChange, placeholder, type="number") => (
+    <input style={{ ...S.input, marginBottom:0 }} type={type} placeholder={placeholder} value={val} step="any"
+      onChange={e=>onChange(e.target.value)} />
+  );
+
+  const TAB_SECTIONS = [
+    { id:"weight", label:"Weight Check-in" },
+    { id:"dexa",   label:"DEXA Scan" },
+    { id:"rmr",    label:"RMR Test" },
+  ];
+
   return (
-    <div>
-      <div style={S.grid2}>
+    <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
+      {/* ── Log Entry Card ── */}
+      <div style={S.card}>
+        <div style={{ fontSize:10, color:T.muted, textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:12 }}>Log Entry</div>
+        <div style={{ display:"flex", gap:6, marginBottom:16 }}>
+          {TAB_SECTIONS.map(s => (
+            <button key={s.id} onClick={()=>setBodySection(s.id)}
+              style={{ ...S.btnSm, background:bodySection===s.id?T.accent+"22":T.border, color:bodySection===s.id?T.accent:T.muted, border:`1px solid ${bodySection===s.id?T.accent+"55":T.border}` }}>
+              {s.label}
+            </button>
+          ))}
+        </div>
+
+        {bodySection === "weight" && (
+          <div>
+            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:8 }}>
+              <div><label style={S.label}>Date</label>{inp(wForm.date, v=>setWForm(f=>({...f,date:v})), "Date", "date")}</div>
+              <div><label style={S.label}>Weight (lbs)</label>{inp(wForm.weight, v=>setWForm(f=>({...f,weight:v})), "e.g. 204.5")}</div>
+              <div><label style={S.label}>Body Fat %</label>{inp(wForm.bodyFat, v=>setWForm(f=>({...f,bodyFat:v})), "optional")}</div>
+            </div>
+            <button style={{ ...S.btn, marginTop:12 }} onClick={saveWeight} disabled={wSaving||!wForm.weight}>{wSaving?"Saving…":"Save Check-in"}</button>
+          </div>
+        )}
+
+        {bodySection === "dexa" && (
+          <div>
+            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, marginBottom:8 }}>
+              <div><label style={S.label}>Date</label>{inp(dexaForm.date, v=>setDexaForm(f=>({...f,date:v})), "Date", "date")}</div>
+              <div><label style={S.label}>Weight (lbs)</label>{inp(dexaForm.weight, v=>setDexaForm(f=>({...f,weight:v})), "e.g. 208.2")}</div>
+              <div><label style={S.label}>Body Fat %</label>{inp(dexaForm.bodyFat, v=>setDexaForm(f=>({...f,bodyFat:v})), "e.g. 43.7")}</div>
+              <div><label style={S.label}>Lean Mass (lbs)</label>{inp(dexaForm.leanMass, v=>setDexaForm(f=>({...f,leanMass:v})), "e.g. 111.4")}</div>
+              <div><label style={S.label}>Fat Mass (lbs)</label>{inp(dexaForm.fatMass, v=>setDexaForm(f=>({...f,fatMass:v})), "e.g. 92")}</div>
+              <div><label style={S.label}>Visceral Fat (lbs)</label>{inp(dexaForm.visceralFat, v=>setDexaForm(f=>({...f,visceralFat:v})), "e.g. 2.53")}</div>
+              <div><label style={S.label}>A/G Ratio</label>{inp(dexaForm.agRatio, v=>setDexaForm(f=>({...f,agRatio:v})), "e.g. 1.6")}</div>
+              <div><label style={S.label}>Bone T-Score</label>{inp(dexaForm.boneTScore, v=>setDexaForm(f=>({...f,boneTScore:v})), "e.g. 3.0")}</div>
+              <div><label style={S.label}>Bone Z-Score</label>{inp(dexaForm.boneZScore, v=>setDexaForm(f=>({...f,boneZScore:v})), "e.g. 1.7")}</div>
+              <div><label style={S.label}>Skeletal Mass (lbs)</label>{inp(dexaForm.skeletalMass, v=>setDexaForm(f=>({...f,skeletalMass:v})), "e.g. 5.9")}</div>
+            </div>
+            <button style={{ ...S.btn, marginTop:4 }} onClick={saveDEXA} disabled={dexaSaving}>{dexaSaving?"Saving…":"Save DEXA Entry"}</button>
+          </div>
+        )}
+
+        {bodySection === "rmr" && (
+          <div>
+            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, marginBottom:8 }}>
+              <div><label style={S.label}>Date</label>{inp(rmrForm.date, v=>setRmrForm(f=>({...f,date:v})), "Date", "date")}</div>
+              <div><label style={S.label}>RMR (kcal)</label>{inp(rmrForm.rmr, v=>setRmrForm(f=>({...f,rmr:v})), "e.g. 1536")}</div>
+              <div><label style={S.label}>RHR (bpm)</label>{inp(rmrForm.rhr, v=>setRmrForm(f=>({...f,rhr:v})), "e.g. 72")}</div>
+              <div><label style={S.label}>RER</label>{inp(rmrForm.rer, v=>setRmrForm(f=>({...f,rer:v})), "e.g. 0.78")}</div>
+              <div style={{ gridColumn:"1/-1" }}><label style={S.label}>TDEE (kcal, measured)</label>{inp(rmrForm.tdee, v=>setRmrForm(f=>({...f,tdee:v})), "e.g. 2381")}</div>
+            </div>
+            <button style={{ ...S.btn, marginTop:4 }} onClick={saveRMR} disabled={rmrSaving||!rmrForm.rmr}>{rmrSaving?"Saving…":"Save RMR Entry"}</button>
+            {(rmr||[]).length > 0 && (
+              <div style={{ marginTop:16 }}>
+                <div style={{ fontSize:10, color:T.muted, textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:8 }}>RMR History</div>
+                {[...(rmr||[])].reverse().map((r,i) => (
+                  <div key={i} style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr 1fr 1fr", gap:6, padding:"8px 0", borderBottom:`1px solid ${T.border}`, fontSize:11 }}>
+                    <span style={{ color:T.muted }}>{r.date}</span>
+                    <span>{r.rmr} kcal</span>
+                    <span style={{ color:T.dim }}>RHR {r.rhr??'—'}</span>
+                    <span style={{ color:T.dim }}>RER {r.rer??'—'}</span>
+                    <span style={{ color:T.accent }}>TDEE {r.tdee??'—'}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* ── Charts ── */}
+      <div style={{ ...S.grid2, marginBottom:0 }}>
         <div style={S.card}>
-          <div style={{ fontSize:10, color:T.muted, textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:10 }}>Weight Trend</div>
+          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"baseline", marginBottom:10 }}>
+            <div style={{ fontSize:10, color:T.muted, textTransform:"uppercase", letterSpacing:"0.1em" }}>Weight Trend</div>
+            {weightData.length>=2 && <div style={{ fontSize:10, color:T.dim }}>{weightData[0].x} → {weightData[weightData.length-1].x}</div>}
+          </div>
           <MiniChart data={weightData} color={T.accent} />
           {weightData.length>=2 && (() => {
             const delta = (weightData[weightData.length-1].y - weightData[0].y).toFixed(1);
-            return <div style={{ fontSize:11, color:Number(delta)<=0?T.green:T.red, marginTop:8 }}>{Number(delta)>0?"+":""}{delta} lbs over {weightData.length} check-ins</div>;
+            return <div style={{ fontSize:11, color:Number(delta)<=0?T.green:T.red, marginTop:6 }}>{Number(delta)>0?"+":""}{delta} lbs over {weightData.length} check-ins</div>;
           })()}
         </div>
         <div style={S.card}>
-          <div style={{ fontSize:10, color:T.muted, textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:12 }}>Nutrition Targets</div>
+          {(() => {
+            const sevenDaysAgo = new Date(); sevenDaysAgo.setDate(sevenDaysAgo.getDate()-7);
+            const recentN = (nutrition||[]).filter(n=>new Date(n.date)>=sevenDaysAgo);
+            const dates = recentN.map(n=>n.date).sort();
+            const rangeLabel = dates.length>=2 ? dates[0]+" \u2192 "+dates[dates.length-1] : dates.length===1 ? dates[0] : null;
+            return (
+              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"baseline", marginBottom:12 }}>
+                <div style={{ fontSize:10, color:T.muted, textTransform:"uppercase", letterSpacing:"0.1em" }}>Nutrition Targets</div>
+                <div style={{ fontSize:10, color:T.dim }}>{recentN.length > 0 ? recentN.length+" day avg" : "no data"}{rangeLabel ? " \xb7 "+rangeLabel : ""}</div>
+              </div>
+            );
+          })()}
           <div style={{ marginBottom:14 }}>
             <div style={{ display:"flex", justifyContent:"space-between", marginBottom:4 }}>
               <span style={{ fontSize:12 }}>Calories</span>
-              <span style={{ fontSize:12, color:avgCal!=null?(avgCal<=CAL_TARGET?T.green:T.red):T.dim }}>{avgCal!=null?`${avgCal} / ${CAL_TARGET}`:"No data"}</span>
+              <span style={{ fontSize:12, color:avgCal!=null?(avgCal<=calTarget?T.green:T.red):T.dim }}>{avgCal!=null?avgCal+" / "+calTarget:"No data"}</span>
             </div>
-            <ProgressBar value={avgCal||0} max={CAL_TARGET*1.3} color={avgCal&&avgCal<=CAL_TARGET?T.green:T.red} />
+            <ProgressBar value={avgCal||0} max={calTarget*1.3} color={avgCal&&avgCal<=calTarget?T.green:T.red} />
           </div>
           <div>
             <div style={{ display:"flex", justifyContent:"space-between", marginBottom:4 }}>
               <span style={{ fontSize:12 }}>Protein</span>
-              <span style={{ fontSize:12, color:avgPro!=null?(avgPro>=PROTEIN_TARGET?T.green:T.amber):T.dim }}>{avgPro!=null?`${avgPro}g / ${PROTEIN_TARGET}g`:"No data"}</span>
+              <span style={{ fontSize:12, color:avgPro!=null?(avgPro>=proteinTarget?T.green:T.amber):T.dim }}>{avgPro!=null?avgPro+"g / "+proteinTarget+"g":"No data"}</span>
             </div>
-            <ProgressBar value={avgPro||0} max={220} color={avgPro&&avgPro>=PROTEIN_TARGET?T.green:T.amber} />
+            <ProgressBar value={avgPro||0} max={220} color={avgPro&&avgPro>=proteinTarget?T.green:T.amber} />
           </div>
         </div>
       </div>
+
+      {/* ── DEXA History ── */}
+      {dexaEntries.length > 0 && (() => {
+        const sorted = [...dexaEntries].sort((a,b)=>a.date.localeCompare(b.date));
+        const leanData = sorted.filter(m=>m.leanMass!=null).map(m=>({ x:m.date, y:m.leanMass }));
+        const bfData2  = sorted.filter(m=>m.bodyFat!=null).map(m=>({ x:m.date, y:m.bodyFat }));
+        const viscData = sorted.filter(m=>m.visceralFat!=null).map(m=>({ x:m.date, y:m.visceralFat }));
+        const fatData  = sorted.filter(m=>m.fatMass!=null).map(m=>({ x:m.date, y:m.fatMass }));
+        const dateRange = sorted.length>=2 ? sorted[0].date+" \u2192 "+sorted[sorted.length-1].date : sorted[0]?.date;
+        return (
+          <>
+            {/* DEXA charts row */}
+            {(leanData.length>=2 || bfData2.length>=2) && (
+              <div style={{ ...S.grid2, marginBottom:0 }}>
+                {leanData.length>=2 && (
+                  <div style={S.card}>
+                    <div style={{ display:"flex", justifyContent:"space-between", alignItems:"baseline", marginBottom:10 }}>
+                      <div style={{ fontSize:10, color:T.muted, textTransform:"uppercase", letterSpacing:"0.1em" }}>Lean Mass</div>
+                      <div style={{ fontSize:10, color:T.dim }}>{dateRange}</div>
+                    </div>
+                    <MiniChart data={leanData} color={T.green} />
+                    {(() => { const d=(leanData[leanData.length-1].y-leanData[0].y).toFixed(1); return <div style={{ fontSize:11, color:Number(d)>=0?T.green:T.red, marginTop:6 }}>{Number(d)>0?"+":""}{d} lbs</div>; })()}
+                  </div>
+                )}
+                {bfData2.length>=2 && (
+                  <div style={S.card}>
+                    <div style={{ display:"flex", justifyContent:"space-between", alignItems:"baseline", marginBottom:10 }}>
+                      <div style={{ fontSize:10, color:T.muted, textTransform:"uppercase", letterSpacing:"0.1em" }}>Body Fat %</div>
+                      <div style={{ fontSize:10, color:T.dim }}>{dateRange}</div>
+                    </div>
+                    <MiniChart data={bfData2} color={T.amber} />
+                    {(() => { const d=(bfData2[bfData2.length-1].y-bfData2[0].y).toFixed(1); return <div style={{ fontSize:11, color:Number(d)<=0?T.green:T.red, marginTop:6 }}>{Number(d)>0?"+":""}{d}%</div>; })()}
+                  </div>
+                )}
+              </div>
+            )}
+            {(viscData.length>=2 || fatData.length>=2) && (
+              <div style={{ ...S.grid2, marginBottom:0 }}>
+                {viscData.length>=2 && (
+                  <div style={S.card}>
+                    <div style={{ display:"flex", justifyContent:"space-between", alignItems:"baseline", marginBottom:10 }}>
+                      <div style={{ fontSize:10, color:T.muted, textTransform:"uppercase", letterSpacing:"0.1em" }}>Visceral Fat</div>
+                      <div style={{ fontSize:10, color:T.dim }}>{dateRange}</div>
+                    </div>
+                    <MiniChart data={viscData} color={T.red||"#e05c5c"} />
+                    {(() => { const d=(viscData[viscData.length-1].y-viscData[0].y).toFixed(2); return <div style={{ fontSize:11, color:Number(d)<=0?T.green:T.red, marginTop:6 }}>{Number(d)>0?"+":""}{d}</div>; })()}
+                  </div>
+                )}
+                {fatData.length>=2 && (
+                  <div style={S.card}>
+                    <div style={{ display:"flex", justifyContent:"space-between", alignItems:"baseline", marginBottom:10 }}>
+                      <div style={{ fontSize:10, color:T.muted, textTransform:"uppercase", letterSpacing:"0.1em" }}>Fat Mass</div>
+                      <div style={{ fontSize:10, color:T.dim }}>{dateRange}</div>
+                    </div>
+                    <MiniChart data={fatData} color={T.amber} />
+                    {(() => { const d=(fatData[fatData.length-1].y-fatData[0].y).toFixed(1); return <div style={{ fontSize:11, color:Number(d)<=0?T.green:T.red, marginTop:6 }}>{Number(d)>0?"+":""}{d} lbs</div>; })()}
+                  </div>
+                )}
+              </div>
+            )}
+            {/* DEXA text history */}
+            <div style={S.card}>
+              <div style={{ fontSize:10, color:T.muted, textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:12 }}>DEXA Scan Log</div>
+              {[...dexaEntries].map((m,i,arr) => {
+                const prev = arr[i+1];
+                return (
+                  <div key={m.date} style={{ padding:"10px 0", borderBottom:`1px solid ${T.border}` }}>
+                    <div style={{ display:"flex", justifyContent:"space-between", marginBottom:6 }}>
+                      <span style={{ fontSize:12, fontWeight:600, color:T.accent }}>{m.date}</span>
+                      <span style={{ fontSize:11, color:T.muted }}>{m.weight} lbs</span>
+                    </div>
+                    <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:6, fontSize:11 }}>
+                      {m.bodyFat!=null && <span>BF: <b>{m.bodyFat}%</b>{prev?.bodyFat!=null&&<span style={{ color:m.bodyFat<=prev.bodyFat?T.green:T.red, marginLeft:4 }}>{(m.bodyFat-prev.bodyFat>0?"+":"")+(m.bodyFat-prev.bodyFat).toFixed(1)}%</span>}</span>}
+                      {m.leanMass!=null && <span>Lean: <b>{m.leanMass} lbs</b>{prev?.leanMass!=null&&<span style={{ color:m.leanMass>=prev.leanMass?T.green:T.red, marginLeft:4 }}>{(m.leanMass-prev.leanMass>0?"+":"")+(m.leanMass-prev.leanMass).toFixed(1)}</span>}</span>}
+                      {m.visceralFat!=null && <span>Visceral: <b>{m.visceralFat}</b>{prev?.visceralFat!=null&&<span style={{ color:m.visceralFat<=prev.visceralFat?T.green:T.red, marginLeft:4 }}>{(m.visceralFat-prev.visceralFat>0?"+":"")+(m.visceralFat-prev.visceralFat).toFixed(2)}</span>}</span>}
+                      {m.fatMass!=null && <span style={{ color:T.dim }}>Fat mass: {m.fatMass} lbs</span>}
+                      {m.agRatio!=null && <span style={{ color:T.dim }}>A/G: {m.agRatio}</span>}
+                      {m.boneTScore!=null && <span style={{ color:T.dim }}>T-score: {m.boneTScore}</span>}
+                      {m.boneZScore!=null && <span style={{ color:T.dim }}>Z-score: {m.boneZScore}</span>}
+                      {m.skeletalMass!=null && <span style={{ color:T.dim }}>Bone: {m.skeletalMass} lbs</span>}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </>
+        );
+      })()}
+
+      {/* ── Full Weight Log ── */}
       <div style={S.card}>
-        <div style={{ fontSize:10, color:T.muted, textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:12 }}>Full Metrics Log</div>
+        <div style={{ fontSize:10, color:T.muted, textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:12 }}>Full Weight Log</div>
         {metrics.length===0 && <div style={{ fontSize:12, color:T.dim }}>No metrics logged yet.</div>}
-        {[...metrics].reverse().map((m,i,arr)=>{
+        {[...metrics].sort((a,b)=>b.date.localeCompare(a.date)).map((m,i,arr)=>{
           const prev = arr[i+1];
           const delta = prev&&m.weight&&prev.weight ? (m.weight-prev.weight).toFixed(1) : null;
           return (
@@ -1879,6 +2385,7 @@ function BodyTab({ metrics, nutrition }) {
           );
         })}
       </div>
+
     </div>
   );
 }
@@ -2180,10 +2687,26 @@ function WarmupEditor({ exName: exercise, exEntry, onUpdate }) {
   );
 }
 
-function SettingsTab({ darkMode, onToggleDark, user, onSignOut, profileUrl, program, userId, onProgramSave }) {
+function SettingsTab({ darkMode, onToggleDark, user, onSignOut, profileUrl, program, userId, onProgramSave, userProfile, onProfileSave, demoMode=false }) {
   const [editProgram, setEditProgram] = useState(()=>JSON.parse(JSON.stringify(program)));
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+
+  // Profile editing
+  const toFt = (totalIn) => ({ ft: Math.floor((totalIn||0)/12), in: (totalIn||0)%12 });
+  const ftIn = toFt(userProfile?.heightIn);
+  const [profForm, setProfForm] = useState({ heightFt: ftIn.ft||"", heightIn: ftIn.in||"", birthday: userProfile?.birthday||"", sex: userProfile?.sex||"", displayName: userProfile?.displayName||"", calTarget: userProfile?.calTarget||"", proteinTarget: userProfile?.proteinTarget||"", week1Start: userProfile?.week1Start||"2026-02-11" });
+  const [profSaving, setProfSaving] = useState(false);
+  const [profSaved, setProfSaved] = useState(false);
+
+  async function saveProfile() {
+    setProfSaving(true);
+    const heightIn = (Number(profForm.heightFt)*12) + Number(profForm.heightIn||0);
+    await onProfileSave({ ...(userProfile||{}), heightIn: heightIn||null, birthday: profForm.birthday||null, sex: profForm.sex||null, displayName: profForm.displayName||null, calTarget: profForm.calTarget?Number(profForm.calTarget):null, proteinTarget: profForm.proteinTarget?Number(profForm.proteinTarget):null, week1Start: profForm.week1Start||null });
+    setProfSaving(false);
+    setProfSaved(true);
+    setTimeout(()=>setProfSaved(false), 2000);
+  }
 
   // (no sync effect — editProgram is initialized from program on mount only)
 
@@ -2237,129 +2760,194 @@ function SettingsTab({ darkMode, onToggleDark, user, onSignOut, profileUrl, prog
   const [newExInputs, setNewExInputs] = useState({});
   const [editingEx, setEditingEx] = useState(null); // "dayIdx-exIdx"
 
+  const [settingsTab, setSettingsTab] = React.useState("you");
+  const STABS = [["you","You"],["appearance","Appearance"],["plan","Training Plan"],["account","Account"]];
+
   return (
     <div style={{ maxWidth:600 }}>
-      {/* Appearance */}
-      <div style={{ ...S.card, marginBottom:16 }}>
-        <div style={{ fontSize:11, fontWeight:700, color:T.muted, textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:16 }}>Appearance</div>
-        <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between" }}>
-          <div>
-            <div style={{ fontSize:13, fontWeight:600, color:T.text }}>Theme</div>
-            <div style={{ fontSize:11, color:T.muted, marginTop:2 }}>{darkMode ? "Dark mode" : "Light mode"}</div>
+      {/* Pill nav */}
+      <div style={{ display:"flex", gap:6, marginBottom:20, flexWrap:"wrap" }}>
+        {STABS.map(([id, label]) => (
+          <button key={id} onClick={()=>setSettingsTab(id)}
+            style={{ padding:"6px 16px", borderRadius:20, fontSize:12, fontWeight:600, cursor:"pointer", border:"1px solid "+(settingsTab===id ? T.accent : T.border), background:settingsTab===id ? T.accent+"22" : "transparent", color:settingsTab===id ? T.accent : T.muted, transition:"all 0.15s" }}>
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {settingsTab === "you" && (
+        <div style={S.card}>
+          <div style={{ fontSize:11, fontWeight:700, color:T.muted, textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:4 }}>You</div>
+          <div style={{ fontSize:11, color:T.dim, marginBottom:16 }}>Used for BMI, RMR, and nutrition targets.</div>
+          <div style={{ marginBottom:10 }}>
+            <label style={S.label}>Display Name</label>
+            <input style={S.input} placeholder="e.g. Chessie" value={profForm.displayName} onChange={e=>setProfForm(f=>({...f,displayName:e.target.value}))} />
           </div>
-          <div onClick={onToggleDark} style={{ width:48, height:26, borderRadius:13, background:darkMode?T.accent:T.border, cursor:"pointer", position:"relative", transition:"background 0.2s" }}>
-            <div style={{ position:"absolute", top:3, left:darkMode?24:3, width:20, height:20, borderRadius:"50%", background:"#fff", transition:"left 0.2s", boxShadow:"0 1px 3px rgba(0,0,0,0.3)" }} />
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, marginBottom:10 }}>
+            <div>
+              <label style={S.label}>Height</label>
+              <div style={{ display:"flex", gap:6 }}>
+                <input style={{ ...S.input, width:60 }} type="number" placeholder="ft" value={profForm.heightFt} onChange={e=>setProfForm(f=>({...f,heightFt:e.target.value}))} />
+                <input style={{ ...S.input, width:60 }} type="number" placeholder="in" value={profForm.heightIn} onChange={e=>setProfForm(f=>({...f,heightIn:e.target.value}))} />
+              </div>
+            </div>
+            <div>
+              <label style={S.label}>Birthday</label>
+              <input style={S.input} type="date" value={profForm.birthday} onChange={e=>setProfForm(f=>({...f,birthday:e.target.value}))} />
+              {profForm.birthday && <div style={{ fontSize:10, color:T.dim, marginTop:3 }}>Age: {calcAge(profForm.birthday)}</div>}
+            </div>
+            <div style={{ gridColumn:"1/-1" }}>
+              <label style={S.label}>Sex</label>
+              <div style={{ display:"flex", gap:8 }}>
+                {["female","male"].map(s => (
+                  <button key={s} onClick={()=>setProfForm(f=>({...f,sex:s}))}
+                    style={{ ...S.btnSm, background:profForm.sex===s?T.accent+"22":T.border, color:profForm.sex===s?T.accent:T.muted, border:"1px solid "+(profForm.sex===s?T.accent+"55":T.border) }}>
+                    {s.charAt(0).toUpperCase()+s.slice(1)}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, marginBottom:10 }}>
+            <div>
+              <label style={S.label}>Calorie target</label>
+              <input style={S.input} type="number" placeholder="2100" value={profForm.calTarget} onChange={e=>setProfForm(f=>({...f,calTarget:e.target.value}))} />
+            </div>
+            <div>
+              <label style={S.label}>Protein target (g)</label>
+              <input style={S.input} type="number" placeholder="165" value={profForm.proteinTarget} onChange={e=>setProfForm(f=>({...f,proteinTarget:e.target.value}))} />
+            </div>
+          </div>
+          <div style={{ marginBottom:14 }}>
+            <label style={S.label}>Program start date (Week 1, Day 1)</label>
+            <input style={S.input} type="date" value={profForm.week1Start} onChange={e=>setProfForm(f=>({...f,week1Start:e.target.value}))} />
+            <div style={{ fontSize:10, color:T.dim, marginTop:3 }}>Current week calculated from this date.</div>
+          </div>
+          <button style={S.btn} onClick={saveProfile} disabled={profSaving}>
+            {profSaving ? "Saving…" : profSaved ? "✓ Saved!" : "Save"}
+          </button>
+        </div>
+      )}
+
+      {settingsTab === "appearance" && (
+        <div style={S.card}>
+          <div style={{ fontSize:11, fontWeight:700, color:T.muted, textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:16 }}>Appearance</div>
+          <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+            <div>
+              <div style={{ fontSize:13, fontWeight:600, color:T.text }}>Theme</div>
+              <div style={{ fontSize:11, color:T.muted, marginTop:2 }}>{darkMode ? "Dark mode" : "Light mode"}</div>
+            </div>
+            <div onClick={onToggleDark} style={{ width:48, height:26, borderRadius:13, background:darkMode?T.accent:T.border, cursor:"pointer", position:"relative", transition:"background 0.2s" }}>
+              <div style={{ position:"absolute", top:3, left:darkMode?24:3, width:20, height:20, borderRadius:"50%", background:"#fff", transition:"left 0.2s", boxShadow:"0 1px 3px rgba(0,0,0,0.3)" }} />
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
-      {/* Program editor */}
-      <div style={{ ...S.card, marginBottom:16 }}>
-        <div style={{ fontSize:11, fontWeight:700, color:T.muted, textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:4 }}>Program</div>
-        <div style={{ fontSize:11, color:T.dim, marginBottom:16 }}>Rename days, reorder or add/remove exercises. Changes take effect immediately in Workouts.</div>
-        {editProgram.days.map((day, dayIdx) => (
-          <div key={dayIdx} style={{ ...S.card, marginBottom:12, padding:"12px 14px" }}>
-            <div style={{ display:"flex", gap:8, alignItems:"center", marginBottom:10 }}>
-              <input style={{ ...S.input, fontWeight:700, fontSize:13 }} value={day.name}
-                onChange={e=>updateDayName(dayIdx, e.target.value)} />
-              <button style={{ background:"transparent", border:"none", color:T.red, cursor:"pointer", fontSize:16, padding:"0 4px" }}
-                onClick={()=>removeDay(dayIdx)} title="Remove day">×</button>
-            </div>
-            {day.exercises.map((exEntry, exIdx) => {
-              const ex = exName(exEntry);
-              const sets = exSets(exEntry);
-              const key = `${dayIdx}-${exIdx}`;
-              const isEditing = editingEx === key;
-              const repRange = `${exRepMin(exEntry)}–${exRepMax(exEntry)}`;
-              return (
-                <div key={exIdx} style={{ marginBottom:6 }}>
-                  {/* View row */}
-                  {!isEditing && (
-                    <div style={{ display:"flex", alignItems:"center", gap:8, padding:"6px 8px", borderRadius:6, cursor:"pointer", background:"transparent" }}
-                      onClick={()=>setEditingEx(key)}>
-                      <span style={{ flex:1, fontSize:12, color:T.text }}>{ex}</span>
-                      <span style={{ fontSize:10, color:T.dim }}>{sets} sets · {repRange} reps</span>
-                    </div>
-                  )}
-                  {/* Edit row */}
-                  {isEditing && (
-                    <div style={{ background:T.border, borderRadius:8, padding:"10px 10px", marginBottom:2 }}>
-                      <div style={{ fontSize:11, fontWeight:600, color:T.accent, marginBottom:8 }}>{ex}</div>
-                      <div style={{ display:"flex", gap:8, alignItems:"center", marginBottom:8, flexWrap:"wrap" }}>
-                        <div style={{ display:"flex", alignItems:"center", gap:6 }}>
-                          <span style={{ fontSize:11, color:T.muted }}>Sets</span>
-                          <input style={{ ...S.input, width:44, padding:"4px 6px", textAlign:"center", fontSize:12 }}
-                            type="number" min="1" max="10" value={sets}
-                            onChange={e=>updateExSets(dayIdx, exIdx, e.target.value)} />
-                        </div>
-                        <div style={{ display:"flex", alignItems:"center", gap:6 }}>
-                          <span style={{ fontSize:11, color:T.muted }}>+lbs</span>
-                          <input style={{ ...S.input, width:44, padding:"4px 6px", textAlign:"center", fontSize:12 }}
-                            type="number" min="0.5" step="0.5"
-                            placeholder={exEntry.increment != null ? "" : "auto"}
-                            value={exEntry.increment != null ? exEntry.increment : ""}
-                            onChange={e=>updateExIncrement(dayIdx, exIdx, e.target.value)} />
-                        </div>
-                        <div style={{ display:"flex", alignItems:"center", gap:6 }}>
-                          <span style={{ fontSize:11, color:T.muted }}>Reps</span>
-                          <input style={{ ...S.input, width:44, padding:"4px 6px", textAlign:"center", fontSize:12 }}
-                            type="number" min="1" value={exRepMin(exEntry)}
-                            onChange={e=>updateExReps(dayIdx, exIdx, "repMin", e.target.value)} />
-                          <span style={{ fontSize:11, color:T.dim }}>–</span>
-                          <input style={{ ...S.input, width:44, padding:"4px 6px", textAlign:"center", fontSize:12 }}
-                            type="number" min="1" value={exRepMax(exEntry)}
-                            onChange={e=>updateExReps(dayIdx, exIdx, "repMax", e.target.value)} />
-                        </div>
-                        <div style={{ display:"flex", gap:4, marginLeft:"auto" }}>
-                          <button style={{ ...S.btnSm }} onClick={()=>moveExercise(dayIdx,exIdx,-1)} title="Move up">↑</button>
-                          <button style={{ ...S.btnSm }} onClick={()=>moveExercise(dayIdx,exIdx,1)} title="Move down">↓</button>
-                          <button style={{ ...S.btnSm, color:T.red, border:`1px solid ${T.red}44` }} onClick={()=>{ removeExercise(dayIdx,exIdx); setEditingEx(null); }} title="Remove">Remove</button>
-                          <button style={{ ...S.btn, padding:"4px 12px", fontSize:11 }} onClick={()=>setEditingEx(null)}>Done</button>
-                        </div>
+      {settingsTab === "plan" && (
+        <div style={S.card}>
+          <div style={{ fontSize:11, fontWeight:700, color:T.muted, textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:4 }}>Training Plan</div>
+          <div style={{ fontSize:11, color:T.dim, marginBottom:16 }}>Rename days, reorder or add/remove exercises. Changes take effect immediately in Workouts.</div>
+          {editProgram.days.map((day, dayIdx) => (
+            <div key={dayIdx} style={{ ...S.card, marginBottom:12, padding:"12px 14px" }}>
+              <div style={{ display:"flex", gap:8, alignItems:"center", marginBottom:10 }}>
+                <input style={{ ...S.input, fontWeight:700, fontSize:13 }} value={day.name}
+                  onChange={e=>updateDayName(dayIdx, e.target.value)} />
+                <button style={{ background:"transparent", border:"none", color:T.red, cursor:"pointer", fontSize:16, padding:"0 4px" }}
+                  onClick={()=>removeDay(dayIdx)} title="Remove day">x</button>
+              </div>
+              {day.exercises.map((exEntry, exIdx) => {
+                const ex = exName(exEntry);
+                const sets = exSets(exEntry);
+                const key = dayIdx+"-"+exIdx;
+                const isEditing = editingEx === key;
+                const repRange = exRepMin(exEntry)+"–"+exRepMax(exEntry);
+                return (
+                  <div key={exIdx} style={{ marginBottom:6 }}>
+                    {!isEditing && (
+                      <div style={{ display:"flex", alignItems:"center", gap:8, padding:"6px 8px", borderRadius:6, cursor:"pointer" }}
+                        onClick={()=>setEditingEx(key)}>
+                        <span style={{ flex:1, fontSize:12, color:T.text }}>{ex}</span>
+                        <span style={{ fontSize:10, color:T.dim }}>{sets} sets · {repRange} reps</span>
                       </div>
-
-                      {/* Warmup Sets Editor */}
-                      <WarmupEditor exName={ex} exEntry={exEntry} onUpdate={warmups => {
-                        setEditProgram(p => {
-                          const d = [...p.days]; const exs = [...d[dayIdx].exercises];
-                          exs[exIdx] = { ...exs[exIdx], warmups };
-                          d[dayIdx] = { ...d[dayIdx], exercises: exs };
-                          return { ...p, days: d };
-                        });
-                      }} />
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-            <div style={{ display:"flex", gap:6, marginTop:8 }}>
-              <input style={{ ...S.input, fontSize:11 }} placeholder="Add exercise…"
-                value={newExInputs[dayIdx]||""}
-                onChange={e=>setNewExInputs(n=>({...n,[dayIdx]:e.target.value}))}
-                onKeyDown={e=>{ if(e.key==="Enter"){ addExercise(dayIdx, newExInputs[dayIdx]||""); setNewExInputs(n=>({...n,[dayIdx]:""})); }}} />
-              <button style={S.btnSm} onClick={()=>{ addExercise(dayIdx, newExInputs[dayIdx]||""); setNewExInputs(n=>({...n,[dayIdx]:""})); }}>Add</button>
+                    )}
+                    {isEditing && (
+                      <div style={{ background:T.border, borderRadius:8, padding:"10px 10px", marginBottom:2 }}>
+                        <div style={{ fontSize:11, fontWeight:600, color:T.accent, marginBottom:8 }}>{ex}</div>
+                        <div style={{ display:"flex", gap:8, alignItems:"center", marginBottom:8, flexWrap:"wrap" }}>
+                          <div style={{ display:"flex", alignItems:"center", gap:6 }}>
+                            <span style={{ fontSize:11, color:T.muted }}>Sets</span>
+                            <input style={{ ...S.input, width:44, padding:"4px 6px", textAlign:"center", fontSize:12 }}
+                              type="number" min="1" max="10" value={sets}
+                              onChange={e=>updateExSets(dayIdx, exIdx, e.target.value)} />
+                          </div>
+                          <div style={{ display:"flex", alignItems:"center", gap:6 }}>
+                            <span style={{ fontSize:11, color:T.muted }}>+lbs</span>
+                            <input style={{ ...S.input, width:44, padding:"4px 6px", textAlign:"center", fontSize:12 }}
+                              type="number" min="0.5" step="0.5"
+                              placeholder={exEntry.increment != null ? "" : "auto"}
+                              value={exEntry.increment != null ? exEntry.increment : ""}
+                              onChange={e=>updateExIncrement(dayIdx, exIdx, e.target.value)} />
+                          </div>
+                          <div style={{ display:"flex", alignItems:"center", gap:6 }}>
+                            <span style={{ fontSize:11, color:T.muted }}>Reps</span>
+                            <input style={{ ...S.input, width:44, padding:"4px 6px", textAlign:"center", fontSize:12 }}
+                              type="number" min="1" value={exRepMin(exEntry)}
+                              onChange={e=>updateExReps(dayIdx, exIdx, "repMin", e.target.value)} />
+                            <span style={{ fontSize:11, color:T.dim }}>–</span>
+                            <input style={{ ...S.input, width:44, padding:"4px 6px", textAlign:"center", fontSize:12 }}
+                              type="number" min="1" value={exRepMax(exEntry)}
+                              onChange={e=>updateExReps(dayIdx, exIdx, "repMax", e.target.value)} />
+                          </div>
+                          <div style={{ display:"flex", gap:4, marginLeft:"auto" }}>
+                            <button style={S.btnSm} onClick={()=>moveExercise(dayIdx,exIdx,-1)}>↑</button>
+                            <button style={S.btnSm} onClick={()=>moveExercise(dayIdx,exIdx,1)}>↓</button>
+                            <button style={{ ...S.btnSm, color:T.red, border:"1px solid "+T.red+"44" }} onClick={()=>{ removeExercise(dayIdx,exIdx); setEditingEx(null); }}>Remove</button>
+                            <button style={{ ...S.btn, padding:"4px 12px", fontSize:11 }} onClick={()=>setEditingEx(null)}>Done</button>
+                          </div>
+                        </div>
+                        <WarmupEditor exName={ex} exEntry={exEntry} onUpdate={warmups => {
+                          setEditProgram(p => {
+                            const d = [...p.days]; const exs = [...d[dayIdx].exercises];
+                            exs[exIdx] = { ...exs[exIdx], warmups };
+                            d[dayIdx] = { ...d[dayIdx], exercises: exs };
+                            return { ...p, days: d };
+                          });
+                        }} />
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+              <div style={{ display:"flex", gap:6, marginTop:8 }}>
+                <input style={{ ...S.input, fontSize:11 }} placeholder="Add exercise…"
+                  value={newExInputs[dayIdx]||""}
+                  onChange={e=>setNewExInputs(n=>({...n,[dayIdx]:e.target.value}))}
+                  onKeyDown={e=>{ if(e.key==="Enter"){ addExercise(dayIdx, newExInputs[dayIdx]||""); setNewExInputs(n=>({...n,[dayIdx]:""})); }}} />
+                <button style={S.btnSm} onClick={()=>{ addExercise(dayIdx, newExInputs[dayIdx]||""); setNewExInputs(n=>({...n,[dayIdx]:""})); }}>Add</button>
+              </div>
             </div>
+          ))}
+          <button style={{ ...S.btnSm, marginBottom:14 }} onClick={addDay}>+ Add Day</button>
+          <button style={{ ...S.btn, width:"100%" }} onClick={saveProgram} disabled={saving}>
+            {saving ? "Saving…" : saved ? "✓ Saved!" : "Save Program"}
+          </button>
+        </div>
+      )}
+
+      {settingsTab === "account" && (
+        <div style={S.card}>
+          <div style={{ fontSize:11, fontWeight:700, color:T.muted, textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:16 }}>Account</div>
+          <div style={{ fontSize:12, color:T.muted, marginBottom:12 }}>{user.email}</div>
+          {!demoMode && <button style={S.btnDanger} onClick={onSignOut}>Sign out</button>}
+          {demoMode && <div style={{ fontSize:11, color:T.dim }}>Demo account — sign out disabled.</div>}
+          <div style={{ marginTop:16, paddingTop:16, borderTop:"1px solid "+T.border }}>
+            <div style={{ fontSize:11, fontWeight:700, color:T.muted, textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:8 }}>Public Profile</div>
+            <div style={{ fontSize:11, color:T.dim, marginBottom:12 }}>Share your progress publicly — no login required.</div>
+            <a href={profileUrl} target="_blank" style={{ ...S.btn, textDecoration:"none", display:"inline-block" }}>View Public Profile →</a>
           </div>
-        ))}
-        <button style={{ ...S.btnSm, marginBottom:14 }} onClick={addDay}>+ Add Day</button>
-        <button style={{ ...S.btn, width:"100%" }} onClick={saveProgram} disabled={saving}>
-          {saving ? "Saving…" : saved ? "✓ Saved!" : "Save Program"}
-        </button>
-      </div>
-
-      {/* Account */}
-      <div style={{ ...S.card, marginBottom:16 }}>
-        <div style={{ fontSize:11, fontWeight:700, color:T.muted, textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:16 }}>Account</div>
-        <div style={{ fontSize:12, color:T.muted, marginBottom:12 }}>{user.email}</div>
-        <button style={S.btnDanger} onClick={onSignOut}>Sign out</button>
-      </div>
-
-      {/* Public profile */}
-      <div style={S.card}>
-        <div style={{ fontSize:11, fontWeight:700, color:T.muted, textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:12 }}>Public Profile</div>
-        <div style={{ fontSize:12, color:T.muted, marginBottom:12 }}>Share your progress publicly — no login required.</div>
-        <a href={profileUrl} target="_blank" style={{ ...S.btn, textDecoration:"none", display:"inline-block" }}>View Public Profile →</a>
-      </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -2460,18 +3048,37 @@ function OnboardingScreen({ userId, onComplete }) {
 function App() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [dataLoaded, setDataLoaded] = useState(false);
   const [tab, setTab] = useState("overview");
-  const [currentWeek, setCurrentWeek] = useState(4);
+  const [manualWeek, setManualWeek] = useState(null); // null = auto
   const [workouts, setWorkouts] = useState([]);
   const [metrics, setMetrics] = useState([]);
   const [nutrition, setNutrition] = useState([]);
   const [cardio, setCardio] = useState([]);
+  const [rmr, setRmr] = useState([]);
   const [tick, setTick] = useState(0);
   const [program, setProgram] = useState(DEFAULT_PROGRAM);
   const [userProfile, setUserProfile] = useState(null);
   const [darkMode, setDarkMode] = useState(() => {
     try { return localStorage.getItem("hj_dark") !== "false"; } catch { return true; }
   });
+
+  // Compute currentWeek from workouts — highest week with data, or 1 for new users
+  const autoWeek = useMemo(() => {
+    if (!workouts.length) return 1;
+    return Math.max(...workouts.map(w => w.week));
+  }, [workouts]);
+  const currentWeek = manualWeek ?? autoWeek;
+
+  // Derived from userProfile (fall back to module-level constants)
+  const calTarget = userProfile?.calTarget ?? CAL_TARGET;
+  const proteinTarget = userProfile?.proteinTarget ?? PROTEIN_TARGET;
+  const week1Start = userProfile?.week1Start ? new Date(userProfile.week1Start) : WEEK1_START;
+  function effectiveWeekStartDate(week) {
+    const d = new Date(week1Start);
+    d.setDate(d.getDate() + (week - 1) * 7);
+    return d.toISOString().slice(0, 10);
+  }
 
   // Keep T and S in sync with darkMode
   T = getTheme(darkMode);
@@ -2521,16 +3128,19 @@ function App() {
   },[]);
 
   useEffect(()=>{
-    if (!user) return;
+    if (!user) { setDataLoaded(false); return; }
+    setDataLoaded(false);
     async function load() {
-      const [w, m, n, c, prof] = await Promise.all([
+      const [w, m, n, c, prof, r] = await Promise.all([
         Storage.getWorkouts(user.id),
         Storage.getMetrics(user.id),
         Storage.getNutrition(user.id),
         Storage.getCardio(user.id),
         Storage.getProfile(user.id),
+        Storage.getRmr(user.id),
       ]);
-      setWorkouts(w); setMetrics(m); setNutrition(n); setCardio(c); setUserProfile(prof);
+      setWorkouts(w); setMetrics(m); setNutrition(n); setCardio(c); setUserProfile(prof); setRmr(r);
+      setDataLoaded(true);
     }
     load();
   },[user, tick]);
@@ -2555,7 +3165,7 @@ function App() {
 
   if (loading) return <div style={{ minHeight:"100vh", background:T.bg, display:"flex", alignItems:"center", justifyContent:"center", color:T.muted }}>Loading…</div>;
   if (!user) return <AuthScreen onAuth={handleAuth} />;
-  if (userProfile === null && workouts.length === 0) return (
+  if (dataLoaded && userProfile === null && workouts.length === 0) return (
     <OnboardingScreen userId={user.id} onComplete={prof=>{ setUserProfile(prof); }} />
   );
 
@@ -2566,18 +3176,12 @@ function App() {
     <div style={S.root}>
       <div style={S.header}>
         <div>
-          <div style={{ fontSize:18, fontWeight:700, color:T.accent, letterSpacing:"0.08em", textTransform:"uppercase" }}>Health Journal</div>
+          <div style={{ fontSize:18, fontWeight:700, color:T.accent, letterSpacing:"0.08em", textTransform:"uppercase" }}>Health Journal{userProfile?.displayName ? <span style={{ fontSize:13, fontWeight:500, color:T.muted, marginLeft:10, letterSpacing:0, textTransform:"none" }}>{userProfile.displayName}</span> : null}</div>
           <div style={{ fontSize:10, color:T.muted, letterSpacing:"0.12em", textTransform:"uppercase", marginTop:2 }}>Progressive Overload Tracker</div>
         </div>
         <div style={{ display:"flex", alignItems:"center", gap:12 }}>
           {isDeloadWeek(currentWeek) && <span style={S.tag(T.green)}>🔄 DELOAD</span>}
           {!isDeloadWeek(currentWeek) && <span style={{ fontSize:11, color:T.dim }}>{weeksUntilDeload}w to deload</span>}
-          <div style={{ display:"flex", alignItems:"center", gap:6 }}>
-            <span style={{ fontSize:11, color:T.dim }}>Week</span>
-            <button style={S.btnSm} onClick={()=>setCurrentWeek(w=>Math.max(1,w-1))}>−</button>
-            <span style={{ fontSize:16, fontWeight:700, color:T.accent, minWidth:20, textAlign:"center" }}>{currentWeek}</span>
-            <button style={S.btnSm} onClick={()=>setCurrentWeek(w=>w+1)}>+</button>
-          </div>
         </div>
       </div>
       <div style={S.nav}>
@@ -2588,12 +3192,12 @@ function App() {
         ))}
       </div>
       <div style={S.content}>
-        {tab==="overview"     && <OverviewTab workouts={workouts} metrics={metrics} nutrition={nutrition} currentWeek={currentWeek} cardio={cardio} />}
-        {tab==="workouts" && <NextWorkoutTab workouts={workouts} currentWeek={currentWeek} userId={user.id} onWorkoutAdded={reload} program={program} />}
+        {tab==="overview"     && <OverviewTab workouts={workouts} metrics={metrics} nutrition={nutrition} currentWeek={autoWeek} cardio={cardio} rmr={rmr} userProfile={userProfile} calTarget={calTarget} proteinTarget={proteinTarget} />}
+        {tab==="workouts" && <NextWorkoutTab workouts={workouts} currentWeek={currentWeek} userId={user.id} onWorkoutAdded={reload} program={program} manualWeek={manualWeek} setManualWeek={setManualWeek} autoWeek={autoWeek} weekStartDate={effectiveWeekStartDate} />}
         {tab==="progress"     && <ProgressTab workouts={workouts} />}
-        {tab==="body"         && <BodyTab metrics={metrics} nutrition={nutrition} />}
-        {tab==="log"          && <LogTab workouts={workouts} nutrition={nutrition} metrics={metrics} cardio={cardio} currentWeek={currentWeek} userId={user.id} onWorkoutAdded={reload} onNutritionUpsert={reload} onMetricUpsert={reload} onCardioAdded={reload} />}
-        {tab==="settings"     && <SettingsTab darkMode={darkMode} onToggleDark={toggleDark} user={user} onSignOut={handleSignOut} profileUrl="https://fcolombo123.github.io/chessiefit/profile" program={program} userId={user.id} onProgramSave={p=>{setProgram(p);}} />}
+        {tab==="body"         && <BodyTab metrics={metrics} nutrition={nutrition} rmr={rmr} userId={user.id} onRmrSave={async(entries)=>{ await Storage.saveRmr(user.id,entries); setRmr(entries); }} onMetricUpsert={async(m)=>{ await Storage.upsertMetric(user.id,m); reload(); }} userProfile={userProfile} calTarget={calTarget} proteinTarget={proteinTarget} />}
+        {tab==="log"          && <LogTab workouts={workouts} nutrition={nutrition} metrics={metrics} cardio={cardio} currentWeek={currentWeek} userId={user.id} onWorkoutAdded={reload} onNutritionUpsert={reload} onMetricUpsert={reload} onCardioAdded={reload} calTarget={calTarget} proteinTarget={proteinTarget} weekStartDate={effectiveWeekStartDate} />}
+        {tab==="settings"     && <SettingsTab darkMode={darkMode} onToggleDark={toggleDark} user={user} onSignOut={handleSignOut} profileUrl="https://fcolombo123.github.io/chessiefit/profile" program={program} userId={user.id} onProgramSave={p=>{setProgram(p);}} userProfile={userProfile} onProfileSave={async p=>{ await Storage.saveProfile(user.id,p); setUserProfile(p); }} />}
       </div>
     </div>
   );

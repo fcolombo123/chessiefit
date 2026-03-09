@@ -2714,14 +2714,148 @@ function OnboardingScreen({ userId, onComplete }) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 // ─────────────────────────────────────────────────────────────────────────────
-// CHESSIE PUBLIC PROFILE — full app, session-only writes, resets on refresh
+// ALEX DEMO PROFILE — fictional user, full app, session-only, resets on refresh
+// Week 1 = Feb 11 2026 (same anchor as Chessie)
 // ─────────────────────────────────────────────────────────────────────────────
-const PROFILE_UID = 'bedea05c-ad57-4802-af78-4debd097536f';
 
-function ProfileApp() {
-  const [realData, setRealData] = useState(null);
-  const [session, setSession] = useState(null);
-  const [loading, setLoading] = useState(true);
+const ALEX_SEED = {
+  workouts: [
+    // Week 1 — Feb 11-14
+    { id:1, week:1, day:"Upper Push", date:"2026-02-11", exercise:"Barbell Bench Press", sets:[{reps:6,weight:160},{reps:5,weight:160},{reps:8,weight:140},{reps:8,weight:140}], intensity:"medium", notes:"" },
+    { id:2, week:1, day:"Upper Push", date:"2026-02-11", exercise:"Seated DB OHP", sets:[{reps:10,weight:35.0},{reps:10,weight:35.0},{reps:9,weight:37.5},{reps:8,weight:37.5}], intensity:"medium", notes:"" },
+    { id:3, week:1, day:"Upper Push", date:"2026-02-11", exercise:"Cable Rows Wide", sets:[{reps:8,weight:127.5},{reps:10,weight:127.5},{reps:10,weight:127.5},{reps:9,weight:127.5}], intensity:"medium", notes:"" },
+    { id:4, week:1, day:"Upper Push", date:"2026-02-11", exercise:"Incline DB Press (Push)", sets:[{reps:12,weight:52.5},{reps:10,weight:52.5},{reps:8,weight:52.5}], intensity:"medium", notes:"" },
+    { id:5, week:1, day:"Upper Push", date:"2026-02-11", exercise:"Cable Flyes", sets:[{reps:15,weight:60.0},{reps:15,weight:67.5},{reps:15,weight:75.0}], intensity:"easy", notes:"" },
+    { id:6, week:1, day:"Upper Push", date:"2026-02-11", exercise:"Lateral Raises", sets:[{reps:15,weight:10.0},{reps:15,weight:10.0},{reps:15,weight:10.0}], intensity:"easy", notes:"" },
+    { id:7, week:1, day:"Upper Push", date:"2026-02-11", exercise:"Tricep Pushdowns", sets:[{reps:14,weight:40.0},{reps:10,weight:35.0},{reps:10,weight:35.0}], intensity:"medium", notes:"" },
+    { id:8, week:1, day:"Upper Push", date:"2026-02-11", exercise:"Face Pulls", sets:[{reps:18,weight:35.0},{reps:19,weight:37.5}], intensity:"easy", notes:"" },
+    { id:9, week:1, day:"Lower A", date:"2026-02-12", exercise:"Barbell Back Squat", sets:[{reps:8,weight:170},{reps:8,weight:170},{reps:8,weight:170},{reps:8,weight:170}], intensity:"medium", notes:"" },
+    { id:10, week:1, day:"Lower A", date:"2026-02-12", exercise:"Leg Press", sets:[{reps:12,weight:270},{reps:12,weight:270},{reps:12,weight:270}], intensity:"medium", notes:"" },
+    { id:11, week:1, day:"Lower A", date:"2026-02-12", exercise:"Romanian Deadlifts", sets:[{reps:10,weight:120},{reps:10,weight:120},{reps:10,weight:120}], intensity:"medium", notes:"" },
+    { id:12, week:1, day:"Lower A", date:"2026-02-12", exercise:"Leg Curls", sets:[{reps:12,weight:90.0},{reps:12,weight:90.0},{reps:11,weight:90.0}], intensity:"easy", notes:"" },
+    { id:13, week:1, day:"Lower A", date:"2026-02-12", exercise:"Leg Extensions", sets:[{reps:15,weight:90.0},{reps:15,weight:82.5},{reps:15,weight:75.0}], intensity:"easy", notes:"" },
+    { id:14, week:1, day:"Lower A", date:"2026-02-12", exercise:"Hanging Leg Raises", sets:[{reps:10,weight:0},{reps:10,weight:0},{reps:10,weight:0}], intensity:"easy", notes:"" },
+    { id:15, week:1, day:"Upper Pull", date:"2026-02-13", exercise:"Lat Pulldowns", sets:[{reps:7,weight:112.5},{reps:8,weight:105.0},{reps:8,weight:105.0},{reps:8,weight:105.0}], intensity:"medium", notes:"" },
+    { id:16, week:1, day:"Upper Pull", date:"2026-02-13", exercise:"DB Rows", sets:[{reps:10,weight:52.5},{reps:10,weight:52.5},{reps:10,weight:52.5}], intensity:"medium", notes:"" },
+    { id:17, week:1, day:"Upper Pull", date:"2026-02-13", exercise:"Cable Rows Close", sets:[{reps:12,weight:112.5},{reps:12,weight:112.5},{reps:10,weight:112.5}], intensity:"medium", notes:"" },
+    { id:18, week:1, day:"Upper Pull", date:"2026-02-13", exercise:"Barbell Curls", sets:[{reps:10,weight:60.0},{reps:10,weight:60.0},{reps:7,weight:60.0}], intensity:"medium", notes:"" },
+    { id:19, week:1, day:"Upper Pull", date:"2026-02-13", exercise:"OH Tricep Extension", sets:[{reps:14,weight:37.5},{reps:14,weight:37.5},{reps:14,weight:37.5}], intensity:"medium", notes:"" },
+    { id:20, week:1, day:"Upper Pull", date:"2026-02-13", exercise:"Hammer Curls", sets:[{reps:9,weight:30.0},{reps:9,weight:30.0},{reps:8,weight:30.0}], intensity:"easy", notes:"" },
+    { id:21, week:1, day:"Upper Pull", date:"2026-02-13", exercise:"Face Pulls", sets:[{reps:20,weight:37.5},{reps:20,weight:37.5}], intensity:"easy", notes:"" },
+    { id:22, week:1, day:"Lower B", date:"2026-02-14", exercise:"Trap Bar Deadlift", sets:[{reps:8,weight:200},{reps:8,weight:200},{reps:8,weight:200},{reps:7,weight:200}], intensity:"hard", notes:"" },
+    { id:23, week:1, day:"Lower B", date:"2026-02-14", exercise:"Goblet Squats", sets:[{reps:12,weight:60.0},{reps:12,weight:60.0},{reps:12,weight:60.0}], intensity:"easy", notes:"" },
+    { id:24, week:1, day:"Lower B", date:"2026-02-14", exercise:"Leg Press", sets:[{reps:15,weight:240},{reps:15,weight:240},{reps:15,weight:240}], intensity:"medium", notes:"" },
+    { id:25, week:1, day:"Lower B", date:"2026-02-14", exercise:"Leg Curls", sets:[{reps:12,weight:97.5},{reps:12,weight:97.5},{reps:11,weight:97.5}], intensity:"easy", notes:"" },
+    { id:26, week:1, day:"Lower B", date:"2026-02-14", exercise:"Hip Thrusts", sets:[{reps:15,weight:75.0},{reps:15,weight:75.0},{reps:15,weight:75.0}], intensity:"medium", notes:"" },
+    // Week 2 — Feb 18-21
+    { id:27, week:2, day:"Upper Push", date:"2026-02-18", exercise:"Barbell Bench Press", sets:[{reps:8,weight:150},{reps:8,weight:150},{reps:8,weight:150},{reps:7,weight:150}], intensity:"medium", notes:"" },
+    { id:28, week:2, day:"Upper Push", date:"2026-02-18", exercise:"Seated DB OHP", sets:[{reps:10,weight:37.5},{reps:10,weight:37.5},{reps:10,weight:37.5}], intensity:"medium", notes:"" },
+    { id:29, week:2, day:"Upper Push", date:"2026-02-18", exercise:"Cable Rows Wide", sets:[{reps:10,weight:127.5},{reps:10,weight:127.5},{reps:10,weight:127.5}], intensity:"medium", notes:"" },
+    { id:30, week:2, day:"Upper Push", date:"2026-02-18", exercise:"Incline DB Press (Push)", sets:[{reps:12,weight:52.5},{reps:12,weight:52.5},{reps:10,weight:52.5}], intensity:"medium", notes:"" },
+    { id:31, week:2, day:"Upper Push", date:"2026-02-18", exercise:"Cable Flyes", sets:[{reps:15,weight:75.0},{reps:12,weight:75.0},{reps:10,weight:75.0}], intensity:"medium", notes:"" },
+    { id:32, week:2, day:"Upper Push", date:"2026-02-18", exercise:"Lateral Raises", sets:[{reps:15,weight:15.0},{reps:15,weight:15.0},{reps:15,weight:15.0}], intensity:"easy", notes:"" },
+    { id:33, week:2, day:"Upper Push", date:"2026-02-18", exercise:"Tricep Pushdowns", sets:[{reps:12,weight:37.5},{reps:12,weight:37.5}], intensity:"medium", notes:"" },
+    { id:34, week:2, day:"Upper Push", date:"2026-02-18", exercise:"Face Pulls", sets:[{reps:20,weight:37.5},{reps:20,weight:37.5}], intensity:"easy", notes:"" },
+    { id:35, week:2, day:"Lower A", date:"2026-02-19", exercise:"Barbell Back Squat", sets:[{reps:8,weight:170},{reps:8,weight:170},{reps:8,weight:170},{reps:8,weight:170}], intensity:"medium", notes:"" },
+    { id:36, week:2, day:"Lower A", date:"2026-02-19", exercise:"Leg Press", sets:[{reps:12,weight:270},{reps:12,weight:270},{reps:12,weight:270}], intensity:"medium", notes:"" },
+    { id:37, week:2, day:"Lower A", date:"2026-02-19", exercise:"Romanian Deadlifts", sets:[{reps:10,weight:170},{reps:10,weight:170},{reps:10,weight:170}], intensity:"medium", notes:"" },
+    { id:38, week:2, day:"Lower A", date:"2026-02-19", exercise:"Leg Curls", sets:[{reps:12,weight:97.5},{reps:12,weight:97.5},{reps:12,weight:97.5}], intensity:"easy", notes:"" },
+    { id:39, week:2, day:"Lower A", date:"2026-02-19", exercise:"Leg Extensions", sets:[{reps:15,weight:82.5},{reps:15,weight:82.5},{reps:15,weight:82.5}], intensity:"easy", notes:"" },
+    { id:40, week:2, day:"Lower A", date:"2026-02-19", exercise:"Hanging Leg Raises", sets:[{reps:15,weight:0},{reps:15,weight:0},{reps:15,weight:0}], intensity:"easy", notes:"" },
+    { id:41, week:2, day:"Upper Pull", date:"2026-02-20", exercise:"Lat Pulldowns", sets:[{reps:8,weight:112.5},{reps:8,weight:112.5},{reps:6,weight:112.5},{reps:6,weight:112.5}], intensity:"medium", notes:"" },
+    { id:42, week:2, day:"Upper Pull", date:"2026-02-20", exercise:"DB Rows", sets:[{reps:12,weight:60.0},{reps:12,weight:60.0},{reps:12,weight:60.0}], intensity:"medium", notes:"" },
+    { id:43, week:2, day:"Upper Pull", date:"2026-02-20", exercise:"Cable Rows Close", sets:[{reps:12,weight:120.0},{reps:12,weight:120.0},{reps:10,weight:120.0}], intensity:"medium", notes:"" },
+    { id:44, week:2, day:"Upper Pull", date:"2026-02-20", exercise:"Barbell Curls", sets:[{reps:10,weight:60.0},{reps:10,weight:60.0},{reps:7,weight:60.0}], intensity:"medium", notes:"" },
+    { id:45, week:2, day:"Upper Pull", date:"2026-02-20", exercise:"OH Tricep Extension", sets:[{reps:12,weight:45.0},{reps:12,weight:45.0},{reps:12,weight:45.0}], intensity:"medium", notes:"" },
+    { id:46, week:2, day:"Upper Pull", date:"2026-02-20", exercise:"Hammer Curls", sets:[{reps:10,weight:30.0},{reps:10,weight:30.0},{reps:8,weight:30.0}], intensity:"easy", notes:"" },
+    { id:47, week:2, day:"Upper Pull", date:"2026-02-20", exercise:"Face Pulls", sets:[{reps:20,weight:37.5},{reps:20,weight:37.5}], intensity:"easy", notes:"" },
+    { id:48, week:2, day:"Lower B", date:"2026-02-21", exercise:"Trap Bar Deadlift", sets:[{reps:8,weight:200},{reps:8,weight:200},{reps:8,weight:200},{reps:8,weight:200}], intensity:"hard", notes:"" },
+    { id:49, week:2, day:"Lower B", date:"2026-02-21", exercise:"Bulgarian Split Squats", sets:[{reps:10,weight:22.5},{reps:10,weight:22.5},{reps:10,weight:22.5}], intensity:"medium", notes:"" },
+    { id:50, week:2, day:"Lower B", date:"2026-02-21", exercise:"Leg Press", sets:[{reps:15,weight:270},{reps:15,weight:270},{reps:15,weight:270}], intensity:"medium", notes:"" },
+    { id:51, week:2, day:"Lower B", date:"2026-02-21", exercise:"Leg Curls", sets:[{reps:12,weight:97.5},{reps:12,weight:97.5},{reps:12,weight:97.5}], intensity:"easy", notes:"" },
+    { id:52, week:2, day:"Lower B", date:"2026-02-21", exercise:"Hip Thrusts", sets:[{reps:15,weight:90.0},{reps:15,weight:90.0},{reps:15,weight:90.0}], intensity:"medium", notes:"" },
+    // Week 3 — Feb 25-28
+    { id:53, week:3, day:"Upper Push", date:"2026-02-25", exercise:"Barbell Bench Press", sets:[{reps:8,weight:150},{reps:8,weight:150},{reps:8,weight:150},{reps:8,weight:150}], intensity:"medium", notes:"" },
+    { id:54, week:3, day:"Upper Push", date:"2026-02-25", exercise:"Seated DB OHP", sets:[{reps:9,weight:45.0},{reps:9,weight:45.0},{reps:7,weight:45.0}], intensity:"medium", notes:"" },
+    { id:55, week:3, day:"Upper Push", date:"2026-02-25", exercise:"Cable Rows Wide", sets:[{reps:10,weight:142.5},{reps:10,weight:142.5},{reps:9,weight:142.5}], intensity:"medium", notes:"" },
+    { id:56, week:3, day:"Upper Push", date:"2026-02-25", exercise:"Incline DB Press (Push)", sets:[{reps:9,weight:60.0},{reps:9,weight:52.5},{reps:8,weight:52.5}], intensity:"medium", notes:"" },
+    { id:57, week:3, day:"Upper Push", date:"2026-02-25", exercise:"Cable Flyes", sets:[{reps:12,weight:37.5},{reps:12,weight:37.5},{reps:9,weight:37.5}], intensity:"medium", notes:"" },
+    { id:58, week:3, day:"Upper Push", date:"2026-02-25", exercise:"Lateral Raises", sets:[{reps:15,weight:20.0},{reps:15,weight:20.0},{reps:10,weight:20.0}], intensity:"easy", notes:"" },
+    { id:59, week:3, day:"Upper Push", date:"2026-02-25", exercise:"Tricep Pushdowns", sets:[{reps:12,weight:37.5},{reps:12,weight:37.5},{reps:11,weight:37.5}], intensity:"medium", notes:"" },
+    { id:60, week:3, day:"Upper Push", date:"2026-02-25", exercise:"Face Pulls", sets:[{reps:20,weight:37.5},{reps:20,weight:37.5}], intensity:"easy", notes:"" },
+    { id:61, week:3, day:"Lower A", date:"2026-02-26", exercise:"Barbell Back Squat", sets:[{reps:8,weight:190},{reps:8,weight:190},{reps:8,weight:190},{reps:8,weight:190}], intensity:"hard", notes:"" },
+    { id:62, week:3, day:"Lower A", date:"2026-02-26", exercise:"Leg Press", sets:[{reps:12,weight:300},{reps:12,weight:300},{reps:12,weight:300}], intensity:"medium", notes:"" },
+    { id:63, week:3, day:"Lower A", date:"2026-02-26", exercise:"Romanian Deadlifts", sets:[{reps:8,weight:180},{reps:8,weight:180},{reps:8,weight:180}], intensity:"medium", notes:"" },
+    { id:64, week:3, day:"Lower A", date:"2026-02-26", exercise:"Leg Curls", sets:[{reps:12,weight:105.0},{reps:12,weight:105.0},{reps:12,weight:105.0}], intensity:"medium", notes:"" },
+    { id:65, week:3, day:"Lower A", date:"2026-02-26", exercise:"Leg Extensions", sets:[{reps:15,weight:90.0},{reps:15,weight:90.0},{reps:15,weight:90.0}], intensity:"medium", notes:"" },
+    { id:66, week:3, day:"Upper Pull", date:"2026-02-27", exercise:"Lat Pulldowns", sets:[{reps:8,weight:112.5},{reps:8,weight:112.5},{reps:8,weight:112.5},{reps:8,weight:112.5}], intensity:"medium", notes:"" },
+    { id:67, week:3, day:"Upper Pull", date:"2026-02-27", exercise:"DB Rows", sets:[{reps:8,weight:67.5},{reps:8,weight:67.5},{reps:8,weight:67.5}], intensity:"medium", notes:"" },
+    { id:68, week:3, day:"Upper Pull", date:"2026-02-27", exercise:"Incline DB Press (Pull)", sets:[{reps:12,weight:52.5},{reps:12,weight:52.5},{reps:12,weight:52.5}], intensity:"medium", notes:"" },
+    { id:69, week:3, day:"Upper Pull", date:"2026-02-27", exercise:"Cable Rows Close", sets:[{reps:12,weight:120.0},{reps:12,weight:120.0},{reps:12,weight:120.0}], intensity:"medium", notes:"" },
+    { id:70, week:3, day:"Upper Pull", date:"2026-02-27", exercise:"Barbell Curls", sets:[{reps:10,weight:60.0},{reps:10,weight:60.0},{reps:9,weight:60.0}], intensity:"medium", notes:"" },
+    { id:71, week:3, day:"Upper Pull", date:"2026-02-27", exercise:"OH Tricep Extension", sets:[{reps:12,weight:45.0},{reps:12,weight:45.0},{reps:12,weight:45.0}], intensity:"medium", notes:"" },
+    { id:72, week:3, day:"Upper Pull", date:"2026-02-27", exercise:"Hammer Curls", sets:[{reps:10,weight:30.0},{reps:10,weight:30.0},{reps:8,weight:30.0}], intensity:"easy", notes:"" },
+    { id:73, week:3, day:"Upper Pull", date:"2026-02-27", exercise:"Face Pulls", sets:[{reps:20,weight:45.0},{reps:20,weight:40.0}], intensity:"easy", notes:"" },
+    { id:74, week:3, day:"Lower B", date:"2026-02-28", exercise:"Trap Bar Deadlift", sets:[{reps:6,weight:220},{reps:6,weight:220},{reps:7,weight:220},{reps:6,weight:220}], intensity:"hard", notes:"" },
+    { id:75, week:3, day:"Lower B", date:"2026-02-28", exercise:"Bulgarian Split Squats", sets:[{reps:10,weight:25.0},{reps:10,weight:25.0},{reps:10,weight:25.0}], intensity:"medium", notes:"" },
+    { id:76, week:3, day:"Lower B", date:"2026-02-28", exercise:"Leg Press", sets:[{reps:15,weight:300},{reps:15,weight:300},{reps:15,weight:300}], intensity:"medium", notes:"" },
+    { id:77, week:3, day:"Lower B", date:"2026-02-28", exercise:"Leg Curls", sets:[{reps:12,weight:105.0},{reps:12,weight:105.0},{reps:12,weight:105.0}], intensity:"medium", notes:"" },
+    { id:78, week:3, day:"Lower B", date:"2026-02-28", exercise:"Hip Thrusts", sets:[{reps:15,weight:105.0},{reps:15,weight:105.0},{reps:15,weight:105.0}], intensity:"medium", notes:"" },
+    { id:79, week:3, day:"Lower B", date:"2026-02-28", exercise:"Plank", sets:[{reps:60,weight:0},{reps:60,weight:0},{reps:60,weight:0}], intensity:"easy", notes:"" },
+    // Week 4 — Mar 4-7 (current, partial)
+    { id:80, week:4, day:"Upper Push", date:"2026-03-04", exercise:"Barbell Bench Press", sets:[{reps:8,weight:160},{reps:8,weight:160},{reps:7,weight:160},{reps:8,weight:160}], intensity:"hard", notes:"" },
+    { id:81, week:4, day:"Upper Push", date:"2026-03-04", exercise:"Seated DB OHP", sets:[{reps:10,weight:45.0},{reps:9,weight:45.0},{reps:8,weight:45.0}], intensity:"hard", notes:"" },
+    { id:82, week:4, day:"Upper Push", date:"2026-03-04", exercise:"Cable Rows Wide", sets:[{reps:10,weight:142.5},{reps:10,weight:142.5},{reps:9,weight:142.5}], intensity:"medium", notes:"" },
+    { id:83, week:4, day:"Upper Push", date:"2026-03-04", exercise:"Incline DB Press (Push)", sets:[{reps:10,weight:52.5},{reps:12,weight:52.5},{reps:10,weight:52.5}], intensity:"medium", notes:"" },
+    { id:84, week:4, day:"Upper Push", date:"2026-03-04", exercise:"Lateral Raises", sets:[{reps:15,weight:20.0},{reps:15,weight:20.0},{reps:13,weight:20.0}], intensity:"medium", notes:"" },
+    { id:85, week:4, day:"Upper Push", date:"2026-03-04", exercise:"Cable Flyes", sets:[{reps:15,weight:75.0},{reps:15,weight:75.0},{reps:13,weight:75.0}], intensity:"medium", notes:"" },
+    { id:86, week:4, day:"Upper Push", date:"2026-03-04", exercise:"Face Pulls", sets:[{reps:20,weight:50.0},{reps:20,weight:40.0}], intensity:"easy", notes:"" },
+    { id:87, week:4, day:"Upper Push", date:"2026-03-04", exercise:"Tricep Pushdowns", sets:[{reps:13,weight:40.0},{reps:12,weight:45.0},{reps:11,weight:45.0}], intensity:"medium", notes:"" },
+    { id:88, week:4, day:"Lower A", date:"2026-03-05", exercise:"Barbell Back Squat", sets:[{reps:8,weight:195},{reps:8,weight:195},{reps:7,weight:195},{reps:7,weight:195}], intensity:"hard", notes:"" },
+    { id:89, week:4, day:"Lower A", date:"2026-03-05", exercise:"Leg Press", sets:[{reps:12,weight:310},{reps:12,weight:310},{reps:12,weight:310}], intensity:"medium", notes:"" },
+    { id:90, week:4, day:"Lower A", date:"2026-03-05", exercise:"Romanian Deadlifts", sets:[{reps:8,weight:190},{reps:8,weight:190},{reps:8,weight:190}], intensity:"medium", notes:"" },
+    { id:91, week:4, day:"Lower A", date:"2026-03-05", exercise:"Leg Curls", sets:[{reps:12,weight:105.0},{reps:12,weight:105.0},{reps:12,weight:105.0}], intensity:"medium", notes:"" },
+    { id:92, week:4, day:"Lower A", date:"2026-03-05", exercise:"Leg Extensions", sets:[{reps:15,weight:90.0},{reps:15,weight:90.0},{reps:15,weight:90.0}], intensity:"medium", notes:"" },
+    { id:93, week:4, day:"Upper Pull", date:"2026-03-06", exercise:"Lat Pulldowns", sets:[{reps:8,weight:120.0},{reps:8,weight:120.0},{reps:8,weight:120.0},{reps:8,weight:120.0}], intensity:"medium", notes:"" },
+    { id:94, week:4, day:"Upper Pull", date:"2026-03-06", exercise:"DB Rows", sets:[{reps:10,weight:75.0},{reps:10,weight:75.0},{reps:9,weight:75.0}], intensity:"medium", notes:"" },
+    { id:95, week:4, day:"Upper Pull", date:"2026-03-06", exercise:"Cable Rows Close", sets:[{reps:12,weight:127.5},{reps:12,weight:127.5},{reps:10,weight:127.5}], intensity:"medium", notes:"" },
+    { id:96, week:4, day:"Upper Pull", date:"2026-03-06", exercise:"Barbell Curls", sets:[{reps:10,weight:67.5},{reps:10,weight:67.5},{reps:8,weight:67.5}], intensity:"medium", notes:"" },
+    { id:97, week:4, day:"Upper Pull", date:"2026-03-06", exercise:"OH Tricep Extension", sets:[{reps:12,weight:50.0},{reps:12,weight:50.0},{reps:12,weight:50.0}], intensity:"medium", notes:"" },
+    { id:98, week:4, day:"Upper Pull", date:"2026-03-06", exercise:"Hammer Curls", sets:[{reps:10,weight:35.0},{reps:10,weight:35.0},{reps:8,weight:35.0}], intensity:"medium", notes:"" },
+    { id:99, week:4, day:"Upper Pull", date:"2026-03-06", exercise:"Face Pulls", sets:[{reps:20,weight:50.0},{reps:20,weight:45.0}], intensity:"easy", notes:"" },
+  ],
+  metrics: [
+    { id:1, date:"2026-02-11", weight:192,   bodyFat:31.2, leanMass:132.2, fatMass:59.8, visceralFat:3.1  },
+    { id:2, date:"2026-02-18", weight:190.5, bodyFat:30.8, leanMass:131.9, fatMass:58.6, visceralFat:3.0  },
+    { id:3, date:"2026-02-25", weight:189,   bodyFat:30.1, leanMass:132.4, fatMass:56.6, visceralFat:2.9  },
+    { id:4, date:"2026-03-04", weight:187.5, bodyFat:29.4, leanMass:132.7, fatMass:54.8, visceralFat:2.8  },
+    { id:5, date:"2026-03-07", weight:186.5, bodyFat:29.0, leanMass:132.5, fatMass:54.0, visceralFat:2.75 },
+  ],
+  nutrition: [
+    { date:"2026-02-25", calories:2310, protein:176 }, { date:"2026-02-26", calories:2280, protein:171 },
+    { date:"2026-02-27", calories:2350, protein:179 }, { date:"2026-02-28", calories:2260, protein:170 },
+    { date:"2026-03-01", calories:2290, protein:174 }, { date:"2026-03-02", calories:2320, protein:177 },
+    { date:"2026-03-03", calories:2240, protein:168 }, { date:"2026-03-04", calories:2300, protein:175 },
+    { date:"2026-03-05", calories:2270, protein:172 }, { date:"2026-03-06", calories:2330, protein:178 },
+    { date:"2026-03-07", calories:2250, protein:169 },
+  ],
+  cardio: [
+    { id:1, date:"2026-02-13", type:"steady",    duration:30, distance:2.8, heartRate:145 },
+    { id:2, date:"2026-02-15", type:"intervals", duration:25, distance:2.5, heartRate:162 },
+    { id:3, date:"2026-02-20", type:"steady",    duration:35, distance:3.1, heartRate:147 },
+    { id:4, date:"2026-02-22", type:"steady",    duration:30, distance:2.7, heartRate:144 },
+    { id:5, date:"2026-02-27", type:"intervals", duration:25, distance:2.4, heartRate:160 },
+    { id:6, date:"2026-03-01", type:"steady",    duration:35, distance:3.2, heartRate:148 },
+    { id:7, date:"2026-03-05", type:"steady",    duration:30, distance:2.9, heartRate:146 },
+    { id:8, date:"2026-03-07", type:"intervals", duration:25, distance:2.6, heartRate:161 },
+  ],
+  rmr:        [{ date:"2026-02-12", rmr:1782, rhr:68, rer:0.82, tdee:2694 }],
+  program:    DEFAULT_PROGRAM,
+  userProfile:{ heightIn:68, age:34, sex:"male" },
+};
+
+function AlexApp() {
+  const [session, setSession] = useState(JSON.parse(JSON.stringify(ALEX_SEED)));
   const [tab, setTab] = useState("overview");
   const [manualWeek, setManualWeek] = useState(null);
   const [darkMode, setDarkMode] = useState(true);
@@ -2730,58 +2864,25 @@ function ProfileApp() {
   T = getTheme(darkMode);
   S = getStyles(T);
 
-  useEffect(() => {
-    async function load() {
-      const [w, m, n, c, p, r, prof] = await Promise.all([
-        Storage.getWorkouts(PROFILE_UID),
-        Storage.getMetrics(PROFILE_UID),
-        Storage.getNutrition(PROFILE_UID),
-        Storage.getCardio(PROFILE_UID),
-        Storage.getProgram(PROFILE_UID),
-        Storage.getRmr(PROFILE_UID),
-        Storage.getProfile(PROFILE_UID),
-      ]);
-      const real = { workouts:w, metrics:m, nutrition:n, cardio:c, program:p, rmr:r, userProfile:prof };
-      setRealData(real);
-      setSession({ ...real });
-      setLoading(false);
-    }
-    load();
-  }, []);
-
   const autoWeek = useMemo(() => {
-    if (!session?.workouts?.length) return 1;
+    if (!session.workouts.length) return 1;
     return Math.max(...session.workouts.map(w => w.week));
-  }, [session?.workouts]);
+  }, [session.workouts]);
   const currentWeek = manualWeek ?? autoWeek;
 
-  if (loading) return <div style={{ minHeight:"100vh", background:"#2d3533", display:"flex", alignItems:"center", justifyContent:"center", color:"#8aaba7" }}>Loading…</div>;
+  function resetSession() { setSession(JSON.parse(JSON.stringify(ALEX_SEED))); setManualWeek(null); setDemoActive(false); }
 
-  function resetSession() { setSession({ ...realData }); setManualWeek(null); setDemoActive(false); }
-
-  function addWorkout(entry) {
-    setSession(s => ({ ...s, workouts: [...s.workouts, { ...entry, id: Date.now() }] }));
+  function addWorkout(entry)   { setSession(s=>({...s,workouts:[...s.workouts,{...entry,id:Date.now()}]})); setDemoActive(true); }
+  function upsertMetric(m)     {
+    if (m?._delete) { setSession(s=>({...s,metrics:s.metrics.filter(x=>x.date!==m.date)})); }
+    else { setSession(s=>{ const f=s.metrics.filter(x=>x.date!==m.date); return {...s,metrics:[...f,m].sort((a,b)=>a.date.localeCompare(b.date))}; }); }
     setDemoActive(true);
   }
-  function upsertMetric(m) {
-    if (m?._delete) {
-      setSession(s => ({ ...s, metrics: s.metrics.filter(x => x.date !== m.date) }));
-    } else {
-      setSession(s => { const f = s.metrics.filter(x => x.date !== m.date); return { ...s, metrics: [...f, m].sort((a,b)=>a.date.localeCompare(b.date)) }; });
-    }
-    setDemoActive(true);
-  }
-  function upsertNutrition(n) {
-    setSession(s => { const f = s.nutrition.filter(x => x.date !== n.date); return { ...s, nutrition: [...f, n].sort((a,b)=>a.date.localeCompare(b.date)) }; });
-    setDemoActive(true);
-  }
-  function addCardio(c) {
-    setSession(s => ({ ...s, cardio: [...s.cardio, { ...c, id: Date.now() }] }));
-    setDemoActive(true);
-  }
-  function saveProgram(p) { setSession(s => ({ ...s, program: p })); setDemoActive(true); }
-  function saveRmr(r)     { setSession(s => ({ ...s, rmr: r })); setDemoActive(true); }
-  function saveProfile(p) { setSession(s => ({ ...s, userProfile: p })); setDemoActive(true); }
+  function upsertNutrition(n)  { setSession(s=>{ const f=s.nutrition.filter(x=>x.date!==n.date); return {...s,nutrition:[...f,n].sort((a,b)=>a.date.localeCompare(b.date))}; }); setDemoActive(true); }
+  function addCardio(c)        { setSession(s=>({...s,cardio:[...s.cardio,{...c,id:Date.now()}]})); setDemoActive(true); }
+  function saveProgram(p)      { setSession(s=>({...s,program:p})); setDemoActive(true); }
+  function saveRmr(r)          { setSession(s=>({...s,rmr:r})); setDemoActive(true); }
+  function saveProfile(p)      { setSession(s=>({...s,userProfile:p})); setDemoActive(true); }
 
   const { workouts, metrics, nutrition, cardio, program, rmr, userProfile } = session;
   const TABS = ["overview","workouts","progress","body","log","settings"];
@@ -2790,10 +2891,10 @@ function ProfileApp() {
     <div style={S.root}>
       <div style={S.header}>
         <div>
-          <div style={{ fontSize:18, fontWeight:700, color:T.accent, letterSpacing:"0.08em", textTransform:"uppercase" }}>Chessie's Fitness</div>
-          <div style={{ fontSize:10, color:T.muted, letterSpacing:"0.12em", textTransform:"uppercase", marginTop:2 }}>Public Profile</div>
+          <div style={{ fontSize:18, fontWeight:700, color:T.accent, letterSpacing:"0.08em", textTransform:"uppercase" }}>Alex's Fitness</div>
+          <div style={{ fontSize:10, color:T.muted, letterSpacing:"0.12em", textTransform:"uppercase", marginTop:2 }}>Demo Profile</div>
         </div>
-        <span style={{ ...S.tag(T.accent), fontSize:10 }}>👁 Viewing</span>
+        <span style={{ ...S.tag(T.accent), fontSize:10 }}>👁 Demo</span>
       </div>
       <div style={S.nav}>
         {TABS.map(t=>(
@@ -2814,17 +2915,17 @@ function ProfileApp() {
       </div>
       <div style={S.content}>
         {tab==="overview"  && <OverviewTab workouts={workouts} metrics={metrics} nutrition={nutrition} currentWeek={autoWeek} cardio={cardio} rmr={rmr} userProfile={userProfile} />}
-        {tab==="workouts"  && <NextWorkoutTab workouts={workouts} currentWeek={currentWeek} userId={PROFILE_UID} onWorkoutAdded={addWorkout} program={program} manualWeek={manualWeek} setManualWeek={setManualWeek} autoWeek={autoWeek} demoMode={true} />}
+        {tab==="workouts"  && <NextWorkoutTab workouts={workouts} currentWeek={currentWeek} userId={null} onWorkoutAdded={addWorkout} program={program} manualWeek={manualWeek} setManualWeek={setManualWeek} autoWeek={autoWeek} demoMode={true} />}
         {tab==="progress"  && <ProgressTab workouts={workouts} />}
         {tab==="body"      && <BodyTab metrics={metrics} nutrition={nutrition} rmr={rmr} userId={null} onRmrSave={saveRmr} onMetricUpsert={upsertMetric} userProfile={userProfile} />}
-        {tab==="log"       && <LogTab workouts={workouts} nutrition={nutrition} metrics={metrics} cardio={cardio} currentWeek={currentWeek} userId={PROFILE_UID} onWorkoutAdded={addWorkout} onNutritionUpsert={upsertNutrition} onMetricUpsert={upsertMetric} onCardioAdded={addCardio} demoMode={true} />}
-        {tab==="settings"  && <SettingsTab darkMode={darkMode} onToggleDark={()=>setDarkMode(d=>!d)} user={{ email:"chessie@demo.com" }} onSignOut={()=>{}} profileUrl="https://fcolombo123.github.io/chessiefit/profile2" program={program} userId={null} onProgramSave={saveProgram} userProfile={userProfile} onProfileSave={saveProfile} demoMode={true} />}
+        {tab==="log"       && <LogTab workouts={workouts} nutrition={nutrition} metrics={metrics} cardio={cardio} currentWeek={currentWeek} userId={null} onWorkoutAdded={addWorkout} onNutritionUpsert={upsertNutrition} onMetricUpsert={upsertMetric} onCardioAdded={addCardio} demoMode={true} />}
+        {tab==="settings"  && <SettingsTab darkMode={darkMode} onToggleDark={()=>setDarkMode(d=>!d)} user={{ email:"alex@demo.com" }} onSignOut={()=>{}} profileUrl="#" program={program} userId={null} onProgramSave={saveProgram} userProfile={userProfile} onProfileSave={saveProfile} demoMode={true} />}
       </div>
     </div>
   );
 }
 
-ReactDOM.createRoot(document.getElementById("root")).render(<ProfileApp />);
+ReactDOM.createRoot(document.getElementById("root")).render(<AlexApp />);
 </script>
 </body>
 </html>
