@@ -549,34 +549,42 @@ function sevenDayAvg(entries, field) {
 function getSuggestion(history, isDeload, exercise, repMinOverride, repMaxOverride, incrementOverride) {
   const sorted = [...history].sort((a,b)=>a.week-b.week);
   if (!sorted.length) return null;
-  const recent = sorted[sorted.length-1];
-  const twoBack = sorted.length>=2 ? sorted[sorted.length-2] : null;
+  // Exclude deload weeks from progression baseline — week 7 should be based on week 5, not week 6
+  const trainingOnly = sorted.filter(h => !isDeloadWeek(h.week));
+  const recent = trainingOnly.length ? trainingOnly[trainingOnly.length-1] : sorted[sorted.length-1];
+  const twoBack = trainingOnly.length>=2 ? trainingOnly[trainingOnly.length-2] : null;
   const [repMin, repMax] = [
     repMinOverride || (REP_SCHEMES[exercise]||[6,8])[0],
     repMaxOverride || (REP_SCHEMES[exercise]||[6,8])[1],
   ];
   const lastSets = recent.sets;
-  const lastWeight = lastSets[lastSets.length-1].weight;
+  // Use min weight as the working weight (consistent with chart display)
+  const lastWeight = Math.min(...lastSets.map(s=>s.weight));
   const workingSets = lastSets.filter(s=>s.weight===lastWeight);
   const totalRepsRecent = workingSets.reduce((a,s)=>a+s.reps,0);
-  const sameWeight = twoBack && lastWeight===twoBack.sets[twoBack.sets.length-1].weight;
-  const totalRepsTwoBack = twoBack
-    ? twoBack.sets.filter(s=>s.weight===twoBack.sets[twoBack.sets.length-1].weight).reduce((a,s)=>a+s.reps,0)
+  const twoBackWeight = twoBack ? Math.min(...twoBack.sets.map(s=>s.weight)) : null;
+  const sameWeight = twoBack && lastWeight===twoBackWeight;
+  const totalRepsTwoBack = sameWeight
+    ? twoBack.sets.filter(s=>s.weight===twoBackWeight).reduce((a,s)=>a+s.reps,0)
     : null;
   const isStalling = sameWeight && totalRepsTwoBack!=null && totalRepsRecent<totalRepsTwoBack;
   const allHitTop = workingSets.every(s=>s.reps>=repMax);
   const anyBelowBottom = workingSets.some(s=>s.reps<repMin);
   const intensity = recent.intensity || "medium";
-  let suggestedWeight = lastWeight, note="";
+  let suggestedWeight = lastWeight, note="", isBackoff = false;
   if (isDeload) {
     suggestedWeight = Math.round(lastWeight*0.6/2.5)*2.5;
     note="🔄 Deload — drop to 60%, focus on form.";
   } else if (isStalling) {
-    suggestedWeight = Math.round(lastWeight*0.9/2.5)*2.5;
-    note="⚠️ Stall detected. Back off 10%, rebuild.";
+    const inc = incrementOverride != null ? incrementOverride : (lastWeight>=100?5:2.5);
+    suggestedWeight = lastWeight - inc;
+    note=`⚠️ Stall detected. Back off ${inc}lbs — rebuild from here.`;
+    isBackoff = true;
   } else if (anyBelowBottom) {
-    suggestedWeight = Math.round(lastWeight*0.9/2.5)*2.5;
-    note=`⚠️ Reps dropped below ${repMin}. Drop weight.`;
+    const inc = incrementOverride != null ? incrementOverride : (lastWeight>=100?5:2.5);
+    suggestedWeight = lastWeight - inc;
+    note=`⚠️ Reps dropped below ${repMin}. Drop ${inc}lbs.`;
+    isBackoff = true;
   } else if (allHitTop) {
     if (intensity === "very hard") {
       suggestedWeight = lastWeight;
@@ -593,7 +601,7 @@ function getSuggestion(history, isDeload, exercise, repMinOverride, repMaxOverri
     const prog = totalRepsTwoBack!=null?` (${totalRepsTwoBack}→${totalRepsRecent} total reps)`:"";
     note=`📈 ${missed} set${missed>1?"s":""} below ${repMax}. Hold weight${prog}.`;
   }
-  return { suggestedWeight, note, isStalling, repMin, repMax, basedOnWeek:recent.week, intensity };
+  return { suggestedWeight, holdWeight: lastWeight, note, isStalling, isBackoff, repMin, repMax, basedOnWeek:recent.week, intensity };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1108,15 +1116,41 @@ function EditWorkoutInline({ entry, onSave, onCancel }) {
 // ─────────────────────────────────────────────────────────────────────────────
 // REST TIMER COMPONENT
 // ─────────────────────────────────────────────────────────────────────────────
-function RestTimer({ seconds, onDone, onSkip }) {
-  const [remaining, setRemaining] = useState(seconds);
-  const [running, setRunning] = useState(true);
+function RestTimer({ seconds, onDone, onSkip, timerState=null, setTimerState=()=>{} }) {
+  // Initialise from persisted state or fresh
+  const init = timerState ?? { remaining: seconds, total: seconds, running: true, startedAt: Date.now() };
+  const [remaining, setRemaining] = useState(init.remaining);
+  const [running, setRunning] = useState(init.running);
+  // Wall-clock reference so we can correct for time lost while Safari was backgrounded
+  const wallRef = React.useRef(running ? Date.now() : null);
+
+  // Persist to App on every tick
+  useEffect(() => {
+    setTimerState({ remaining, total: seconds, running, startedAt: wallRef.current });
+  }, [remaining, running]);
+
+  // On returning to Safari, calculate real elapsed time and jump remaining forward
+  useEffect(() => {
+    function onVisible() {
+      if (document.visibilityState === "visible" && running && wallRef.current) {
+        const elapsed = Math.floor((Date.now() - wallRef.current) / 1000);
+        if (elapsed > 1) setRemaining(r => Math.max(0, r - elapsed));
+        wallRef.current = Date.now();
+      }
+    }
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, [running]);
+
+  // Tick every second
   useEffect(() => {
     if (!running) return;
-    if (remaining <= 0) { onDone(); return; }
+    if (remaining <= 0) { setTimerState(null); onDone(); return; }
+    wallRef.current = Date.now();
     const t = setTimeout(() => setRemaining(r => r-1), 1000);
     return () => clearTimeout(t);
   }, [remaining, running]);
+
   const pct = remaining / seconds;
   const color = pct > 0.5 ? T.green : pct > 0.25 ? T.amber : T.red;
   return (
@@ -1148,15 +1182,18 @@ function RestTimer({ seconds, onDone, onSkip }) {
 // ─────────────────────────────────────────────────────────────────────────────
 // WORKOUT LOGGER COMPONENT
 // ─────────────────────────────────────────────────────────────────────────────
-function WorkoutLogger({ exercise, numSets, repMin, repMax, restSeconds, suggWeight, savedWarmups, onSave, onCancel }) {
+function WorkoutLogger({ exercise, numSets, repMin, repMax, restSeconds, suggWeight, holdWeight=null, isBackoff=false, savedWarmups, onSave, onCancel, timerState=null, setTimerState=()=>{} }) {
   const warmupSets = getWarmupSets(exercise, suggWeight || 0, savedWarmups);
+  // null = not decided yet, true = back off, false = keep weight
+  const [backoffDecision, setBackoffDecision] = useState(isBackoff ? null : false);
+  const effectiveWeight = backoffDecision === false && holdWeight ? holdWeight : suggWeight;
   const totalPhases = warmupSets.length + numSets; // warmup sets + working sets
   
   // phase: "warmup-N", "rest-warmup-N", "working-N", "rest-working-N", "done"
   const [phase, setPhase] = useState(warmupSets.length > 0 ? "warmup:0" : "working:0");
   const [loggedSets, setLoggedSets] = useState([]); // working sets only
   const [currentReps, setCurrentReps] = useState(String(repMax));
-  const [currentWeight, setCurrentWeight] = useState(String(suggWeight || ""));
+  const [currentWeight, setCurrentWeight] = useState(String((backoffDecision === false && holdWeight ? holdWeight : suggWeight) || ""));
   const [intensity, setIntensity] = useState("medium");
 
   // Phase format: "warmup:N", "rest-warmup:N", "working:N", "rest-working:N", "done"
@@ -1204,6 +1241,23 @@ function WorkoutLogger({ exercise, numSets, repMin, repMax, restSeconds, suggWei
 
   return (
     <div style={{ borderTop:`1px solid ${T.border}`, paddingTop:16 }}>
+      {/* Backoff prompt */}
+      {backoffDecision === null && (
+        <div style={{ background:T.amber+"18", border:`1px solid ${T.amber}44`, borderRadius:8, padding:"14px 16px", marginBottom:16 }}>
+          <div style={{ fontSize:12, fontWeight:700, color:T.amber, marginBottom:6 }}>⚠️ Backoff suggested</div>
+          <div style={{ fontSize:12, color:T.muted, marginBottom:14, lineHeight:1.5 }}>
+            Last session struggled at <strong style={{ color:T.text }}>{holdWeight} lbs</strong>. Suggested: drop to <strong style={{ color:T.text }}>{suggWeight} lbs</strong>.
+          </div>
+          <div style={{ display:"flex", gap:8 }}>
+            <button style={{ ...S.btn, flex:1, fontSize:12 }} onClick={()=>{ setBackoffDecision(true); setCurrentWeight(String(suggWeight||"")); setLogSets && setLogSets(p=>p.map(s=>({...s,weight:String(suggWeight||"")})));  }}>
+              Back off → {suggWeight} lbs
+            </button>
+            <button style={{ ...S.btnSm, flex:1, fontSize:12, color:T.muted }} onClick={()=>{ setBackoffDecision(false); setCurrentWeight(String(holdWeight||"")); }}>
+              I feel close — keep {holdWeight} lbs
+            </button>
+          </div>
+        </div>
+      )}
       {/* Progress bar */}
       <div style={{ marginBottom:16 }}>
         <div style={{ display:"flex", gap:4, marginBottom:6 }}>
@@ -1236,7 +1290,7 @@ function WorkoutLogger({ exercise, numSets, repMin, repMax, restSeconds, suggWei
 
       {/* REST TIMER */}
       {(type === "rest-warmup" || type === "rest-working") && (
-        <RestTimer seconds={restSecs} onDone={afterRest} onSkip={afterRest} />
+        <RestTimer seconds={restSecs} onDone={afterRest} onSkip={afterRest} timerState={timerState} setTimerState={setTimerState} />
       )}
 
       {/* WORKING SET */}
@@ -1292,10 +1346,16 @@ function WorkoutLogger({ exercise, numSets, repMin, repMax, restSeconds, suggWei
   );
 }
 
-function NextWorkoutTab({ workouts, currentWeek, userId, onWorkoutAdded, program, readOnly=false, manualWeek, setManualWeek, autoWeek, demoMode=false, weekStartDate: nwsd=weekStartDate }) {
+function NextWorkoutTab({ workouts, currentWeek, userId, onWorkoutAdded, program, readOnly=false, manualWeek, setManualWeek, autoWeek, demoMode=false, weekStartDate: nwsd=weekStartDate, timerState=null, setTimerState=()=>{} }) {
   const programDays = program?.days || DEFAULT_PROGRAM.days;
   const dayNames = programDays.map(d => d.name);
-  const [selectedDay, setSelectedDay] = useState(dayNames[0]);
+  const firstUnloggedDay = useMemo(() => {
+    const loggedDays = new Set(workouts.filter(w=>w.week===currentWeek).map(w=>w.day));
+    return dayNames.find(d => !loggedDays.has(d)) || dayNames[0];
+  }, [workouts, currentWeek, dayNames]);
+  const [selectedDay, setSelectedDay] = useState(firstUnloggedDay);
+  // Keep selectedDay in sync when week changes
+  useEffect(() => { setSelectedDay(firstUnloggedDay); }, [currentWeek]);
   const [expandedEx, setExpandedEx] = useState(null);
   const [logSets, setLogSets] = useState([{ reps:"", weight:"" }]);
   const [logNotes, setLogNotes] = useState("");
@@ -1546,6 +1606,8 @@ function NextWorkoutTab({ workouts, currentWeek, userId, onWorkoutAdded, program
                 repMax={repMax}
                 restSeconds={restSecs || 60}
                 suggWeight={suggCurrent?.suggestedWeight}
+                holdWeight={suggCurrent?.holdWeight}
+                isBackoff={suggCurrent?.isBackoff || false}
                 savedWarmups={warmups}
                 onSave={async (sets, intensity) => {
                   const today = new Date().toISOString().split("T")[0];
@@ -1561,6 +1623,8 @@ function NextWorkoutTab({ workouts, currentWeek, userId, onWorkoutAdded, program
                   }
                 }}
                 onCancel={closeLog}
+                timerState={timerState}
+                setTimerState={setTimerState}
               />
             )}
           </div>
@@ -1626,7 +1690,7 @@ function ExerciseTab({ workouts, currentWeek }) {
 
   const hist = useMemo(()=>getExHistory(workouts,selected),[workouts,selected]);
   const suggestion = useMemo(()=>getSuggestion(hist,isDeloadWeek(currentWeek+1),selected),[hist,currentWeek,selected]);
-  const chartData = hist.map(h=>({ x:h.week, y:Math.max(...h.sets.map(s=>s.weight)) }));
+  const chartData = hist.map(h=>({ x:h.date||h.week, y:Math.min(...h.sets.map(s=>s.weight)) }));
 
   return (
     <div>
@@ -2394,14 +2458,14 @@ const DAY_EXERCISE_ORDER = {
 function ExerciseMiniCard({ exercise, workouts, chartMode="weight" }) {
   const hist = getExHistory(workouts, exercise);
   if (!hist.length) return null;
-  const weightData = hist.map(h => ({ x: h.week, y: Math.max(...h.sets.map(s=>s.weight)) }));
-  const e1rmData = hist.map(h => ({ x: h.week, y: Math.round(avgE1rm(h.sets)) }));
+  const weightData = hist.map(h => ({ x: h.date||h.week, y: Math.min(...h.sets.map(s=>s.weight)) }));
+  const e1rmData = hist.map(h => ({ x: h.date||h.week, y: Math.round(avgE1rm(h.sets)) }));
   const chartData = chartMode === "e1rm" ? e1rmData : weightData;
   const latest = chartData[chartData.length - 1];
   const first = chartData[0];
   const gain = latest.y - first.y;
   const lastSets = hist[hist.length - 1].sets;
-  const lastWeight = Math.max(...lastSets.map(s=>s.weight));
+  const lastWeight = Math.min(...lastSets.map(s=>s.weight));
 
   return (
     <div style={{ ...S.card, padding:"12px 14px" }}>
@@ -2515,8 +2579,8 @@ function ProgressTab({ workouts }) {
   // ── View 3: Single Exercise ─────────────────────────────────────────────────
   if (view === "single") {
     const hist = getExHistory(workouts, activeExercise);
-    const weightData = hist.map(h => ({ x: h.week, y: Math.max(...h.sets.map(s=>s.weight)) }));
-    const e1rmData = hist.map(h => ({ x: h.week, y: Math.round(avgE1rm(h.sets)) }));
+    const weightData = hist.map(h => ({ x: h.date||h.week, y: Math.min(...h.sets.map(s=>s.weight)) }));
+    const e1rmData = hist.map(h => ({ x: h.date||h.week, y: Math.round(avgE1rm(h.sets)) }));
     const chartData = chartMode === "e1rm" ? e1rmData : weightData;
     const gain = chartData.length >= 2 ? chartData[chartData.length-1].y - chartData[0].y : 0;
     const suggestion = getSuggestion(hist, false, activeExercise);
