@@ -24,8 +24,6 @@
 <div id="root"></div>
 <script type="text/babel">
 
-
-
 // ─────────────────────────────────────────────────────────────────────────────
 // CONFIG
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1116,7 +1114,7 @@ function EditWorkoutInline({ entry, onSave, onCancel }) {
 // ─────────────────────────────────────────────────────────────────────────────
 // REST TIMER COMPONENT
 // ─────────────────────────────────────────────────────────────────────────────
-function RestTimer({ seconds, onDone, onSkip, timerState=null, setTimerState=()=>{} }) {
+function RestTimer({ seconds, onDone, onSkip, timerState=null, setTimerState=()=>{}, nextSetInfo=null }) {
   // Initialise from persisted state or fresh
   const init = timerState ?? { remaining: seconds, total: seconds, running: true, startedAt: Date.now() };
   const [remaining, setRemaining] = useState(init.remaining);
@@ -1175,6 +1173,14 @@ function RestTimer({ seconds, onDone, onSkip, timerState=null, setTimerState=()=
         <button style={S.btnSm} onClick={()=>setRunning(r=>!r)}>{running?"Pause":"Resume"}</button>
         <button style={{ ...S.btn, padding:"6px 20px" }} onClick={onSkip}>Skip →</button>
       </div>
+      {nextSetInfo && (
+        <div style={{ marginTop:16, padding:"10px 14px", background:T.surface, border:`1px solid ${T.border}`, borderRadius:8 }}>
+          <div style={{ fontSize:10, color:T.dim, textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:4 }}>Next up</div>
+          <div style={{ fontSize:14, fontWeight:600, color:T.text }}>
+            {nextSetInfo.label}{nextSetInfo.weight ? ` — ${nextSetInfo.weight} lbs` : ""}{nextSetInfo.reps ? ` × ${nextSetInfo.reps}` : ""}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -1289,9 +1295,21 @@ function WorkoutLogger({ exercise, numSets, repMin, repMax, restSeconds, suggWei
       )}
 
       {/* REST TIMER */}
-      {(type === "rest-warmup" || type === "rest-working") && (
-        <RestTimer seconds={restSecs} onDone={afterRest} onSkip={afterRest} timerState={timerState} setTimerState={setTimerState} />
-      )}
+      {(type === "rest-warmup" || type === "rest-working") && (() => {
+        let nextSetInfo = null;
+        if (type === "rest-warmup") {
+          const nextIdx = idx + 1;
+          if (nextIdx < warmupSets.length) {
+            const ns = warmupSets[nextIdx];
+            nextSetInfo = { label: ns.label, weight: ns.weight, reps: ns.reps };
+          } else {
+            nextSetInfo = { label: `Set 1 of ${numSets}`, weight: parseFloat(currentWeight) || effectiveWeight, reps: repMax };
+          }
+        } else if (type === "rest-working") {
+          nextSetInfo = { label: `Set ${idx+2} of ${numSets}`, weight: parseFloat(currentWeight) || effectiveWeight, reps: repMax };
+        }
+        return <RestTimer seconds={restSecs} onDone={afterRest} onSkip={afterRest} timerState={timerState} setTimerState={setTimerState} nextSetInfo={nextSetInfo} />;
+      })()}
 
       {/* WORKING SET */}
       {type === "working" && (
@@ -1397,7 +1415,7 @@ function NextWorkoutTab({ workouts, currentWeek, userId, onWorkoutAdded, program
     setLogSets(Array(numSets).fill(null).map(()=>({ reps:"", weight:w })));
   }
 
-  function closeLog() { setExpandedEx(null); }
+  function closeLog() { setExpandedEx(null); setTimerState(null); }
 
   async function saveLog(exercise) {
     const sets = logSets.filter(s=>s.reps!==""&&s.weight!=="").map(s=>({reps:Number(s.reps),weight:Number(s.weight)}));
@@ -3020,7 +3038,6 @@ function SettingsTab({ darkMode, onToggleDark, user, onSignOut, profileUrl, prog
 // ─────────────────────────────────────────────────────────────────────────────
 // ONBOARDING SCREEN
 // ─────────────────────────────────────────────────────────────────────────────
-
 function OnboardingScreen({ userId, onComplete }) {
   const [form, setForm] = useState({ name:"", heightFt:"", heightIn:"", weight:"", age:"", sex:"" });
   const [saving, setSaving] = useState(false);
