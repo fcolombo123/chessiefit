@@ -1227,6 +1227,7 @@ function WorkoutLogger({ exercise, numSets, repMin, repMax, restSeconds, suggWei
   }
 
   function afterRest() {
+    setTimerState(null);
     const { type, idx } = parsePhase(phase);
     if (type === "rest-warmup") {
       const nextIdx = idx + 1;
