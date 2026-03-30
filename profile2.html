@@ -1207,7 +1207,7 @@ function WorkoutLogger({ exercise, numSets, repMin, repMax, restSeconds, suggWei
   const [phase, setPhase] = useState(warmupSets.length > 0 ? "warmup:0" : "working:0");
   const [loggedSets, setLoggedSets] = useState([]); // working sets only
   const [currentReps, setCurrentReps] = useState(String(repMax));
-  const [currentWeight, setCurrentWeight] = useState(String((backoffDecision === false && holdWeight ? holdWeight : suggWeight) || ""));
+  const [currentWeight, setCurrentWeight] = useState(String(effectiveWeight || ""));
   const [intensity, setIntensity] = useState("medium");
 
   // Phase format: "warmup:N", "rest-warmup:N", "working:N", "rest-working:N", "done"
