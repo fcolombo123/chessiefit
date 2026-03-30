@@ -1119,11 +1119,13 @@ function RestTimer({ seconds, onDone, onSkip, timerState=null, setTimerState=()=
   const init = timerState ?? { remaining: seconds, total: seconds, running: true, startedAt: Date.now() };
   const [remaining, setRemaining] = useState(init.remaining);
   const [running, setRunning] = useState(init.running);
+  const doneRef = React.useRef(false);
   // Wall-clock reference so we can correct for time lost while Safari was backgrounded
   const wallRef = React.useRef(running ? Date.now() : null);
 
-  // Persist to App on every tick
+  // Persist to App on every tick (skip if timer was dismissed)
   useEffect(() => {
+    if (doneRef.current) return;
     setTimerState({ remaining, total: seconds, running, startedAt: wallRef.current });
   }, [remaining, running]);
 
@@ -1140,10 +1142,16 @@ function RestTimer({ seconds, onDone, onSkip, timerState=null, setTimerState=()=
     return () => document.removeEventListener("visibilitychange", onVisible);
   }, [running]);
 
+  function dismiss(cb) {
+    doneRef.current = true;
+    setTimerState(null);
+    cb();
+  }
+
   // Tick every second
   useEffect(() => {
     if (!running) return;
-    if (remaining <= 0) { setTimerState(null); onDone(); return; }
+    if (remaining <= 0) { dismiss(onDone); return; }
     wallRef.current = Date.now();
     const t = setTimeout(() => setRemaining(r => r-1), 1000);
     return () => clearTimeout(t);
@@ -1171,7 +1179,7 @@ function RestTimer({ seconds, onDone, onSkip, timerState=null, setTimerState=()=
       </div>
       <div style={{ display:"flex", gap:8, justifyContent:"center" }}>
         <button style={S.btnSm} onClick={()=>setRunning(r=>!r)}>{running?"Pause":"Resume"}</button>
-        <button style={{ ...S.btn, padding:"6px 20px" }} onClick={onSkip}>Skip →</button>
+        <button style={{ ...S.btn, padding:"6px 20px" }} onClick={()=>dismiss(onSkip)}>Skip →</button>
       </div>
       {nextSetInfo && (
         <div style={{ marginTop:16, padding:"10px 14px", background:T.surface, border:`1px solid ${T.border}`, borderRadius:8 }}>
@@ -1192,7 +1200,7 @@ function WorkoutLogger({ exercise, numSets, repMin, repMax, restSeconds, suggWei
   const warmupSets = getWarmupSets(exercise, suggWeight || 0, savedWarmups);
   // null = not decided yet, true = back off, false = keep weight
   const [backoffDecision, setBackoffDecision] = useState(isBackoff ? null : false);
-  const effectiveWeight = backoffDecision === false && holdWeight ? holdWeight : suggWeight;
+  const effectiveWeight = backoffDecision === false && holdWeight && isBackoff ? holdWeight : suggWeight;
   const totalPhases = warmupSets.length + numSets; // warmup sets + working sets
   
   // phase: "warmup-N", "rest-warmup-N", "working-N", "rest-working-N", "done"
